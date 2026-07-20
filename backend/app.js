@@ -7,6 +7,8 @@ const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const childRoutes = require("./routes/childRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
+const serviceRoutes = require("./routes/serviceRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 
 dotenv.config();
@@ -24,6 +26,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/users/children", childRoutes);
 app.use("/api/attendance",attendanceRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 
 app.get("/", (req, res) => {

@@ -9,15 +9,13 @@ const attendanceSchema = new mongoose.Schema(
         required:true
     },
 
-    code:{
-        type:String,
+
+    service:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"Service",
         required:true
     },
 
-    serviceDate:{
-        type:Date,
-        required:true
-    },
 
     status:{
         type:String,
@@ -27,34 +25,43 @@ const attendanceSchema = new mongoose.Schema(
         ],
         default:"Present"
     },
-    attendanceMethod:{
-    type:String,
-    enum:[
-        "Self",
-        "Parent",
-        "Admin"
-    ],
-    default:"Self"
-},
 
-    markedAt:{
-        type:Date,
-        default:Date.now
+
+    attendanceMethod:{
+        type:String,
+        enum:[
+            "Self",
+            "Parent",
+            "Admin"
+        ],
+        default:"Self"
+    },
+
+
+    markedBy:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"User",
+        default:null
     }
 
 },
 {
     timestamps:true
 });
+
+
+
+// Prevent duplicate attendance
+
 attendanceSchema.index(
-    {
-        user:1,
-        serviceDate:1
-    },
-    {
-        unique:true
-    }
-);
+{
+    user:1,
+    service:1
+},
+{
+    unique:true
+});
+
 
 module.exports =
 mongoose.model(

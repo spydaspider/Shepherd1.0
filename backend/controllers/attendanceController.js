@@ -1,5 +1,6 @@
-const AttendanceCode = require("../models/AttendanceCode");
-const Attendance = require("../models/Attendance");
+/* const AttendanceCode = require("../models/AttendanceCode");
+ */const Attendance = require("../models/Attendance");
+ const Service = require("../models/Service");
 const User = require("../models/User");
 
 
@@ -100,227 +101,189 @@ const generateAttendanceCode = async (req, res) => {
 
 const markAttendance = async(req,res)=>{
 
-    try {
+try{
 
-        let {
+
+let {
     code,
-    members
-} = req.body;
+    members=[]
+}=req.body;
 
 
-// Make sure members is always an array
 
-if(!Array.isArray(members)){
+// Automatically include logged in user
 
-    members = [];
+if(!members.includes(req.user._id.toString())){
+
+    members.push(
+        req.user._id.toString()
+    );
+
+}
+
+
+
+// Find active service
+
+const service =
+await Service.findOne({
+
+    attendanceCode:code,
+
+    active:true
+
+});
+
+
+
+if(!service){
+
+    return res.status(400).json({
+
+        success:false,
+
+        message:"Invalid or expired attendance code"
+
+    });
 
 }
 
 
-// Automatically include logged-in user
 
-const userId = req.user._id.toString();
+// Check family members
+
+const familyMembers =
+await User.find({
+
+    _id:{
+        $in:members
+    },
+
+    $or:[
+
+        {
+            _id:req.user._id
+        },
+
+        {
+            parent:req.user._id
+        }
+
+    ]
+
+});
 
 
-if(!members.includes(userId)){
 
-    members.push(userId);
+if(
+familyMembers.length !== members.length
+){
+
+return res.status(403).json({
+
+    success:false,
+
+    message:"You can only mark attendance for your family"
+
+});
 
 }
 
-        // Validate members
 
-        if(!members || members.length === 0){
 
-            return res.status(400).json({
+let attendanceCreated=[];
 
-                success:false,
-                message:"Please select members attending"
-
-            });
-
-        }
+let alreadyMarked=[];
 
 
 
-        // Check attendance code
-
-        const attendanceCode =
-        await AttendanceCode.findOne({
-
-            code,
-
-            active:true
-
-        });
+for(const member of familyMembers){
 
 
+const exists =
+await Attendance.findOne({
 
-        if(!attendanceCode){
+    user:member._id,
 
-            return res.status(400).json({
+    service:service._id
 
-                success:false,
-                message:"Invalid attendance code"
+});
 
-            });
-
-        }
-
-
-
-        // Check expiry
-
-        if(
-            new Date() >
-            attendanceCode.expiresAt
-        ){
-
-            return res.status(400).json({
-
-                success:false,
-                message:"Attendance code expired"
-
-            });
-
-        }
-
-
-
-        // Verify selected members belong to parent
-
-        const familyMembers =
-        await User.find({
-
-            _id:{
-                $in:members
-            },
-
-            $or:[
-
-                {
-                    _id:req.user._id
-                },
-
-                {
-                    parent:req.user._id
-                }
-
-            ]
-
-        });
-
-
-
-        if(
-            familyMembers.length !== members.length
-        ){
-
-            return res.status(403).json({
-
-                success:false,
-                message:"You can only mark attendance for your family"
-
-            });
-
-        }
-
-
-
-        let attendanceRecords=[];
-        let alreadyMarked=[];
-
-
-
-        for(const member of familyMembers){
-
-
-            // Prevent duplicate attendance
-
-            const exists =
-            await Attendance.findOne({
-
-                user:member._id,
-
-                serviceDate:
-                attendanceCode.serviceDate
-
-            });
 
 
 if(exists){
 
-    alreadyMarked.push(member._id);
+    alreadyMarked.push(member);
 
 }
+
 else{
 
 
-   const attendance =
+const attendance =
 await Attendance.create({
 
     user:member._id,
 
-    code,
-
-    serviceDate:
-    attendanceCode.serviceDate,
-
-    status:"Present",
+    service:service._id,
 
     attendanceMethod:
     member._id.toString() === req.user._id.toString()
-    ? "Self"
-    : "Parent"
+    ?
+    "Self"
+    :
+    "Parent",
+
+
+    markedBy:req.user._id
 
 });
 
 
-    attendanceRecords.push(attendance);
+attendanceCreated.push(attendance);
 
 
 }
-        }
 
 
 
-       res.status(201).json({
+}
 
-    success:true,
 
-    message:"Family attendance processed",
 
-    newlyMarked:
-    attendanceRecords.length,
+res.status(201).json({
 
-    alreadyMarked:
-    alreadyMarked.length,
+success:true,
 
-    attendance:attendanceRecords
+message:"Attendance processed",
+
+service:service.name,
+
+newAttendance:attendanceCreated.length,
+
+alreadyMarked:alreadyMarked.length,
+
+attendance:attendanceCreated
 
 });
 
 
 
-    }
-    catch(error){
+}
+catch(error){
 
+res.status(500).json({
 
-        res.status(500).json({
+success:false,
 
-            success:false,
+message:error.message
 
-            message:error.message
+});
 
-        });
-
-
-    }
+}
 
 
 };
-
-
 
 
 module.exports = {
