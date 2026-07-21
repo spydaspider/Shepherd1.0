@@ -31,7 +31,7 @@ router.get("/active", protect, getActiveService);
 
 // End a service
 router.patch(
-    "//:id/end",
+    "/:id/end",
     protect,
     authorizeRoles(
         "Admin",
