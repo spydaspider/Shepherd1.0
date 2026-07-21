@@ -2,6 +2,10 @@ const mongoose = require("mongoose");
 
 const serviceSchema = new mongoose.Schema(
   {
+    // ==================================
+    // Service Information
+    // ==================================
+
     name: {
       type: String,
       required: true,
@@ -41,6 +45,10 @@ const serviceSchema = new mongoose.Schema(
       default: "",
     },
 
+    // ==================================
+    // Attendance
+    // ==================================
+
     attendanceCode: {
       type: String,
       required: true,
@@ -50,6 +58,57 @@ const serviceSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    closed: {
+      type: Boolean,
+      default: false,
+    },
+
+    closedAt: {
+      type: Date,
+      default: null,
+    },
+
+    attendanceSummary: {
+      totalPresent: {
+        type: Number,
+        default: 0,
+      },
+
+      totalAbsent: {
+        type: Number,
+        default: 0,
+      },
+
+      adultsPresent: {
+        type: Number,
+        default: 0,
+      },
+
+      childrenPresent: {
+        type: Number,
+        default: 0,
+      },
+
+      malePresent: {
+        type: Number,
+        default: 0,
+      },
+
+      femalePresent: {
+        type: Number,
+        default: 0,
+      },
+
+      attendanceRate: {
+        type: Number,
+        default: 0,
+      },
+    },
+
+    // ==================================
+    // Audit
+    // ==================================
 
     generatedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -67,6 +126,10 @@ const serviceSchema = new mongoose.Schema(
   }
 );
 
+// ==================================
+// Indexes
+// ==================================
+
 // Only one active service at a time
 serviceSchema.index(
   {
@@ -79,5 +142,15 @@ serviceSchema.index(
     },
   }
 );
+
+// Fast attendance code lookup
+serviceSchema.index({
+  attendanceCode: 1,
+});
+
+// Fast service history sorting
+serviceSchema.index({
+  serviceDate: -1,
+});
 
 module.exports = mongoose.model("Service", serviceSchema);

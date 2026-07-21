@@ -1,163 +1,178 @@
 const User = require("../models/User");
-const Attendance = require("../models/Attendance");
 const Service = require("../models/Service");
 
 
 // ==========================================
-// Church Dashboard Statistics
-// GET /api/dashboard
+// Church Overview
+// GET /api/dashboard/overview
 // ==========================================
 
-const getDashboardStats = async (req, res) => {
+const getOverview = async (req,res)=>{
 
-    try {
+try{
 
 
-        // Total active members
+const totalMembers =
+await User.countDocuments({
+    isActive:true
+});
 
-        const totalMembers =
-        await User.countDocuments({
-            isActive:true
-        });
 
+const adults =
+await User.countDocuments({
 
+    isActive:true,
 
-        // Adults
+    isChild:false
 
-        const totalAdults =
-        await User.countDocuments({
+});
 
-            isChild:false,
 
-            isActive:true
+const children =
+await User.countDocuments({
 
-        });
+    isActive:true,
 
+    isChild:true
 
+});
 
-        // Children
 
-        const totalChildren =
-        await User.countDocuments({
+const male =
+await User.countDocuments({
 
-            isChild:true,
+    gender:"Male",
 
-            isActive:true
+    isActive:true
 
-        });
+});
 
 
+const female =
+await User.countDocuments({
 
-        // Gender statistics
+    gender:"Female",
 
-        const totalMale =
-        await User.countDocuments({
+    isActive:true
 
-            gender:"Male",
+});
 
-            isActive:true
 
-        });
 
+res.json({
 
+    success:true,
 
-        const totalFemale =
-        await User.countDocuments({
+    overview:{
 
-            gender:"Female",
+        totalMembers,
 
-            isActive:true
+        adults,
 
-        });
+        children,
 
+        male,
 
-
-        // Find today's service
-
-        const today = new Date();
-
-        today.setHours(
-            0,
-            0,
-            0,
-            0
-        );
-
-
-        const service =
-        await Service.findOne({
-
-            serviceDate:{
-                $gte:today
-            },
-
-            active:true
-
-        });
-
-
-
-        let presentToday = 0;
-
-
-        if(service){
-
-            presentToday =
-            await Attendance.countDocuments({
-
-                service:service._id,
-
-                status:"Present"
-
-            });
-
-        }
-
-
-
-        const absentToday =
-        totalMembers - presentToday;
-
-
-
-        res.json({
-
-            success:true,
-
-            statistics:{
-
-                totalMembers,
-
-                totalAdults,
-
-                totalChildren,
-
-                totalMale,
-
-                totalFemale,
-
-                presentToday,
-
-                absentToday
-
-            }
-
-        });
-
-
+        female
 
     }
-    catch(error){
 
-        res.status(500).json({
+});
 
-            success:false,
 
-            message:error.message
+}
+catch(error){
 
-        });
+res.status(500).json({
 
-    }
+    success:false,
+
+    message:error.message
+
+});
+
+}
+
+};
+
+
+
+
+// ==========================================
+// Service Dashboard
+// GET /api/dashboard/service/:serviceId
+// ==========================================
+
+const getServiceDashboard = async(req,res)=>{
+
+try{
+
+
+const service =
+await Service.findById(
+    req.params.serviceId
+);
+
+
+
+if(!service){
+
+return res.status(404).json({
+
+    success:false,
+
+    message:"Service not found"
+
+});
+
+}
+
+
+
+res.json({
+
+    success:true,
+
+
+    service:{
+
+
+        id:service._id,
+
+        name:service.name,
+
+        serviceType:service.serviceType,
+
+        serviceDate:service.serviceDate,
+
+        attendanceCode:service.attendanceCode
+
+
+    },
+
+
+    attendanceSummary:
+    service.attendanceSummary
+
+
+});
+
+
+}
+catch(error){
+
+
+res.status(500).json({
+
+    success:false,
+
+    message:error.message
+
+});
+
+
+}
+
 
 };
 
@@ -165,6 +180,8 @@ const getDashboardStats = async (req, res) => {
 
 module.exports = {
 
-    getDashboardStats
+    getOverview,
+
+    getServiceDashboard
 
 };

@@ -2,9 +2,9 @@ const express = require("express");
 
 const router = express.Router();
 
-
 const {
-    getDashboardStats
+    getOverview,
+    getServiceDashboard
 }
 =
 require("../controllers/dashboardController");
@@ -17,20 +17,19 @@ const {
 require("../middleware/authMiddleware");
 
 
-const authorizeRoles =
-require("../middleware/roleMiddleware");
+
+router.get(
+"/overview",
+protect,
+getOverview
+);
 
 
 
 router.get(
-"/",
+"/service/:serviceId",
 protect,
-authorizeRoles(
-    "Admin",
-    "Pastor",
-    "Leader"
-),
-getDashboardStats
+getServiceDashboard
 );
 
 
