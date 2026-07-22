@@ -5,19 +5,20 @@ const FollowUp = require("../models/FollowUp");
 
 
 
+
 // ==========================================
 // Main Dashboard
 // GET /api/dashboard
 // ==========================================
 
-const getDashboard = async(req,res)=>{
+const getDashboard = async (req, res) => {
 
 try{
 
 
-// ===============================
-// Member Statistics
-// ===============================
+// =================================
+// MEMBER STATISTICS
+// =================================
 
 
 const totalMembers =
@@ -68,20 +69,26 @@ await User.countDocuments({
 
 
 
-// ===============================
-// Active Service
-// ===============================
+
+// =================================
+// ACTIVE SERVICE
+// =================================
 
 
-let activeService =
+let service =
 await Service.findOne({
+
     active:true
+
 });
 
 
-if(!activeService){
+// If no active service,
+// get latest service
 
-    activeService =
+if(!service){
+
+    service =
     await Service.findOne()
     .sort({
         serviceDate:-1
@@ -91,7 +98,15 @@ if(!activeService){
 
 
 
-let attendanceData = {
+
+
+
+// =================================
+// ATTENDANCE DATA
+// =================================
+
+
+let attendance = {
 
     present:0,
 
@@ -103,19 +118,15 @@ let attendanceData = {
 
 
 
-
-// ===============================
-// Attendance Statistics
-// ===============================
-
-
-if(activeService){
+if(service){
 
 
 const present =
 await Attendance.countDocuments({
 
-    service:activeService._id
+    service:service._id,
+
+    status:"Present"
 
 });
 
@@ -128,20 +139,30 @@ totalMembers - present;
 
 const rate =
 totalMembers > 0
+
 ?
+
 Number(
+
 (
+
 present /
+
 totalMembers *
+
 100
+
 ).toFixed(2)
+
 )
+
 :
+
 0;
 
 
 
-attendanceData={
+attendance={
 
     present,
 
@@ -152,14 +173,17 @@ attendanceData={
 };
 
 
-
 }
 
 
 
-// ===============================
-// Follow Up Statistics
-// ===============================
+
+
+
+
+// =================================
+// FOLLOW UP DATA
+// =================================
 
 
 const pendingFollowUps =
@@ -182,12 +206,15 @@ await FollowUp.countDocuments({
 
 
 
-// ===============================
-// Recent Members
-// ===============================
+
+
+// =================================
+// RECENT MEMBERS
+// =================================
 
 
 const recentMembers =
+
 await User.find({
 
     isActive:true
@@ -203,7 +230,9 @@ await User.find({
 .limit(5)
 
 .select(
+
 "firstName lastName email createdAt"
+
 );
 
 
@@ -211,9 +240,9 @@ await User.find({
 
 
 
-// ===============================
-// Response
-// ===============================
+// =================================
+// RESPONSE
+// =================================
 
 
 res.json({
@@ -227,45 +256,55 @@ dashboard:{
 members:{
 
 
-    totalMembers,
+totalMembers,
 
-    adults,
+adults,
 
-    children,
+children,
 
-    male,
+male,
 
-    female
+female
 
 
 },
 
 
 
-service:activeService
+
+service:
+
+service
+
 ?
+
 {
 
-    id:activeService._id,
+id:service._id,
 
-    name:activeService.name,
+name:service.name,
 
-    serviceType:activeService.serviceType,
+serviceType:service.serviceType,
 
-    date:activeService.serviceDate,
+serviceDate:service.serviceDate,
 
-    attendanceCode:
-    activeService.attendanceCode
+attendanceCode:service.attendanceCode,
+
+attendanceSummary:
+service.attendanceSummary
+
 
 }
+
 :
+
 null,
 
 
 
 
 
-attendance:attendanceData,
+attendance,
 
 
 
@@ -274,9 +313,9 @@ attendance:attendanceData,
 followUps:{
 
 
-    pending:pendingFollowUps,
+pending:pendingFollowUps,
 
-    completed:completedFollowUps
+completed:completedFollowUps
 
 
 },
@@ -294,6 +333,7 @@ recentMembers
 
 
 });
+
 
 
 }
@@ -318,12 +358,18 @@ message:error.message
 
 
 
+
+
+
+
 // ==========================================
 // Church Overview
 // GET /api/dashboard/overview
 // ==========================================
 
+
 const getOverview = async(req,res)=>{
+
 
 try{
 
@@ -331,7 +377,7 @@ try{
 const totalMembers =
 await User.countDocuments({
 
-    isActive:true
+isActive:true
 
 });
 
@@ -340,9 +386,9 @@ await User.countDocuments({
 const adults =
 await User.countDocuments({
 
-    isActive:true,
+isActive:true,
 
-    isChild:false
+isChild:false
 
 });
 
@@ -351,9 +397,9 @@ await User.countDocuments({
 const children =
 await User.countDocuments({
 
-    isActive:true,
+isActive:true,
 
-    isChild:true
+isChild:true
 
 });
 
@@ -362,9 +408,9 @@ await User.countDocuments({
 const male =
 await User.countDocuments({
 
-    gender:"Male",
+isActive:true,
 
-    isActive:true
+gender:"Male"
 
 });
 
@@ -373,11 +419,12 @@ await User.countDocuments({
 const female =
 await User.countDocuments({
 
-    gender:"Female",
+isActive:true,
 
-    isActive:true
+gender:"Female"
 
 });
+
 
 
 
@@ -406,8 +453,10 @@ female
 });
 
 
+
 }
 catch(error){
+
 
 res.status(500).json({
 
@@ -416,6 +465,7 @@ success:false,
 message:error.message
 
 });
+
 
 }
 
@@ -426,10 +476,15 @@ message:error.message
 
 
 
+
+
+
+
 // ==========================================
 // Service Dashboard
 // GET /api/dashboard/service/:serviceId
 // ==========================================
+
 
 const getServiceDashboard = async(req,res)=>{
 
@@ -438,13 +493,19 @@ try{
 
 
 const service =
+
 await Service.findById(
+
 req.params.serviceId
+
 );
 
 
 
+
+
 if(!service){
+
 
 return res.status(404).json({
 
@@ -454,7 +515,11 @@ message:"Service not found"
 
 });
 
+
 }
+
+
+
 
 
 
@@ -490,6 +555,7 @@ service.attendanceSummary
 });
 
 
+
 }
 catch(error){
 
@@ -506,7 +572,9 @@ message:error.message
 }
 
 
+
 };
+
 
 
 

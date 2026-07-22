@@ -3,20 +3,27 @@ const express = require("express");
 const router = express.Router();
 
 
+
 const {
+
     getDashboard,
+
     getOverview,
+
     getServiceDashboard
-}
-=
-require("../controllers/dashboardController");
+
+} = require("../controllers/dashboardController");
+
 
 
 const {
     protect
-}
-=
-require("../middleware/authMiddleware");
+} = require("../middleware/authMiddleware");
+
+
+
+const checkPermission =
+require("../middleware/permissionMiddleware");
 
 
 
@@ -27,24 +34,41 @@ require("../middleware/authMiddleware");
 // ==========================================
 
 router.get(
+
     "/",
+
     protect,
+
+    checkPermission(
+        "VIEW_DASHBOARD"
+    ),
+
     getDashboard
+
 );
 
 
 
 
 // ==========================================
-// Church Overview
+// Church Overview Dashboard
 // GET /api/dashboard/overview
 // ==========================================
 
 router.get(
+
     "/overview",
+
     protect,
+
+    checkPermission(
+        "VIEW_DASHBOARD"
+    ),
+
     getOverview
+
 );
+
 
 
 
@@ -55,9 +79,17 @@ router.get(
 // ==========================================
 
 router.get(
+
     "/service/:serviceId",
+
     protect,
+
+    checkPermission(
+        "VIEW_DASHBOARD"
+    ),
+
     getServiceDashboard
+
 );
 
 

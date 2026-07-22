@@ -1,43 +1,115 @@
 const express = require("express");
+
 const router = express.Router();
 
+
 const {
-  createService,
-  getActiveService,
-  endService,
-  getServices,
+
+    createService,
+
+    getActiveService,
+
+    endService,
+
+    getServices
+
 } = require("../controllers/serviceController");
 
-const { protect } = require("../middleware/authMiddleware");
-const authorizeRoles = require("../middleware/roleMiddleware");
 
-// Create a new service
+
+const {
+    protect
+} = require("../middleware/authMiddleware");
+
+
+
+const checkPermission =
+require("../middleware/permissionMiddleware");
+
+
+
+
+// ==========================================
+// Create Service
+// POST /api/services
+// ==========================================
+
 router.post(
+
     "/",
+
     protect,
-    authorizeRoles(
-        "Admin",
-        "Pastor",
-        "Leader"
+
+    checkPermission(
+        "CREATE_SERVICE"
     ),
+
     createService
+
 );
 
-// Get all services
-router.get("/", protect, getServices);
 
-// Get active service
-router.get("/active", protect, getActiveService);
 
-// End a service
-router.patch(
-    "/:id/end",
+
+
+// ==========================================
+// Get All Services
+// GET /api/services
+// ==========================================
+
+router.get(
+
+    "/",
+
     protect,
-    authorizeRoles(
-        "Admin",
-        "Pastor",
-        "Leader"
-    ),
-    endService
+
+    getServices
+
 );
+
+
+
+
+
+// ==========================================
+// Get Active Service
+// GET /api/services/active
+// ==========================================
+
+router.get(
+
+    "/active",
+
+    protect,
+
+    getActiveService
+
+);
+
+
+
+
+
+// ==========================================
+// End Service
+// PATCH /api/services/:id/end
+// ==========================================
+
+router.patch(
+
+    "/:id/end",
+
+    protect,
+
+    checkPermission(
+        "END_SERVICE"
+    ),
+
+    endService
+
+);
+
+
+
+
 module.exports = router;
