@@ -2,7 +2,9 @@ const express = require("express");
 
 const router = express.Router();
 
+
 const {
+    getDashboard,
     getOverview,
     getServiceDashboard
 }
@@ -18,18 +20,44 @@ require("../middleware/authMiddleware");
 
 
 
+
+// ==========================================
+// Main Dashboard
+// GET /api/dashboard
+// ==========================================
+
 router.get(
-"/overview",
-protect,
-getOverview
+    "/",
+    protect,
+    getDashboard
 );
 
 
 
+
+// ==========================================
+// Church Overview
+// GET /api/dashboard/overview
+// ==========================================
+
 router.get(
-"/service/:serviceId",
-protect,
-getServiceDashboard
+    "/overview",
+    protect,
+    getOverview
+);
+
+
+
+
+// ==========================================
+// Service Dashboard
+// GET /api/dashboard/service/:serviceId
+// ==========================================
+
+router.get(
+    "/service/:serviceId",
+    protect,
+    getServiceDashboard
 );
 
 
