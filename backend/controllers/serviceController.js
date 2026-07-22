@@ -1,7 +1,6 @@
 const Service = require("../models/Service");
-const User = require("../models/User");
-const Attendance = require("../models/Attendance");
-const FollowUp = require("../models/FollowUp");
+const generateFollowUps = require("../utils/generateFollowUps");
+
 
 
 // ==========================================
@@ -18,93 +17,120 @@ const generateAttendanceCode = () => {
 
 
 
+
+
 // ==========================================
 // Create Service
 // POST /api/services
 // ==========================================
 
-const createService = async (req, res) => {
+const createService = async(req,res)=>{
 
-    try {
-
-        const {
-            name,
-            serviceType,
-            serviceDate,
-            startTime,
-            endTime,
-            description,
-        } = req.body;
+try{
 
 
+const {
 
-        // Deactivate previous service
+name,
 
-        await Service.updateMany(
-            { active:true },
-            {
-                active:false
-            }
-        );
+serviceType,
+
+serviceDate,
+
+startTime,
+
+endTime,
+
+description
+
+}=req.body;
 
 
 
-        const attendanceCode =
-        generateAttendanceCode();
+// Close previous active service
+
+await Service.updateMany(
+
+{
+active:true
+},
+
+{
+active:false
+}
+
+);
 
 
 
-        const service =
-        await Service.create({
 
-            name,
-
-            serviceType,
-
-            serviceDate,
-
-            startTime,
-
-            endTime,
-
-            description,
-
-            attendanceCode,
-
-            generatedBy:req.user._id,
-
-            active:true
-
-        });
+const attendanceCode =
+generateAttendanceCode();
 
 
 
-        res.status(201).json({
-
-            success:true,
-
-            message:"Service created successfully",
-
-            service
-
-        });
 
 
+const service =
+await Service.create({
 
-    }
-    catch(error){
+name,
 
-        res.status(500).json({
+serviceType,
 
-            success:false,
+serviceDate,
 
-            message:error.message
+startTime,
 
-        });
+endTime,
 
-    }
+description,
+
+attendanceCode,
+
+generatedBy:req.user._id,
+
+active:true,
+
+closed:false
+
+});
+
+
+
+
+res.status(201).json({
+
+success:true,
+
+message:"Service created successfully",
+
+service
+
+});
+
+
+}
+catch(error){
+
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
+
 
 };
+
+
+
+
 
 
 
@@ -115,6 +141,7 @@ const createService = async (req, res) => {
 // GET /api/services/active
 // ==========================================
 
+
 const getActiveService = async(req,res)=>{
 
 
@@ -124,7 +151,7 @@ try{
 const service =
 await Service.findOne({
 
-    active:true
+active:true
 
 });
 
@@ -134,9 +161,9 @@ if(!service){
 
 return res.status(404).json({
 
-    success:false,
+success:false,
 
-    message:"No active service found"
+message:"No active service found"
 
 });
 
@@ -156,6 +183,7 @@ service
 }
 catch(error){
 
+
 res.status(500).json({
 
 success:false,
@@ -164,10 +192,15 @@ message:error.message
 
 });
 
+
 }
 
 
 };
+
+
+
+
 
 
 
@@ -178,6 +211,7 @@ message:error.message
 // PATCH /api/services/:id/end
 // ==========================================
 
+
 const endService = async(req,res)=>{
 
 
@@ -186,132 +220,62 @@ try{
 
 const service =
 await Service.findById(
-    req.params.id
+req.params.id
 );
+
 
 
 
 if(!service){
 
+
 return res.status(404).json({
 
-    success:false,
+success:false,
 
-    message:"Service not found"
+message:"Service not found"
 
 });
 
+
 }
+
+
 
 
 
 if(!service.active){
 
+
 return res.status(400).json({
 
-    success:false,
+success:false,
 
-    message:"Service already closed"
+message:"Service already closed"
 
 });
+
 
 }
 
 
 
 
-// Get all active members
 
-const members =
-await User.find({
-
-    isActive:true
-
-});
-
-
-
-
-// Get attendance records
-
-const attendance =
-await Attendance.find({
-
-    service:service._id
-
-});
-
-
-
-
-// Extract present users
-
-const presentIds =
-attendance.map(
-    item => item.user.toString()
-);
-
-
-
-
-// Find absentees
-
-const absentees =
-members.filter(
-
-member =>
-
-!presentIds.includes(
-    member._id.toString()
-)
-
-);
-
-
-
-
-// Create follow-up tasks
+// Generate automatic absentee follow-ups
 
 const followUps =
-absentees.map(member=>({
+await generateFollowUps(
+service._id
+);
 
 
-    member:member._id,
-
-
-    service:service._id,
-
-
-    assignedTo:req.user._id,
-
-
-    type:"Phone Call",
-
-
-    status:"Pending",
-
-
-    createdBy:req.user._id
-
-
-}));
-
-
-
-
-
-if(followUps.length > 0){
-
-    await FollowUp.insertMany(
-        followUps
-    );
-
-}
 
 
 
 
 // Close service
+
 
 service.active=false;
 
@@ -321,8 +285,9 @@ service.closedAt=new Date();
 
 
 
-
 await service.save();
+
+
 
 
 
@@ -333,15 +298,20 @@ success:true,
 
 message:"Service closed successfully",
 
-absentMembers:
-absentees.length,
+service:{
+
+id:service._id,
+
+name:service.name
+
+},
 
 followUpsCreated:
-followUps.length,
+followUps.length
 
-service
 
 });
+
 
 
 }
@@ -366,10 +336,15 @@ message:error.message
 
 
 
+
+
+
+
 // ==========================================
 // Get All Services
 // GET /api/services
 // ==========================================
+
 
 const getServices = async(req,res)=>{
 
@@ -420,14 +395,18 @@ message:error.message
 
 
 
-module.exports = {
 
-    createService,
 
-    getActiveService,
+module.exports={
 
-    endService,
 
-    getServices
+createService,
+
+getActiveService,
+
+endService,
+
+getServices
+
 
 };
