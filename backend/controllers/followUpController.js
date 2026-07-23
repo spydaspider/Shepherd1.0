@@ -1,244 +1,363 @@
 const FollowUp = require("../models/FollowUp");
 
-const User = require("../models/User");
-
-const Service = require("../models/Service");
-
 
 
 // =====================================
-// Create Follow Up Task
-// POST /api/followup
+// Get All Follow Ups
+// GET /api/followups
 // =====================================
 
-const createFollowUp = async(req,res)=>{
+const getFollowUps = async (req, res) => {
 
+    try {
 
-try{
+        let query = {};
 
+        // Leaders only see follow-ups assigned to them
+        if (
+            req.user.role !== "Admin" &&
+            req.user.role !== "Pastor"
+        ) {
 
-const {
+            query.assignedTo = req.user._id;
 
-member,
+        }
 
-service,
+        const followUps = await FollowUp.find(query)
 
-assignedTo,
+            .populate(
+                "member",
+                "firstName lastName phone"
+            )
 
-type,
+            .populate(
+                "assignedTo",
+                "firstName lastName role"
+            )
 
-notes
+            .populate(
+                "service",
+                "name serviceDate"
+            )
 
-}=req.body;
+            .sort({
+                createdAt: -1
+            });
 
+        res.json({
 
+            success: true,
 
-const followUp =
-await FollowUp.create({
+            count: followUps.length,
 
+            followUps
 
-member,
+        });
 
-service,
+    }
+    catch (error) {
 
-assignedTo,
+        res.status(500).json({
 
-type,
+            success: false,
 
-notes,
+            message: error.message
 
-createdBy:req.user._id
+        });
 
-
-});
-
-
-
-res.status(201).json({
-
-success:true,
-
-message:"Follow up created",
-
-followUp
-
-});
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-}
-
+    }
 
 };
 
+
+
+// =====================================
+// Get Single Follow Up
+// GET /api/followups/:id
+// =====================================
+
+const getFollowUp = async (req, res) => {
+
+    try {
+
+        const followUp = await FollowUp.findById(req.params.id)
+
+            .populate(
+                "member"
+            )
+
+            .populate(
+                "assignedTo",
+                "firstName lastName role"
+            )
+
+            .populate(
+                "service"
+            );
+
+        if (!followUp) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Follow up not found"
+
+            });
+
+        }
+
+        res.json({
+
+            success: true,
+
+            followUp
+
+        });
+
+    }
+    catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
 
 
 
 // =====================================
 // Get Pending Follow Ups
-// GET /api/followup
+// GET /api/followups/pending
 // =====================================
 
-const getFollowUps = async(req,res)=>{
+const getPendingFollowUps = async (req, res) => {
 
+    try {
 
-try{
+        let query = {
 
+            status: "Pending"
 
-const followUps =
-await FollowUp.find()
+        };
 
-.populate(
-"member",
-"firstName lastName phone"
-)
+        if (
+            req.user.role !== "Admin" &&
+            req.user.role !== "Pastor"
+        ) {
 
-.populate(
-"assignedTo",
-"firstName lastName"
-)
+            query.assignedTo = req.user._id;
 
-.populate(
-"service",
-"name serviceDate"
-);
+        }
 
+        const followUps = await FollowUp.find(query)
 
+            .populate(
+                "member",
+                "firstName lastName phone"
+            )
 
-res.json({
+            .populate(
+                "assignedTo",
+                "firstName lastName"
+            )
 
-success:true,
+            .populate(
+                "service",
+                "name serviceDate"
+            )
 
-count:followUps.length,
+            .sort({
+                createdAt: -1
+            });
 
-followUps
+        res.json({
 
-});
+            success: true,
 
+            count: followUps.length,
 
-}
-catch(error){
+            followUps
 
+        });
 
-res.status(500).json({
+    }
+    catch (error) {
 
-success:false,
+        res.status(500).json({
 
-message:error.message
+            success: false,
 
-});
+            message: error.message
 
+        });
 
-}
-
+    }
 
 };
 
+
+
+// =====================================
+// Get Completed Follow Ups
+// GET /api/followups/completed
+// =====================================
+
+const getCompletedFollowUps = async (req, res) => {
+
+    try {
+
+        let query = {
+
+            status: "Completed"
+
+        };
+
+        if (
+            req.user.role !== "Admin" &&
+            req.user.role !== "Pastor"
+        ) {
+
+            query.assignedTo = req.user._id;
+
+        }
+
+        const followUps = await FollowUp.find(query)
+
+            .populate(
+                "member",
+                "firstName lastName phone"
+            )
+
+            .populate(
+                "assignedTo",
+                "firstName lastName"
+            )
+
+            .populate(
+                "service",
+                "name serviceDate"
+            )
+
+            .sort({
+                createdAt: -1
+            });
+
+        res.json({
+
+            success: true,
+
+            count: followUps.length,
+
+            followUps
+
+        });
+
+    }
+    catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
 
 
 
 // =====================================
 // Update Follow Up
-// PUT /api/followup/:id
+// PATCH /api/followups/:id
 // =====================================
 
-const updateFollowUp = async(req,res)=>{
+const updateFollowUp = async (req, res) => {
 
+    try {
 
-try{
+        const followUp = await FollowUp.findById(
+            req.params.id
+        );
 
+        if (!followUp) {
 
-const followUp =
-await FollowUp.findById(
-req.params.id
-);
+            return res.status(404).json({
 
+                success: false,
 
+                message: "Follow up not found"
 
-if(!followUp){
+            });
 
-return res.status(404).json({
+        }
 
-success:false,
+        followUp.status =
+            req.body.status ??
+            followUp.status;
 
-message:"Follow up not found"
+        followUp.notes =
+            req.body.notes ??
+            followUp.notes;
 
-});
+        // Record the first time contact is made
+        if (
+            req.body.status === "Contacted" ||
+            req.body.status === "Completed"
+        ) {
 
-}
+            followUp.contactedDate = new Date();
 
+        }
 
+        await followUp.save();
 
-followUp.status =
-req.body.status ??
-followUp.status;
+        res.json({
 
+            success: true,
 
+            message: "Follow up updated successfully",
 
-followUp.notes =
-req.body.notes ??
-followUp.notes;
+            followUp
 
+        });
 
+    }
+    catch (error) {
 
-if(req.body.status==="Completed"){
+        res.status(500).json({
 
-followUp.contactedDate =
-new Date();
+            success: false,
 
-}
+            message: error.message
 
+        });
 
-
-await followUp.save();
-
-
-
-res.json({
-
-success:true,
-
-followUp
-
-});
-
-
-}
-catch(error){
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-}
-
+    }
 
 };
 
 
 
-module.exports={
+module.exports = {
 
-createFollowUp,
+    getFollowUps,
 
-getFollowUps,
+    getFollowUp,
 
-updateFollowUp
+    getPendingFollowUps,
+
+    getCompletedFollowUps,
+
+    updateFollowUp
 
 };

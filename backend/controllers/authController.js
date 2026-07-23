@@ -26,6 +26,7 @@ const registerUser = async (req, res) => {
     } = req.body;
 
 
+
     // Check existing email
 
     const emailExists = await User.findOne({
@@ -36,11 +37,15 @@ const registerUser = async (req, res) => {
     if(emailExists){
 
       return res.status(400).json({
+
         success:false,
+
         message:"Email already exists"
+
       });
 
     }
+
 
 
 
@@ -54,11 +59,15 @@ const registerUser = async (req, res) => {
     if(phoneExists){
 
       return res.status(400).json({
+
         success:false,
+
         message:"Phone number already exists"
+
       });
 
     }
+
 
 
 
@@ -67,26 +76,43 @@ const registerUser = async (req, res) => {
     const user = await User.create({
 
       firstName,
+
       lastName,
+
       email,
+
       phone,
+
       password,
+
       gender,
+
       dateOfBirth,
+
       maritalStatus,
+
       occupation,
+
       address,
+
       emergencyContact,
+
       emergencyPhone,
 
-      // System controlled fields
+
+      // Controlled fields
 
       isChild:false,
+
       role:"Member",
+
       membershipType:"Member",
+
       status:"Active"
 
     });
+
+
 
 
 
@@ -96,28 +122,53 @@ const registerUser = async (req, res) => {
 
       message:"Registration successful",
 
-      token:generateToken(user._id),
 
-      user
+      token:generateToken(user),
+
+
+      user:{
+
+        id:user._id,
+
+        firstName:user.firstName,
+
+        lastName:user.lastName,
+
+        email:user.email,
+
+        role:user.role
+
+      }
+
 
     });
 
 
 
-  } catch(error){
+  }
+  catch(error){
+
 
     console.log(error);
+
 
     res.status(500).json({
 
       success:false,
+
       message:error.message
 
     });
 
+
   }
 
+
 };
+
+
+
+
 
 
 
@@ -126,101 +177,155 @@ const registerUser = async (req, res) => {
 // Login User
 // ===============================
 
-const loginUser = async (req,res)=>{
-
-  try {
+const loginUser = async(req,res)=>{
 
 
-    const {
-      email,
-      password
-    } = req.body;
+try{
 
 
+const {
 
-    const user = await User
-      .findOne({email})
-      .select("+password");
+email,
+
+password
+
+}=req.body;
 
 
 
-    if(!user){
 
-      return res.status(401).json({
 
-        success:false,
-        message:"Invalid email or password"
-
-      });
-
-    }
+const user = await User
+.findOne({
+  email
+})
+.select("+password");
 
 
 
-    const isMatch =
-      await user.matchPassword(password);
+
+
+if(!user){
+
+return res.status(401).json({
+
+success:false,
+
+message:"Invalid email or password"
+
+});
+
+}
 
 
 
-    if(!isMatch){
-
-      return res.status(401).json({
-
-        success:false,
-        message:"Invalid email or password"
-
-      });
-
-    }
 
 
 
-    user.lastLogin = new Date();
-
-    await user.save();
-
-
-
-    res.status(200).json({
-
-      success:true,
-
-      message:"Login successful",
-
-      token:generateToken(user._id),
-
-      user:{
-        id:user._id,
-        firstName:user.firstName,
-        lastName:user.lastName,
-        email:user.email,
-        role:user.role
-      }
-
-    });
+const isMatch =
+await user.matchPassword(password);
 
 
 
-  } catch(error){
 
-    console.log(error);
 
-    res.status(500).json({
+if(!isMatch){
 
-      success:false,
-      message:error.message
+return res.status(401).json({
 
-    });
+success:false,
 
-  }
+message:"Invalid email or password"
+
+});
+
+}
+
+
+
+
+
+
+// Update login time
+
+user.lastLogin = new Date();
+
+await user.save();
+
+
+
+
+
+
+res.status(200).json({
+
+success:true,
+
+message:"Login successful",
+
+
+
+token:generateToken(user),
+
+
+
+user:{
+
+
+id:user._id,
+
+
+firstName:user.firstName,
+
+
+lastName:user.lastName,
+
+
+email:user.email,
+
+
+role:user.role
+
+
+}
+
+
+
+});
+
+
+
+
+}
+catch(error){
+
+
+console.log(error);
+
+
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
+
 
 };
 
 
 
+
+
 module.exports = {
 
-  registerUser,
-  loginUser
+registerUser,
+
+loginUser
 
 };
