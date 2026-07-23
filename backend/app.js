@@ -12,6 +12,7 @@ const dashboardRoutes = require("./routes/dashboardRoutes");
 const attendanceReportRoutes = require("./routes/attendanceReportRoutes");
 const followUpRoutes = require("./routes/followUpRoutes");
 const memberRoutes = require("./routes/memberRoutes");
+const reportRoutes = require("./routes/reportRoutes");
 
 
 dotenv.config();
@@ -34,6 +35,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/attendance/report",attendanceReportRoutes);
 app.use("/api/followup",followUpRoutes);
 app.use("/api/members",memberRoutes);
+app.use("/api/reports",reportRoutes);
 
 
 app.get("/", (req, res) => {
