@@ -5,7 +5,8 @@ const permissions = {
         "CREATE_USER",
         "UPDATE_USER",
         "DELETE_USER",
-         
+        
+        "VIEW_MEMBERS",
 
         "CREATE_SERVICE",
         "END_SERVICE",
@@ -35,7 +36,9 @@ const permissions = {
 
         "VIEW_REPORTS",
 
-        "MANAGE_FOLLOWUPS"
+        "MANAGE_FOLLOWUPS",
+
+        "VIEW_MEMBERS",
 
     ],
 

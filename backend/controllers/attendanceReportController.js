@@ -8,187 +8,121 @@ const User = require("../models/User");
 // GET /api/attendance/report/:serviceId
 // =======================================
 
-const getAttendanceReport = async (req, res) => {
+// ==========================================
+// Attendance Report
+// GET /api/reports/attendance/:serviceId
+// ==========================================
 
+const getAttendanceReport = async (req, res) => {
     try {
 
+        const service = await Service.findById(req.params.serviceId);
 
-        const { serviceId } = req.params;
-
-
-
-        // Find service
-
-        const service =
-        await Service.findById(serviceId);
-
-
-
-        if(!service){
-
+        if (!service) {
             return res.status(404).json({
-
-                success:false,
-
-                message:"Service not found"
-
+                success: false,
+                message: "Service not found"
             });
-
         }
 
+        // All active members
+        const allMembers = await User.find({ isActive: true })
+            .select("firstName lastName gender isChild phone");
 
-
-        // Get attendance records
-
-        const attendance =
-        await Attendance.find({
-
-            service:serviceId
-
+        // Attendance records
+        const attendance = await Attendance.find({
+            service: service._id
         })
         .populate(
             "user",
-            "firstName lastName gender dateOfBirth isChild"
-        )
-        .populate(
-            "markedBy",
-            "firstName lastName"
+            "firstName lastName gender isChild phone"
         );
 
-
-
-
-        // Get all active members
-
-        const members =
-        await User.find({
-
-            isActive:true
-
-        })
-        .select(
-            "firstName lastName gender isChild"
+        // Present member IDs
+        const presentIds = attendance.map(record =>
+            record.user._id.toString()
         );
 
+        // Present members
+        const presentMembers = attendance.map(record => ({
+            id: record.user._id,
+            firstName: record.user.firstName,
+            lastName: record.user.lastName,
+            phone: record.user.phone,
+            gender: record.user.gender,
+            isChild: record.user.isChild,
+            attendanceMethod: record.attendanceMethod,
+            status: record.status
+        }));
 
-
-
-        // Extract present user IDs
-
-        const presentIds =
-        attendance.map(
-            item => item.user._id.toString()
-        );
-
-
-
-
-        // Find absentees
-
-        const absentees =
-        members.filter(
-            member =>
-            !presentIds.includes(
-                member._id.toString()
+        // Absent members
+        const absentMembers = allMembers
+            .filter(member =>
+                !presentIds.includes(member._id.toString())
             )
-        );
+            .map(member => ({
+                id: member._id,
+                firstName: member.firstName,
+                lastName: member.lastName,
+                phone: member.phone,
+                gender: member.gender,
+                isChild: member.isChild
+            }));
 
+        const totalMembers = allMembers.length;
+        const present = presentMembers.length;
+        const absent = absentMembers.length;
 
+        const adults = presentMembers.filter(m => !m.isChild).length;
+        const children = presentMembers.filter(m => m.isChild).length;
+        const male = presentMembers.filter(m => m.gender === "Male").length;
+        const female = presentMembers.filter(m => m.gender === "Female").length;
 
-
-        // Statistics
-
-        const adultsPresent =
-        attendance.filter(
-            item => !item.user.isChild
-        ).length;
-
-
-
-        const childrenPresent =
-        attendance.filter(
-            item => item.user.isChild
-        ).length;
-
-
-
-        const malePresent =
-        attendance.filter(
-            item => item.user.gender === "Male"
-        ).length;
-
-
-
-        const femalePresent =
-        attendance.filter(
-            item => item.user.gender === "Female"
-        ).length;
-
-
-
+        const attendanceRate =
+            totalMembers > 0
+                ? Number(((present / totalMembers) * 100).toFixed(2))
+                : 0;
 
         res.json({
+            success: true,
 
-            success:true,
+            report: {
 
+                service: {
+                    id: service._id,
+                    name: service.name,
+                    serviceType: service.serviceType,
+                    serviceDate: service.serviceDate
+                },
 
-            service:{
-                id:service._id,
-                name:service.name,
-                date:service.serviceDate
-            },
+                summary: {
+                    totalMembers,
+                    present,
+                    absent,
+                    attendanceRate,
+                    adults,
+                    children,
+                    male,
+                    female
+                },
 
+                presentMembers,
 
-            statistics:{
+                absentMembers
 
-                totalMembers:members.length,
-
-                totalPresent:
-                attendance.length,
-
-                totalAbsent:
-                absentees.length,
-
-                adultsPresent,
-
-                childrenPresent,
-
-                malePresent,
-
-                femalePresent
-
-            },
-
-
-            presentMembers:
-            attendance,
-
-
-            absentees
+            }
 
         });
 
-
-
-    }
-    catch(error){
-
+    } catch (error) {
 
         res.status(500).json({
-
-            success:false,
-
-            message:error.message
-
+            success: false,
+            message: error.message
         });
 
-
     }
-
 };
-
-
-
 
 module.exports = {
 

@@ -6,6 +6,7 @@ const FollowUp = require("../models/FollowUp");
 
 
 
+
 // ==========================================
 // Attendance Report
 // GET /api/reports/attendance/:serviceId
@@ -39,12 +40,16 @@ message:"Service not found"
 
 
 
-const totalMembers =
-await User.countDocuments({
+const members =
+await User.find({
 
 isActive:true
 
-});
+})
+.select(
+"firstName lastName gender isChild phone"
+);
+
 
 
 
@@ -56,10 +61,90 @@ service:service._id
 
 })
 .populate(
+
 "user",
-"firstName lastName gender isChild"
+
+"firstName lastName gender isChild phone"
+
 );
 
+
+
+
+
+
+const presentMembers =
+attendance.map(record=>({
+
+
+id:record.user._id,
+
+name:
+`${record.user.firstName} ${record.user.lastName}`,
+
+phone:record.user.phone,
+
+gender:record.user.gender,
+
+isChild:record.user.isChild,
+
+attendanceMethod:
+record.attendanceMethod
+
+
+}));
+
+
+
+
+
+const presentIds =
+attendance.map(record=>
+
+record.user._id.toString()
+
+);
+
+
+
+
+
+const absentMembers =
+members
+
+.filter(member=>
+
+!presentIds.includes(
+member._id.toString()
+)
+
+)
+
+.map(member=>({
+
+
+id:member._id,
+
+name:
+`${member.firstName} ${member.lastName}`,
+
+phone:member.phone,
+
+gender:member.gender,
+
+isChild:member.isChild
+
+
+}));
+
+
+
+
+
+
+
+const totalMembers =
+members.length;
 
 
 
@@ -69,7 +154,8 @@ attendance.length;
 
 
 const absent =
-totalMembers - present;
+absentMembers.length;
+
 
 
 
@@ -80,11 +166,14 @@ totalMembers > 0
 ?
 
 Number(
+
 (
 present /
 totalMembers *
 100
+
 ).toFixed(2)
+
 )
 
 :
@@ -95,14 +184,10 @@ totalMembers *
 
 
 
-let adults = 0;
-
-let children = 0;
-
-let male = 0;
-
-let female = 0;
-
+let adults=0;
+let children=0;
+let male=0;
+let female=0;
 
 
 
@@ -110,12 +195,7 @@ let female = 0;
 attendance.forEach(record=>{
 
 
-const member =
-record.user;
-
-
-
-if(member.isChild){
+if(record.user.isChild){
 
 children++;
 
@@ -129,15 +209,14 @@ adults++;
 
 
 
-if(member.gender==="Male"){
+if(record.user.gender==="Male"){
 
 male++;
 
 }
 
 
-
-if(member.gender==="Female"){
+if(record.user.gender==="Female"){
 
 female++;
 
@@ -146,6 +225,7 @@ female++;
 
 
 });
+
 
 
 
@@ -166,14 +246,16 @@ id:service._id,
 
 name:service.name,
 
-serviceDate:service.serviceDate
+serviceType:service.serviceType,
+
+date:service.serviceDate
 
 
 },
 
 
 
-attendance:{
+summary:{
 
 
 totalMembers,
@@ -193,7 +275,15 @@ male,
 female
 
 
-}
+},
+
+
+
+presentMembers,
+
+
+absentMembers
+
 
 
 }
@@ -229,10 +319,12 @@ message:error.message
 
 
 
+
 // ==========================================
 // Service History Report
 // GET /api/reports/services
 // ==========================================
+
 
 const getServiceReports = async(req,res)=>{
 
@@ -259,13 +351,179 @@ serviceDate:-1
 
 
 
+let totalRate = 0;
+
+
+let highestAttendance = null;
+
+
+let lowestAttendance = null;
+
+
+
+
+
+const formattedServices =
+services.map(service=>{
+
+
+const present =
+service.attendanceSummary.totalPresent || 0;
+
+
+
+const rate =
+service.attendanceSummary.attendanceRate || 0;
+
+
+
+totalRate += rate;
+
+
+
+
+
+
+if(
+!highestAttendance ||
+present >
+highestAttendance.attendance
+){
+
+highestAttendance={
+
+service:service.name,
+
+date:service.serviceDate,
+
+attendance:present
+
+};
+
+
+}
+
+
+
+
+
+if(
+!lowestAttendance ||
+present <
+lowestAttendance.attendance
+){
+
+lowestAttendance={
+
+service:service.name,
+
+date:service.serviceDate,
+
+attendance:present
+
+};
+
+
+}
+
+
+
+
+
+return{
+
+
+id:service._id,
+
+name:service.name,
+
+serviceType:service.serviceType,
+
+date:service.serviceDate,
+
+
+attendance:{
+
+
+present:
+service.attendanceSummary.totalPresent,
+
+
+absent:
+service.attendanceSummary.totalAbsent,
+
+
+rate:
+service.attendanceSummary.attendanceRate
+
+
+}
+
+
+};
+
+
+
+});
+
+
+
+
+
+
+
+const averageAttendanceRate =
+services.length > 0
+
+?
+
+Number(
+
+(
+totalRate /
+services.length
+
+).toFixed(2)
+
+)
+
+:
+
+0;
+
+
+
+
+
+
+
 res.json({
 
 success:true,
 
-count:services.length,
 
-services
+summary:{
+
+
+totalServices:
+services.length,
+
+
+averageAttendanceRate,
+
+
+highestAttendance,
+
+
+lowestAttendance
+
+
+},
+
+
+services:formattedServices
+
+
 
 });
 
@@ -295,10 +553,13 @@ message:error.message
 
 
 
+
+
 // ==========================================
 // Member Attendance Report
 // GET /api/reports/member/:memberId
 // ==========================================
+
 
 const getMemberAttendanceReport = async(req,res)=>{
 
@@ -328,16 +589,27 @@ message:"Member not found"
 
 
 
+
 const attendance =
 await Attendance.find({
 
 user:member._id
 
 })
+
 .populate(
+
 "service",
+
 "name serviceDate"
-);
+
+)
+
+.sort({
+
+createdAt:-1
+
+});
 
 
 
@@ -345,6 +617,7 @@ user:member._id
 
 const totalServices =
 await Service.countDocuments();
+
 
 
 
@@ -358,22 +631,39 @@ totalServices - attended;
 
 
 
+
 const rate =
 totalServices > 0
 
 ?
 
 Number(
+
 (
 attended /
 totalServices *
 100
+
 ).toFixed(2)
+
 )
 
 :
 
 0;
+
+
+
+
+
+
+const lastAttendance =
+attendance.length > 0
+?
+attendance[0].service
+:
+null;
+
 
 
 
@@ -390,14 +680,21 @@ member:{
 id:member._id,
 
 name:
-`${member.firstName} ${member.lastName}`
+`${member.firstName} ${member.lastName}`,
+
+phone:member.phone,
+
+membershipType:member.membershipType,
+
+joinedChurchDate:
+member.joinedChurchDate
 
 
 },
 
 
 
-attendance:{
+summary:{
 
 
 totalServices,
@@ -410,6 +707,10 @@ rate
 
 
 },
+
+
+
+lastAttendance,
 
 
 
@@ -445,10 +746,13 @@ message:error.message
 
 
 
+
+
 // ==========================================
 // Follow Up Report
 // GET /api/reports/followups
 // ==========================================
+
 
 const getFollowUpReport = async(req,res)=>{
 
@@ -464,7 +768,6 @@ status:"Pending"
 });
 
 
-
 const contacted =
 await FollowUp.countDocuments({
 
@@ -473,14 +776,12 @@ status:"Contacted"
 });
 
 
-
 const completed =
 await FollowUp.countDocuments({
 
 status:"Completed"
 
 });
-
 
 
 const unable =
@@ -494,13 +795,38 @@ status:"Unable To Reach"
 
 
 
+const recentFollowUps =
+await FollowUp.find()
+
+.populate(
+"member",
+"firstName lastName phone"
+)
+
+.populate(
+"assignedTo",
+"firstName lastName"
+)
+
+.sort({
+
+createdAt:-1
+
+})
+
+.limit(10);
+
+
+
+
+
 
 res.json({
 
 success:true,
 
 
-followUps:{
+summary:{
 
 
 pending,
@@ -512,7 +838,11 @@ completed,
 unable
 
 
-}
+},
+
+
+
+recentFollowUps
 
 
 
@@ -544,7 +874,7 @@ message:error.message
 
 
 
-module.exports = {
+module.exports={
 
 
 getAttendanceReport,

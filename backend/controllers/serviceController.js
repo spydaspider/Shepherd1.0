@@ -43,8 +43,34 @@ endTime,
 
 description
 
-}=req.body;
+} = req.body;
 
+// ==========================================
+// Prevent duplicate service on same day
+// ==========================================
+
+const existingService =
+await Service.findOne({
+
+    serviceType,
+
+    serviceDate:new Date(serviceDate)
+
+});
+
+
+if(existingService){
+
+return res.status(400).json({
+
+    success:false,
+
+    message:
+    "A service with this type already exists on this date"
+
+});
+
+}
 
 
 // Close previous active service
@@ -60,6 +86,7 @@ active:false
 }
 
 );
+
 
 
 
@@ -99,6 +126,7 @@ closed:false
 
 
 
+
 res.status(201).json({
 
 success:true,
@@ -108,6 +136,7 @@ message:"Service created successfully",
 service
 
 });
+
 
 
 }
@@ -134,13 +163,10 @@ message:error.message
 
 
 
-
-
 // ==========================================
 // Get Active Service
 // GET /api/services/active
 // ==========================================
-
 
 const getActiveService = async(req,res)=>{
 
@@ -157,7 +183,9 @@ active:true
 
 
 
+
 if(!service){
+
 
 return res.status(404).json({
 
@@ -167,7 +195,10 @@ message:"No active service found"
 
 });
 
+
 }
+
+
 
 
 
@@ -178,6 +209,7 @@ success:true,
 service
 
 });
+
 
 
 }
@@ -205,12 +237,10 @@ message:error.message
 
 
 
-
 // ==========================================
-// Close Service + Generate Follow Ups
+// End Service + Generate Follow Ups
 // PATCH /api/services/:id/end
 // ==========================================
-
 
 const endService = async(req,res)=>{
 
@@ -262,7 +292,7 @@ message:"Service already closed"
 
 
 
-// Generate automatic absentee follow-ups
+// Generate follow-ups for absentees
 
 const followUps =
 await generateFollowUps(
@@ -273,9 +303,7 @@ service._id
 
 
 
-
 // Close service
-
 
 service.active=false;
 
@@ -285,8 +313,8 @@ service.closedAt=new Date();
 
 
 
-await service.save();
 
+await service.save();
 
 
 
@@ -298,6 +326,7 @@ success:true,
 
 message:"Service closed successfully",
 
+
 service:{
 
 id:service._id,
@@ -305,6 +334,7 @@ id:service._id,
 name:service.name
 
 },
+
 
 followUpsCreated:
 followUps.length
@@ -338,13 +368,10 @@ message:error.message
 
 
 
-
-
 // ==========================================
 // Get All Services
 // GET /api/services
 // ==========================================
-
 
 const getServices = async(req,res)=>{
 
@@ -363,6 +390,8 @@ serviceDate:-1
 
 
 
+
+
 res.json({
 
 success:true,
@@ -372,6 +401,7 @@ count:services.length,
 services
 
 });
+
 
 
 }
@@ -397,7 +427,7 @@ message:error.message
 
 
 
-module.exports={
+module.exports = {
 
 
 createService,
