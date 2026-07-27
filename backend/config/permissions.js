@@ -17,7 +17,9 @@ const permissions = {
 
         "MANAGE_FOLLOWUPS",
 
-        "MANAGE_DEPARTMENTS"
+        "MANAGE_DEPARTMENTS",
+
+        "MANAGE_NOTIFICATIONS",
 
     ],
 
@@ -39,6 +41,7 @@ const permissions = {
         "MANAGE_FOLLOWUPS",
 
         "VIEW_MEMBERS",
+        "MANAGE_NOTIFICATIONS",
 
     ],
 

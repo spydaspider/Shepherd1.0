@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Attendance = require("../models/Attendance");
 const FollowUp = require("../models/FollowUp");
+const Notification = require("../models/Notification");
 
 
 
@@ -9,7 +10,9 @@ const generateFollowUps = async(serviceId)=>{
 try{
 
 
+// ==========================================
 // Get all active members
+// ==========================================
 
 const members =
 await User.find({
@@ -27,7 +30,10 @@ await User.find({
 
 
 
-// Get people who attended
+
+// ==========================================
+// Get attendance records
+// ==========================================
 
 const attendance =
 await Attendance.find({
@@ -46,7 +52,9 @@ attendance.map(
 
 
 
+// ==========================================
 // Find absentees
+// ==========================================
 
 const absentees =
 members.filter(
@@ -62,7 +70,9 @@ member._id.toString()
 
 
 
-// Find Admins and Pastors
+// ==========================================
+// Get Admins and Pastors
+// ==========================================
 
 const followUpManagers =
 await User.find({
@@ -82,9 +92,16 @@ await User.find({
 
 
 
+
 let createdFollowUps=[];
 
 
+
+
+
+// ==========================================
+// Create Follow Ups
+// ==========================================
 
 for(const absentee of absentees){
 
@@ -92,8 +109,6 @@ for(const absentee of absentees){
 for(const manager of followUpManagers){
 
 
-
-// Prevent duplicates
 
 const exists =
 await FollowUp.findOne({
@@ -108,7 +123,9 @@ await FollowUp.findOne({
 
 
 
+
 if(!exists){
+
 
 
 const followUp =
@@ -129,7 +146,35 @@ await FollowUp.create({
 });
 
 
+
+
 createdFollowUps.push(followUp);
+
+
+
+
+
+// ==========================================
+// Create Notification
+// ==========================================
+
+await Notification.create({
+
+    recipient:manager._id,
+
+    title:"New Follow-up Assigned",
+
+    message:
+    `You have been assigned a follow-up task for ${absentee.firstName} ${absentee.lastName}`,
+
+    type:"FollowUp",
+
+    relatedId:followUp._id
+
+});
+
+
+
 
 
 }

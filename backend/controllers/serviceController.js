@@ -1,5 +1,8 @@
 const Service = require("../models/Service");
+const User = require("../models/User");
+const Notification = require("../models/Notification");
 const generateFollowUps = require("../utils/generateFollowUps");
+
 
 
 
@@ -19,6 +22,7 @@ const generateAttendanceCode = () => {
 
 
 
+
 // ==========================================
 // Create Service
 // POST /api/services
@@ -31,23 +35,29 @@ try{
 
 const {
 
-name,
+    name,
 
-serviceType,
+    serviceType,
 
-serviceDate,
+    serviceDate,
 
-startTime,
+    startTime,
 
-endTime,
+    endTime,
 
-description
+    description
 
-} = req.body;
+
+}=req.body;
+
+
+
+
 
 // ==========================================
-// Prevent duplicate service on same day
+// Prevent duplicate service same day
 // ==========================================
+
 
 const existingService =
 await Service.findOne({
@@ -57,6 +67,7 @@ await Service.findOne({
     serviceDate:new Date(serviceDate)
 
 });
+
 
 
 if(existingService){
@@ -73,19 +84,28 @@ return res.status(400).json({
 }
 
 
+
+
+
+
+
+// ==========================================
 // Close previous active service
+// ==========================================
 
 await Service.updateMany(
 
 {
-active:true
+    active:true
 },
 
 {
-active:false
+    active:false
 }
 
 );
+
+
 
 
 
@@ -98,28 +118,30 @@ generateAttendanceCode();
 
 
 
+
+
 const service =
 await Service.create({
 
-name,
+    name,
 
-serviceType,
+    serviceType,
 
-serviceDate,
+    serviceDate,
 
-startTime,
+    startTime,
 
-endTime,
+    endTime,
 
-description,
+    description,
 
-attendanceCode,
+    attendanceCode,
 
-generatedBy:req.user._id,
+    generatedBy:req.user._id,
 
-active:true,
+    active:true,
 
-closed:false
+    closed:false
 
 });
 
@@ -127,13 +149,67 @@ closed:false
 
 
 
+
+
+// ==========================================
+// Create Service Notifications
+// Notify Admins and Pastors
+// ==========================================
+
+
+const managers =
+await User.find({
+
+    role:{
+        $in:[
+            "Admin",
+            "Pastor"
+        ]
+    },
+
+    isActive:true
+
+});
+
+
+
+
+
+
+for(const manager of managers){
+
+
+await Notification.create({
+
+    recipient:manager._id,
+
+    title:"New Service Created",
+
+    message:
+    `${name} has been scheduled for ${new Date(serviceDate).toDateString()}`,
+
+    type:"Service",
+
+    relatedId:service._id
+
+});
+
+
+}
+
+
+
+
+
+
+
 res.status(201).json({
 
-success:true,
+    success:true,
 
-message:"Service created successfully",
+    message:"Service created successfully",
 
-service
+    service
 
 });
 
@@ -145,9 +221,9 @@ catch(error){
 
 res.status(500).json({
 
-success:false,
+    success:false,
 
-message:error.message
+    message:error.message
 
 });
 
@@ -156,6 +232,8 @@ message:error.message
 
 
 };
+
+
 
 
 
@@ -177,7 +255,7 @@ try{
 const service =
 await Service.findOne({
 
-active:true
+    active:true
 
 });
 
@@ -186,27 +264,24 @@ active:true
 
 if(!service){
 
-
 return res.status(404).json({
 
-success:false,
+    success:false,
 
-message:"No active service found"
+    message:"No active service found"
 
 });
-
 
 }
 
 
 
 
-
 res.json({
 
-success:true,
+    success:true,
 
-service
+    service
 
 });
 
@@ -218,9 +293,9 @@ catch(error){
 
 res.status(500).json({
 
-success:false,
+    success:false,
 
-message:error.message
+    message:error.message
 
 });
 
@@ -229,6 +304,7 @@ message:error.message
 
 
 };
+
 
 
 
@@ -250,7 +326,7 @@ try{
 
 const service =
 await Service.findById(
-req.params.id
+    req.params.id
 );
 
 
@@ -258,15 +334,13 @@ req.params.id
 
 if(!service){
 
-
 return res.status(404).json({
 
-success:false,
+    success:false,
 
-message:"Service not found"
+    message:"Service not found"
 
 });
-
 
 }
 
@@ -276,15 +350,13 @@ message:"Service not found"
 
 if(!service.active){
 
-
 return res.status(400).json({
 
-success:false,
+    success:false,
 
-message:"Service already closed"
+    message:"Service already closed"
 
 });
-
 
 }
 
@@ -292,12 +364,16 @@ message:"Service already closed"
 
 
 
-// Generate follow-ups for absentees
+
+
+// Generate follow-ups
 
 const followUps =
 await generateFollowUps(
-service._id
+    service._id
 );
+
+
 
 
 
@@ -313,8 +389,57 @@ service.closedAt=new Date();
 
 
 
-
 await service.save();
+
+
+
+
+
+
+
+// Notify Admins and Pastors
+
+
+const managers =
+await User.find({
+
+    role:{
+        $in:[
+            "Admin",
+            "Pastor"
+        ]
+    },
+
+    isActive:true
+
+});
+
+
+
+
+
+for(const manager of managers){
+
+
+await Notification.create({
+
+    recipient:manager._id,
+
+    title:"Service Ended",
+
+    message:
+    `${service.name} has ended. ${followUps.length} follow-up tasks were generated.`,
+
+    type:"Service",
+
+    relatedId:service._id
+
+});
+
+
+}
+
+
 
 
 
@@ -322,22 +447,20 @@ await service.save();
 
 res.json({
 
-success:true,
+    success:true,
 
-message:"Service closed successfully",
+    message:"Service closed successfully",
 
+    service:{
 
-service:{
+        id:service._id,
 
-id:service._id,
+        name:service.name
 
-name:service.name
+    },
 
-},
-
-
-followUpsCreated:
-followUps.length
+    followUpsCreated:
+    followUps.length
 
 
 });
@@ -350,9 +473,9 @@ catch(error){
 
 res.status(500).json({
 
-success:false,
+    success:false,
 
-message:error.message
+    message:error.message
 
 });
 
@@ -361,6 +484,8 @@ message:error.message
 
 
 };
+
+
 
 
 
@@ -384,7 +509,7 @@ await Service.find()
 
 .sort({
 
-serviceDate:-1
+    serviceDate:-1
 
 });
 
@@ -394,11 +519,11 @@ serviceDate:-1
 
 res.json({
 
-success:true,
+    success:true,
 
-count:services.length,
+    count:services.length,
 
-services
+    services
 
 });
 
@@ -410,9 +535,9 @@ catch(error){
 
 res.status(500).json({
 
-success:false,
+    success:false,
 
-message:error.message
+    message:error.message
 
 });
 
@@ -421,6 +546,8 @@ message:error.message
 
 
 };
+
+
 
 
 
