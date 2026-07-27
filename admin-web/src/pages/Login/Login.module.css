@@ -1,161 +1,155 @@
-.container {
+.container{
 
-    min-height:100vh;
+min-height:100vh;
 
-    display:flex;
+display:flex;
 
-    justify-content:center;
+justify-content:center;
 
-    align-items:center;
+align-items:center;
 
-    background:#F5F7FB;
-
-}
-
-
-
-.loginCard {
-
-
-    width:400px;
-
-    background:white;
-
-    padding:40px;
-
-    border-radius:16px;
-
-
-    box-shadow:
-    0 10px 30px rgba(0,0,0,0.1);
-
+background:#f5f7fb;
 
 }
 
 
 
-.loginCard h1 {
+.card{
 
 
-    text-align:center;
+width:400px;
 
-    color:#0F2A5F;
+background:white;
 
-    margin-bottom:5px;
+padding:40px;
 
-}
+border-radius:15px;
 
-
-
-.loginCard p {
-
-
-    text-align:center;
-
-    color:#666;
-
-    margin-bottom:30px;
+box-shadow:
+0 10px 30px rgba(0,0,0,0.1);
 
 }
 
 
 
+.card h1{
 
-.inputGroup {
 
+text-align:center;
 
-    display:flex;
+color:#0F2A5F;
 
-    flex-direction:column;
-
-    margin-bottom:20px;
-
+margin-bottom:5px;
 
 }
 
 
 
-.inputGroup label {
+.card p{
 
 
-    margin-bottom:8px;
+text-align:center;
 
-    font-weight:600;
+color:#666;
 
-}
-
-
-
-.inputGroup input {
-
-
-    padding:12px;
-
-    border:1px solid #ddd;
-
-    border-radius:8px;
-
-    font-size:15px;
-
+margin-bottom:30px;
 
 }
 
 
 
-button {
+.group{
 
 
-    width:100%;
+display:flex;
 
-    padding:14px;
+flex-direction:column;
 
-    border:none;
-
-    border-radius:8px;
-
-    background:#0F2A5F;
-
-    color:white;
-
-    font-size:16px;
-
-    cursor:pointer;
+margin-bottom:20px;
 
 }
 
 
 
-button:hover {
+.group label{
 
 
-    background:#173d82;
+font-weight:600;
+
+margin-bottom:8px;
+
+}
+
+
+
+.group input{
+
+
+padding:12px;
+
+border:1px solid #ddd;
+
+border-radius:8px;
+
+font-size:15px;
+
+}
+
+
+
+button{
+
+
+width:100%;
+
+padding:14px;
+
+background:#0F2A5F;
+
+color:white;
+
+border:none;
+
+border-radius:8px;
+
+font-size:16px;
+
+cursor:pointer;
+
+}
+
+
+
+button:hover{
+
+
+background:#173d82;
 
 
 }
 
 
 
-button:disabled {
+button:disabled{
 
-    opacity:.6;
 
-    cursor:not-allowed;
+opacity:.6;
 
 }
 
 
 
-.error {
+.error{
 
 
-    background:#fee2e2;
+background:#fee2e2;
 
-    color:#dc2626;
+color:#dc2626;
 
-    padding:10px;
+padding:10px;
 
-    border-radius:8px;
+border-radius:8px;
 
-    margin-bottom:20px;
+margin-bottom:20px;
 
 }
