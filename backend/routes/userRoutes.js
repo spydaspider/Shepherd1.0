@@ -3,11 +3,10 @@ const router = express.Router();
 
 
 const {protect} = require("../middleware/authMiddleware");
-
 const {
+    getUsers,
     getFamily
 } = require("../controllers/userController");
-
 
 
 router.get(
@@ -33,6 +32,14 @@ router.get(
 "/family",
 protect,
 getFamily
+);
+// Get all members
+// GET /api/users
+
+router.get(
+"/",
+protect,
+getUsers
 );
 
 
