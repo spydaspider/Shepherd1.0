@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import api from "../../api/axios";
 
 import styles from "./Members.module.css";
+import { useNavigate } from "react-router-dom";
 
 
 const Members = () => {
@@ -13,6 +14,7 @@ const Members = () => {
     const [loading, setLoading] = useState(true);
 
     const [search, setSearch] = useState("");
+    const navigate = useNavigate();
 
 
 
@@ -134,9 +136,11 @@ const Members = () => {
 
 
 
-                <button>
-                    + Add Member
-                </button>
+               <button
+onClick={()=>navigate("/members/add")}
+>
++ Add Member
+</button>
 
 
             </div>

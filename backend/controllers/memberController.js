@@ -238,7 +238,102 @@ message:error.message
 };
 
 
+// ==========================================
+// Create New Member
+// POST /api/members
+// ==========================================
 
+const createMember = async(req,res)=>{
+
+
+try{
+
+
+const member = await User.create({
+
+    firstName:req.body.firstName,
+
+    lastName:req.body.lastName,
+
+    email:req.body.email,
+
+    phone:req.body.phone,
+
+    gender:req.body.gender,
+
+    dateOfBirth:req.body.dateOfBirth,
+
+    maritalStatus:req.body.maritalStatus,
+
+    occupation:req.body.occupation,
+
+    address:req.body.address,
+
+    emergencyContact:req.body.emergencyContact,
+
+    emergencyPhone:req.body.emergencyPhone,
+
+    school:req.body.school,
+
+    schoolClass:req.body.schoolClass,
+
+    baptized:req.body.baptized,
+
+    branch:req.body.branch,
+
+    department:req.body.department,
+
+    cellGroup:req.body.cellGroup,
+
+    area:req.body.area,
+
+    membershipType:
+    req.body.membershipType || "Member",
+
+    role:
+    req.body.role || "Member",
+
+    isChild:
+    req.body.isChild || false,
+
+    status:"Active",
+
+    isActive:true
+
+});
+
+
+
+
+res.status(201).json({
+
+    success:true,
+
+    message:"Member created successfully",
+
+    member
+
+});
+
+
+
+}
+catch(error){
+
+
+res.status(500).json({
+
+    success:false,
+
+    message:error.message
+
+});
+
+
+}
+
+
+};
 
 
 
@@ -453,6 +548,8 @@ getMembers,
 getMemberById,
 
 updateMember,
+
+createMember,
 
 changeMemberStatus
 

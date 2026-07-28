@@ -13,6 +13,7 @@ import AdminLayout from "./layouts/AdminLayout/AdminLayout";
 
 import Dashboard from "./pages/Dashboard/Dashboard";
 import Members from "./pages/Members/Members";
+import AddMember from "./pages/AddMember/AddMember";
 
 
 
@@ -65,6 +66,10 @@ element={
 <Route 
 path="/members" 
 element={<Members />} 
+/>
+<Route
+path="/members/add"
+element={<AddMember />}
 />
 
 </Routes>

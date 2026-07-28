@@ -9,6 +9,8 @@ const {
 
     getMemberById,
 
+    createMember,
+
     updateMember,
 
     changeMemberStatus
@@ -98,7 +100,19 @@ router.patch(
 );
 
 
+router.post(
 
+    "/",
+
+    protect,
+
+    checkPermission(
+        "CREATE_USER"
+    ),
+
+    createMember
+
+);
 
 
 
@@ -120,6 +134,7 @@ router.patch(
     changeMemberStatus
 
 );
+
 
 
 
