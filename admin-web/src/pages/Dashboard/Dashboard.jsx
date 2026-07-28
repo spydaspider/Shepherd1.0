@@ -8,18 +8,7 @@ import styles from "./Dashboard.module.css";
 const Dashboard = () => {
 
 
-const [stats, setStats] = useState({
-
-    members:0,
-
-    services:0,
-
-    followUps:0,
-
-    notifications:0
-
-});
-
+const [dashboard, setDashboard] = useState(null);
 
 const [loading, setLoading] = useState(true);
 
@@ -28,59 +17,26 @@ const [loading, setLoading] = useState(true);
 useEffect(()=>{
 
 
-const fetchDashboardData = async()=>{
+const fetchDashboard = async()=>{
 
 
 try{
 
 
-const [
-members,
-services,
-notifications
-] = await Promise.all([
+const response =
+await api.get("/dashboard");
 
 
-api.get("/users"),
-
-
-api.get("/services"),
-
-
-api.get("/notifications")
-
-
-]);
+console.log(
+"Dashboard data:",
+response.data
+);
 
 
 
-setStats({
-
-members:
-members.data.count || 0,
-
-
-services:
-services.data.count || 0,
-
-
-followUps:0,
-
-
-notifications:
-
-notifications.data.notifications
-
-?
-notifications.data.notifications.filter(
-item=>!item.isRead
-).length
-
-:
-
-0
-
-});
+setDashboard(
+response.data.dashboard
+);
 
 
 
@@ -89,8 +45,8 @@ catch(error){
 
 
 console.log(
-"Dashboard loading error:",
-error
+"Dashboard error:",
+error.response?.data || error.message
 );
 
 
@@ -104,12 +60,11 @@ setLoading(false);
 }
 
 
-
 };
 
 
 
-fetchDashboardData();
+fetchDashboard();
 
 
 
@@ -135,6 +90,23 @@ Loading Dashboard...
 
 
 
+
+if(!dashboard){
+
+return (
+
+<h2>
+Unable to load dashboard
+</h2>
+
+);
+
+}
+
+
+
+
+
 return (
 
 <div className={styles.dashboard}>
@@ -152,6 +124,7 @@ Welcome to Shepherd Admin Panel
 
 
 
+
 <div className={styles.cards}>
 
 
@@ -163,10 +136,11 @@ Total Members
 </h3>
 
 <h2>
-{stats.members}
+{dashboard.members.totalMembers}
 </h2>
 
 </div>
+
 
 
 
@@ -174,14 +148,31 @@ Total Members
 <div className={styles.card}>
 
 <h3>
-Services
+Adults
 </h3>
 
 <h2>
-{stats.services}
+{dashboard.members.adults}
 </h2>
 
 </div>
+
+
+
+
+
+<div className={styles.card}>
+
+<h3>
+Children
+</h3>
+
+<h2>
+{dashboard.members.children}
+</h2>
+
+</div>
+
 
 
 
@@ -193,30 +184,121 @@ Pending Follow Ups
 </h3>
 
 <h2>
-{stats.followUps}
+{dashboard.followUps.pending}
 </h2>
 
 </div>
 
 
 
+</div>
 
-<div className={styles.card}>
 
-<h3>
-Unread Notifications
-</h3>
+
+
+
+<div className={styles.section}>
+
 
 <h2>
-{stats.notifications}
+Active Service
 </h2>
 
+
+
+{
+dashboard.service ?
+
+
+<div className={styles.serviceCard}>
+
+<h3>
+{dashboard.service.name}
+</h3>
+
+
+<p>
+Type:
+{dashboard.service.serviceType}
+</p>
+
+
+<p>
+Attendance Code:
+{dashboard.service.attendanceCode}
+</p>
+
+
+</div>
+
+
+:
+
+<p>
+No active service
+</p>
+
+}
+
+
+
 </div>
 
 
 
 
+
+
+<div className={styles.section}>
+
+
+<h2>
+Attendance
+</h2>
+
+
+<div>
+
+<p>
+Present:
+<strong>
+ {dashboard.attendance.present}
+</strong>
+</p>
+
+
+<p>
+Absent:
+<strong>
+ {dashboard.attendance.absent}
+</strong>
+</p>
+
+
+<p>
+Rate:
+<strong>
+ {dashboard.attendance.rate}%
+</strong>
+</p>
+
 </div>
+
+<p>
+Absent:
+{dashboard.attendance.absent}
+</p>
+
+
+<p>
+Rate:
+{dashboard.attendance.rate}%
+</p>
+
+
+</div>
+
+
 
 
 

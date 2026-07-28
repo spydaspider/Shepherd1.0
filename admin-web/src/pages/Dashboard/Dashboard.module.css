@@ -1,71 +1,237 @@
-.dashboard{
+.dashboard {
 
-padding:20px;
+    padding: 30px;
 
-}
+    background: #f4f6fb;
 
-
-.dashboard h1{
-
-margin-bottom:10px;
+    min-height: 100%;
 
 }
 
 
-.dashboard p{
+/* Main heading */
 
-color:#666;
+.dashboard h1 {
 
-margin-bottom:30px;
+    font-size: 32px;
+
+    color: #132d66;
+
+    margin-bottom: 8px;
 
 }
 
+
+
+/* Welcome text */
+
+.dashboard > p {
+
+    color: #666;
+
+    font-size: 16px;
+
+    margin-bottom: 30px;
+
+}
+
+
+
+/* Statistic cards */
+
+.cards {
+
+    display: grid;
+
+    grid-template-columns: repeat(4, 1fr);
+
+    gap: 20px;
+
+}
+
+
+
+/* Individual card */
+
+.card {
+
+    background: white;
+
+    padding: 25px;
+
+    border-radius: 14px;
+
+    box-shadow:
+    0 4px 12px rgba(0,0,0,0.08);
+
+    transition: transform 0.2s ease;
+
+}
+
+
+.card:hover {
+
+    transform: translateY(-5px);
+
+}
+
+
+
+/* Card title */
+
+.card h3 {
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    color: #555;
+
+    margin-bottom: 15px;
+
+}
+
+
+
+/* Card number */
+
+.card h2 {
+
+    font-size: 38px;
+
+    font-weight: 700;
+
+    color: #132d66;
+
+    margin: 0;
+
+}
+
+
+
+/* Sections */
+
+.section {
+
+    margin-top: 35px;
+
+    background: white;
+
+    padding: 30px;
+
+    border-radius: 14px;
+
+    box-shadow:
+    0 4px 12px rgba(0,0,0,0.06);
+
+}
+
+
+
+.section h2 {
+
+    color: #132d66;
+
+    font-size: 22px;
+
+    margin-bottom: 20px;
+
+}
+
+
+
+/* Active service box */
+
+.serviceCard {
+
+    padding: 25px;
+
+    background: #f8f9fc;
+
+    border-radius: 12px;
+
+    border-left: 5px solid #132d66;
+
+}
+
+
+
+.serviceCard h3 {
+
+    font-size: 22px;
+
+    color: #132d66;
+
+    margin-bottom: 15px;
+
+}
+
+
+
+.serviceCard p {
+
+    color: #555;
+
+    margin: 8px 0;
+
+}
+
+
+
+/* Attendance section */
+
+.section p {
+
+    font-size: 17px;
+
+    color: #444;
+
+    margin: 10px 0;
+
+}
+
+
+
+.section strong {
+
+    color: #132d66;
+
+}
+
+
+
+/* Responsive */
+
+@media(max-width: 1000px){
 
 
 .cards{
 
-display:grid;
+    grid-template-columns:
+    repeat(2,1fr);
 
-grid-template-columns:
-repeat(4,1fr);
+}
 
-gap:20px;
 
 }
 
 
 
-.card{
+@media(max-width:700px){
 
-background:white;
 
-padding:25px;
+.cards{
 
-border-radius:12px;
-
-box-shadow:
-0 4px 10px rgba(0,0,0,0.08);
+    grid-template-columns:1fr;
 
 }
 
 
+.dashboard{
 
-.card h3{
-
-font-size:16px;
-
-color:#555;
-
-margin-bottom:15px;
+    padding:15px;
 
 }
 
-
-
-.card h2{
-
-font-size:36px;
-
-color:#0f2a5f;
 
 }
