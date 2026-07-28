@@ -15,7 +15,6 @@ const Dashboard = () => {
 
 
 
-
     useEffect(() => {
 
 
@@ -61,9 +60,7 @@ const Dashboard = () => {
         };
 
 
-
         fetchDashboard();
-
 
 
     }, []);
@@ -73,10 +70,7 @@ const Dashboard = () => {
 
 
 
-
-
     if(loading){
-
 
         return (
 
@@ -86,7 +80,6 @@ const Dashboard = () => {
 
         );
 
-
     }
 
 
@@ -94,10 +87,7 @@ const Dashboard = () => {
 
 
 
-
-
     if(!dashboard){
-
 
         return (
 
@@ -107,11 +97,7 @@ const Dashboard = () => {
 
         );
 
-
     }
-
-
-
 
 
 
@@ -129,13 +115,9 @@ const Dashboard = () => {
             </h1>
 
 
-
             <p>
                 Welcome to Shepherd Admin Panel
             </p>
-
-
-
 
 
 
@@ -150,7 +132,6 @@ const Dashboard = () => {
 
                 <div className={styles.card}>
 
-
                     <h3>
                         Total Members
                     </h3>
@@ -160,10 +141,7 @@ const Dashboard = () => {
                         {dashboard.members?.totalMembers || 0}
                     </h2>
 
-
                 </div>
-
-
 
 
 
@@ -189,7 +167,6 @@ const Dashboard = () => {
 
 
 
-
                 <div className={styles.card}>
 
 
@@ -204,7 +181,6 @@ const Dashboard = () => {
 
 
                 </div>
-
 
 
 
@@ -239,22 +215,33 @@ const Dashboard = () => {
 
 
 
-            {/* Active Service */}
+            {/* Service + Attendance */}
 
 
-            <div className={styles.section}>
 
-
-                <h2>
-                    Active Service
-                </h2>
+            <div className={styles.dashboardGrid}>
 
 
 
 
 
-                {
+                {/* Active Service */}
+
+
+                <div className={styles.section}>
+
+
+                    <h2>
+                        Active Service
+                    </h2>
+
+
+
+
+                    {
+
                     dashboard.service ?
+
 
 
                     <div className={styles.serviceCard}>
@@ -266,14 +253,15 @@ const Dashboard = () => {
 
 
 
-
-
                         <p>
+
                             Type:
+
                             <strong>
                                 {" "}
                                 {dashboard.service.serviceType}
                             </strong>
+
                         </p>
 
 
@@ -281,11 +269,14 @@ const Dashboard = () => {
 
 
                         <p>
+
                             Attendance Code:
+
                             <strong>
                                 {" "}
                                 {dashboard.service.attendanceCode}
                             </strong>
+
                         </p>
 
 
@@ -294,7 +285,9 @@ const Dashboard = () => {
 
 
 
+
                     :
+
 
 
                     <p>
@@ -302,7 +295,78 @@ const Dashboard = () => {
                     </p>
 
 
-                }
+                    }
+
+
+
+                </div>
+
+
+
+
+
+
+
+
+
+
+
+
+                {/* Attendance */}
+
+
+                <div className={styles.section}>
+
+
+                    <h2>
+                        Attendance
+                    </h2>
+
+
+
+                    <p>
+
+                        Present:
+
+                        <strong>
+                            {" "}
+                            {dashboard.attendance?.present || 0}
+                        </strong>
+
+                    </p>
+
+
+
+
+                    <p>
+
+                        Absent:
+
+                        <strong>
+                            {" "}
+                            {dashboard.attendance?.absent || 0}
+                        </strong>
+
+                    </p>
+
+
+
+
+
+                    <p>
+
+                        Rate:
+
+                        <strong>
+                            {" "}
+                            {dashboard.attendance?.rate || 0}%
+                        </strong>
+
+                    </p>
+
+
+
+                </div>
 
 
 
@@ -310,60 +374,6 @@ const Dashboard = () => {
 
 
 
-
-
-
-
-
-
-            {/* Attendance */}
-
-
-            <div className={styles.section}>
-
-
-                <h2>
-                    Attendance
-                </h2>
-
-
-
-
-                <p>
-                    Present:
-                    <strong>
-                        {" "}
-                        {dashboard.attendance?.present || 0}
-                    </strong>
-                </p>
-
-
-
-
-
-                <p>
-                    Absent:
-                    <strong>
-                        {" "}
-                        {dashboard.attendance?.absent || 0}
-                    </strong>
-                </p>
-
-
-
-
-
-                <p>
-                    Rate:
-                    <strong>
-                        {" "}
-                        {dashboard.attendance?.rate || 0}%
-                    </strong>
-                </p>
-
-
-
-            </div>
 
 
 
@@ -389,73 +399,204 @@ const Dashboard = () => {
 
                 {
 
-                    dashboard.recentMembers &&
-                    dashboard.recentMembers.length > 0 ?
 
+                dashboard.recentMembers &&
 
-
-                    <div className={styles.memberList}>
-
-
-                        {
-                            dashboard.recentMembers.map((member)=> (
-
-
-                                <div
-                                    key={member._id}
-                                    className={styles.memberCard}
-                                >
-
-
-                                    <h3>
-                                        {member.firstName} {member.lastName}
-                                    </h3>
-
-
-
-
-                                    <p>
-                                        Gender:
-                                        <strong>
-                                            {" "}
-                                            {member.gender}
-                                        </strong>
-                                    </p>
+                dashboard.recentMembers.length > 0 ?
 
 
 
 
 
-                                    <p>
-                                        Type:
-                                        <strong>
-                                            {" "}
-                                            {member.membershipType}
-                                        </strong>
-                                    </p>
+                <table className={styles.memberTable}>
 
 
+                    <thead>
+
+
+                        <tr>
+
+
+                            <th>
+                                Name
+                            </th>
+
+
+                            <th>
+                                Gender
+                            </th>
+
+
+                            <th>
+                                Type
+                            </th>
+
+
+                            <th>
+                                Joined
+                            </th>
+
+
+                        </tr>
+
+
+                    </thead>
+
+
+
+
+
+
+
+                    <tbody>
+
+
+
+                    {
+
+
+                    dashboard.recentMembers.map((member)=>(
+
+
+
+                    <tr key={member._id}>
+
+
+                        <td>
+
+
+                            <div className={styles.memberInfo}>
+
+
+                                <div className={styles.avatar}>
+
+
+                                    {
+                                    member.firstName
+                                    ?.charAt(0)
+                                    }
+
+
+                                    {
+                                    member.lastName
+                                    ?.charAt(0)
+                                    }
 
 
                                 </div>
 
 
-                            ))
-                        }
+
+
+                                <span>
+
+                                    {
+                                    member.firstName
+                                    }
+
+                                    {" "}
+
+                                    {
+                                    member.lastName
+                                    }
+
+
+                                </span>
 
 
 
-                    </div>
+                            </div>
+
+
+                        </td>
 
 
 
-                    :
 
 
 
-                    <p>
-                        No recent members found
-                    </p>
+                        <td>
+
+                            {
+                            member.gender || "N/A"
+                            }
+
+                        </td>
+
+
+
+
+
+
+                        <td>
+
+                            {
+                            member.role || "Member"
+                            }
+
+                        </td>
+
+
+
+
+
+
+                        <td>
+
+
+                            {
+
+                            new Date(
+                                member.createdAt
+                            )
+                            .toLocaleDateString(
+                                "en-US",
+                                {
+                                    month:"short",
+                                    day:"numeric"
+                                }
+                            )
+
+                            }
+
+
+                        </td>
+
+
+
+                    </tr>
+
+
+
+                    ))
+
+
+
+                    }
+
+
+
+                    </tbody>
+
+
+
+                </table>
+
+
+
+
+
+
+                :
+
+
+
+
+
+                <p>
+                    No recent members found
+                </p>
+
 
 
                 }
@@ -468,8 +609,6 @@ const Dashboard = () => {
 
 
 
-
-
         </div>
 
 
@@ -477,6 +616,7 @@ const Dashboard = () => {
 
 
 };
+
 
 
 export default Dashboard;
