@@ -231,11 +231,9 @@ await User.find({
 
 .select(
 
-"firstName lastName email createdAt"
+"firstName lastName email gender membershipType role createdAt"
 
 );
-
-
 
 
 

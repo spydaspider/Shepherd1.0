@@ -5,7 +5,9 @@ import {
 
 const initialState = {
 
-    user:null,
+    user:
+    JSON.parse(localStorage.getItem("user")) || null,
+
 
     token:
     localStorage.getItem("token") || null,
@@ -50,6 +52,12 @@ const authSlice = createSlice({
             );
 
 
+            localStorage.setItem(
+                "user",
+                JSON.stringify(action.payload.user)
+            );
+
+
         },
 
 
@@ -64,8 +72,14 @@ const authSlice = createSlice({
             state.isAuthenticated=false;
 
 
+
             localStorage.removeItem(
                 "token"
+            );
+
+
+            localStorage.removeItem(
+                "user"
             );
 
 

@@ -16,6 +16,7 @@ const user =
 useSelector(
 state=>state.auth.user
 );
+console.log("Navbar user:", user);
 
 
 const dispatch=useDispatch();
