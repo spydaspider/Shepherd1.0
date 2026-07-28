@@ -12,6 +12,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminLayout from "./layouts/AdminLayout/AdminLayout";
 
 import Dashboard from "./pages/Dashboard/Dashboard";
+import Members from "./pages/Members/Members";
 
 
 
@@ -58,9 +59,13 @@ element={
 
 }
 
+
 />
 
-
+<Route 
+path="/members" 
+element={<Members />} 
+/>
 
 </Routes>
 
