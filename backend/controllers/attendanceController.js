@@ -3,331 +3,1191 @@ const Service = require("../models/Service");
 const User = require("../models/User");
 
 
-// =======================================
-// Mark Attendance
-// POST /api/attendance/mark
-// =======================================
-
-const markAttendance = async (req, res) => {
-
-    try {
 
 
-        let {
-            code,
-            members = []
-        } = req.body;
+// =====================================================
+// Update Attendance Summary
+// =====================================================
+
+
+const updateAttendanceSummary = async(serviceId)=>{
+
+
+    const service =
+    await Service.findById(serviceId);
 
 
 
-        // The person entering the code is always present
+    if(!service){
 
-        if (!members.includes(req.user._id.toString())) {
+        return;
 
-            members.push(
-                req.user._id.toString()
-            );
-
-        }
-
-
-
-        // Find active service using attendance code
-
-        const service =
-        await Service.findOne({
-
-            attendanceCode: code,
-
-            active: true
-
-        });
-
-
-
-        if (!service) {
-
-            return res.status(400).json({
-
-                success:false,
-
-                message:"Invalid or expired attendance code"
-
-            });
-
-        }
+    }
 
 
 
 
-        // Check that members belong to this user
 
-        const familyMembers =
-        await User.find({
+    const totalMembers =
 
-            _id:{
-                $in:members
-            },
+    await User.countDocuments({
 
-            $or:[
+        isActive:true,
 
-                {
-                    _id:req.user._id
-                },
-
-                {
-                    parent:req.user._id
-                }
-
+        role:{
+            $in:[
+                "Member",
+                "Child",
+                "Leader",
+                "Pastor"
             ]
-
-        });
-
-
-
-
-        if(
-            familyMembers.length !== members.length
-        ){
-
-            return res.status(403).json({
-
-                success:false,
-
-                message:"You can only mark attendance for your family"
-
-            });
-
         }
 
+    });
 
 
 
-        let attendanceCreated = [];
 
-        let alreadyMarked = [];
 
 
 
+    const presentRecords =
 
-        for(const member of familyMembers){
+    await Attendance.find({
 
+        service:serviceId,
 
+        status:"Present"
 
-            // Prevent duplicate attendance
+    })
+    .populate(
+        "user"
+    );
 
-            const exists =
-            await Attendance.findOne({
 
-                user:member._id,
 
-                service:service._id
 
-            });
 
 
 
 
-            if(exists){
+    const users =
 
-                alreadyMarked.push(member);
+    presentRecords
 
-                continue;
+    .map(
+        record=>record.user
+    )
 
-            }
+    .filter(Boolean);
 
 
 
 
-            // Create attendance record
 
-            const attendance =
-            await Attendance.create({
 
-                user:member._id,
 
-                service:service._id,
+    const totalPresent =
+    users.length;
 
 
-                attendanceMethod:
 
-                member._id.toString() === req.user._id.toString()
 
-                ?
 
-                "Self"
+    const totalAbsent =
 
-                :
+    totalMembers - totalPresent;
 
-                "Parent",
 
 
-                markedBy:req.user._id
 
 
-            });
 
 
 
+    service.attendanceSummary = {
 
-            // ==========================
-            // Update Service Summary
-            // ==========================
 
+        totalPresent,
 
-            service.attendanceSummary.totalPresent += 1;
 
+        totalAbsent:
 
+        totalAbsent > 0
+        ?
+        totalAbsent
+        :
+        0,
 
-            if(member.isChild){
 
-                service.attendanceSummary.childrenPresent += 1;
 
-            }
-            else{
+        adultsPresent:
 
-                service.attendanceSummary.adultsPresent += 1;
+        users.filter(
+            user=>!user.isChild
+        ).length,
 
-            }
 
 
 
+        childrenPresent:
 
-            if(member.gender === "Male"){
+        users.filter(
+            user=>user.isChild
+        ).length,
 
-                service.attendanceSummary.malePresent += 1;
 
-            }
-            else if(member.gender === "Female"){
 
-                service.attendanceSummary.femalePresent += 1;
 
-            }
+        malePresent:
 
+        users.filter(
+            user=>user.gender==="Male"
+        ).length,
 
 
 
-            attendanceCreated.push(attendance);
 
+        femalePresent:
 
-        }
+        users.filter(
+            user=>user.gender==="Female"
+        ).length,
 
 
 
 
-        // ==========================
-        // Calculate Absentees
-        // ==========================
+        attendanceRate:
 
 
-        const totalMembers =
-        await User.countDocuments({
+        totalMembers > 0
 
-            isActive:true
+        ?
 
-        });
+        Number(
 
+            (
+                totalPresent /
+                totalMembers *
+                100
 
+            )
+            .toFixed(2)
 
-        service.attendanceSummary.totalAbsent =
+        )
 
-        totalMembers -
+        :
 
-        service.attendanceSummary.totalPresent;
+        0
 
 
+    };
 
 
-        // Attendance percentage
 
 
-        if(totalMembers > 0){
 
-            service.attendanceSummary.attendanceRate =
-
-            Number(
-
-                (
-
-                service.attendanceSummary.totalPresent /
-
-                totalMembers
-
-                * 100
-
-                ).toFixed(2)
-
-            );
-
-        }
-
-
-
-
-        await service.save();
-
-
-
-
-
-        res.status(201).json({
-
-            success:true,
-
-            message:"Attendance processed successfully",
-
-
-            service:{
-
-                id:service._id,
-
-                name:service.name
-
-            },
-
-
-            newAttendance:
-            attendanceCreated.length,
-
-
-            alreadyMarked:
-            alreadyMarked.length,
-
-
-            attendanceSummary:
-            service.attendanceSummary,
-
-
-            attendance:
-            attendanceCreated
-
-
-        });
-
-
-
-    }
-    catch(error){
-
-
-        res.status(500).json({
-
-            success:false,
-
-            message:error.message
-
-        });
-
-
-    }
+    await service.save();
 
 
 };
 
 
 
+
+
+
+
+
+
+// =====================================================
+// Update User Attendance Statistics
+// =====================================================
+
+
+const updateUserAttendance = async(userId)=>{
+
+
+    const user =
+
+    await User.findById(userId);
+
+
+
+    if(!user){
+
+        return;
+
+    }
+
+
+
+
+
+
+    user.totalAttendance =
+
+    await Attendance.countDocuments({
+
+        user:userId,
+
+        status:"Present"
+
+    });
+
+
+
+
+
+
+
+    user.lastAttendance =
+
+    new Date();
+
+
+
+
+
+
+    await user.save();
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Member / Parent Mark Attendance
+// POST /api/attendance/mark
+// =====================================================
+
+
+const markAttendance = async(req,res)=>{
+
+
+try{
+
+
+const {
+
+    code,
+
+    members=[]
+
+}=req.body;
+
+
+
+
+
+
+
+const service =
+
+await Service.findOne({
+
+    attendanceCode:code,
+
+    status:"Active",
+
+    attendanceOpen:true
+
+});
+
+
+
+
+
+
+
+if(!service){
+
+
+return res.status(400).json({
+
+success:false,
+
+message:
+"Invalid or expired attendance code"
+
+});
+
+
+}
+
+
+
+
+
+
+
+
+let selectedMembers = [
+
+    ...members
+
+];
+
+
+
+
+
+
+
+// Add logged in user automatically
+
+if(
+
+!selectedMembers.includes(
+
+req.user._id.toString()
+
+)
+
+){
+
+
+selectedMembers.push(
+
+req.user._id.toString()
+
+);
+
+
+}
+
+
+
+
+
+
+
+
+
+// Validate parent permissions
+
+
+const allowedMembers =
+
+await User.find({
+
+_id:{
+
+    $in:selectedMembers
+
+},
+
+
+$or:[
+
+{
+
+_id:req.user._id
+
+},
+
+
+{
+
+parent:req.user._id
+
+}
+
+]
+
+
+});
+
+
+
+
+
+
+
+
+
+if(
+
+allowedMembers.length !== selectedMembers.length
+
+){
+
+
+return res.status(403).json({
+
+success:false,
+
+message:
+"You can only mark yourself and your children"
+
+});
+
+
+}
+
+
+
+
+
+
+
+
+let created=[];
+
+let alreadyPresent=[];
+
+
+
+
+
+
+
+for(const member of allowedMembers){
+
+
+
+
+
+const existing =
+
+await Attendance.findOne({
+
+user:member._id,
+
+service:service._id
+
+});
+
+
+
+
+
+
+
+
+if(existing){
+
+
+if(existing.status==="Present"){
+
+alreadyPresent.push(member);
+
+continue;
+
+}
+
+
+existing.status="Present";
+
+existing.markedBy=req.user._id;
+
+existing.attendanceDate=new Date();
+
+
+await existing.save();
+
+
+created.push(existing);
+
+
+continue;
+
+
+}
+
+
+
+
+
+
+
+
+
+const attendance =
+
+await Attendance.create({
+
+user:member._id,
+
+service:service._id,
+
+status:"Present",
+
+
+attendanceMethod:
+
+member._id.toString()
+===
+req.user._id.toString()
+
+?
+
+"Self"
+
+:
+
+"Parent",
+
+
+
+markedBy:req.user._id,
+
+
+attendanceDate:new Date()
+
+
+});
+
+
+
+
+
+
+
+created.push(attendance);
+
+
+
+
+
+
+
+await updateUserAttendance(
+member._id
+);
+
+
+
+}
+
+
+
+
+
+
+
+
+
+await updateAttendanceSummary(
+
+service._id
+
+);
+
+
+
+
+
+
+
+
+
+
+const updatedService =
+
+await Service.findById(
+
+service._id
+
+);
+
+
+
+
+
+
+
+const populatedAttendance =
+
+await Attendance.find({
+
+_id:{
+
+$in:
+
+created.map(
+item=>item._id
+)
+
+}
+
+})
+
+.populate(
+
+"user",
+
+"firstName lastName gender isChild"
+
+);
+
+
+
+
+
+
+
+
+
+res.status(201).json({
+
+success:true,
+
+
+message:
+"Attendance marked successfully",
+
+
+
+newAttendance:
+created.length,
+
+
+
+alreadyPresent:
+alreadyPresent.length,
+
+
+
+attendance:
+populatedAttendance,
+
+
+
+summary:
+updatedService.attendanceSummary
+
+
+});
+
+
+
+
+
+
+}
+catch(error){
+
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Admin Mark Attendance
+// POST /api/attendance/admin-mark
+// =====================================================
+
+
+const adminMarkAttendance = async(req,res)=>{
+
+
+try{
+
+
+const {
+
+serviceId,
+
+members=[]
+
+}=req.body;
+
+
+
+
+
+
+
+const service =
+
+await Service.findOne({
+
+_id:serviceId,
+
+status:"Active",
+
+attendanceOpen:true
+
+});
+
+
+
+
+
+
+
+
+if(!service){
+
+
+return res.status(404).json({
+
+success:false,
+
+message:
+"Active service not found"
+
+});
+
+
+}
+
+
+
+
+
+
+
+
+
+let created=[];
+
+let alreadyPresent=[];
+
+
+
+
+
+
+
+
+for(const memberId of members){
+
+
+
+const member =
+
+await User.findById(memberId);
+
+
+
+
+
+if(!member){
+
+continue;
+
+}
+
+
+
+
+
+
+
+
+const existing =
+
+await Attendance.findOne({
+
+user:member._id,
+
+service:service._id
+
+});
+
+
+
+
+
+
+
+if(existing){
+
+
+alreadyPresent.push(member);
+
+
+continue;
+
+
+}
+
+
+
+
+
+
+
+
+const attendance =
+
+await Attendance.create({
+
+user:member._id,
+
+service:service._id,
+
+status:"Present",
+
+attendanceMethod:"Admin",
+
+markedBy:req.user._id,
+
+attendanceDate:new Date()
+
+
+});
+
+
+
+
+
+
+
+
+created.push(attendance);
+
+
+
+
+
+await updateUserAttendance(
+
+member._id
+
+);
+
+
+
+}
+
+
+
+
+
+
+
+
+await updateAttendanceSummary(
+
+service._id
+
+);
+
+
+
+
+
+
+
+res.status(201).json({
+
+success:true,
+
+
+message:
+"Admin attendance recorded",
+
+
+
+created:
+created.length,
+
+
+
+alreadyPresent:
+alreadyPresent.length,
+
+
+summary:
+service.attendanceSummary
+
+
+});
+
+
+
+
+
+
+}
+catch(error){
+
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Get Service Attendance
+// GET /api/attendance/service/:serviceId
+// =====================================================
+
+
+const getServiceAttendance = async(req,res)=>{
+
+
+try{
+
+
+const attendance =
+
+await Attendance.find({
+
+service:req.params.serviceId
+
+})
+
+
+.populate(
+
+"user",
+
+"firstName lastName gender phone isChild"
+
+)
+
+
+.populate(
+
+"markedBy",
+
+"firstName lastName"
+
+)
+
+
+.sort({
+
+createdAt:-1
+
+});
+
+
+
+
+
+
+
+res.json({
+
+success:true,
+
+count:attendance.length,
+
+attendance
+
+});
+
+
+
+
+
+
+}
+catch(error){
+
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Update Attendance Status
+// PATCH /api/attendance/:id
+// =====================================================
+
+
+const updateAttendanceStatus = async(req,res)=>{
+
+
+try{
+
+
+const attendance =
+
+await Attendance.findById(
+
+req.params.id
+
+);
+
+
+
+
+
+
+
+if(!attendance){
+
+
+return res.status(404).json({
+
+success:false,
+
+message:
+"Attendance record not found"
+
+});
+
+
+}
+
+
+
+
+
+
+
+attendance.status =
+
+req.body.status;
+
+
+
+attendance.markedBy =
+
+req.user._id;
+
+
+
+await attendance.save();
+
+
+
+
+
+
+
+
+await updateAttendanceSummary(
+
+attendance.service
+
+);
+
+
+
+
+
+
+
+
+res.json({
+
+success:true,
+
+message:
+"Attendance updated successfully",
+
+attendance
+
+});
+
+
+
+
+
+
+}
+catch(error){
+
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
+
+
+};
+
+
+
+
+
+
+
+
+
 module.exports = {
 
-    markAttendance
+
+markAttendance,
+
+adminMarkAttendance,
+
+getServiceAttendance,
+
+updateAttendanceStatus
+
 
 };

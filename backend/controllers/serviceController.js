@@ -1,13 +1,15 @@
 const Service = require("../models/Service");
 const User = require("../models/User");
+const Attendance = require("../models/Attendance");
 const Notification = require("../models/Notification");
+
 const generateFollowUps = require("../utils/generateFollowUps");
 
 
 
 
 // ==========================================
-// Generate Random Attendance Code
+// Generate Attendance Code
 // ==========================================
 
 const generateAttendanceCode = () => {
@@ -22,30 +24,218 @@ const generateAttendanceCode = () => {
 
 
 
+// ==========================================
+// Generate Unique Code
+// ==========================================
+
+const generateUniqueCode = async()=>{
+
+
+    let code;
+
+    let exists = true;
+
+
+
+    while(exists){
+
+
+        code = generateAttendanceCode();
+
+
+
+        const service =
+        await Service.findOne({
+            attendanceCode:code
+        });
+
+
+
+        if(!service){
+
+            exists=false;
+
+        }
+
+    }
+
+
+
+    return code;
+
+};
+
+
+
+
+
+
+
+// ==========================================
+// Update Attendance Summary
+// ==========================================
+
+const updateAttendanceSummary = async(serviceId)=>{
+
+
+const service =
+await Service.findById(serviceId);
+
+
+
+if(!service){
+
+return;
+
+}
+
+
+
+
+const totalMembers =
+await User.countDocuments({
+
+isActive:true
+
+});
+
+
+
+
+
+const attendance =
+await Attendance.find({
+
+service:serviceId,
+
+status:"Present"
+
+})
+.populate("user");
+
+
+
+
+
+const users =
+attendance.map(
+item=>item.user
+);
+
+
+
+
+
+service.attendanceSummary = {
+
+
+totalPresent:
+users.length,
+
+
+totalAbsent:
+Math.max(
+totalMembers - users.length,
+0
+),
+
+
+
+adultsPresent:
+
+users.filter(
+user=>!user.isChild
+).length,
+
+
+
+childrenPresent:
+
+users.filter(
+user=>user.isChild
+).length,
+
+
+
+malePresent:
+
+users.filter(
+user=>user.gender==="Male"
+).length,
+
+
+
+femalePresent:
+
+users.filter(
+user=>user.gender==="Female"
+).length,
+
+
+
+attendanceRate:
+
+totalMembers > 0
+
+?
+
+Number(
+(
+users.length /
+totalMembers *
+100
+)
+.toFixed(2)
+)
+
+:
+
+0
+
+
+};
+
+
+
+await service.save();
+
+
+
+};
+
+
+
+
+
+
+
+
 
 // ==========================================
 // Create Service
 // POST /api/services
 // ==========================================
 
+
 const createService = async(req,res)=>{
+
 
 try{
 
 
 const {
 
-    name,
+name,
 
-    serviceType,
+serviceType,
 
-    serviceDate,
+serviceDate,
 
-    startTime,
+startTime,
 
-    endTime,
+endTime,
 
-    description
+description
 
 
 }=req.body;
@@ -54,30 +244,19 @@ const {
 
 
 
-// ==========================================
-// Prevent duplicate service same day
-// ==========================================
+if(
+!name ||
+!serviceType ||
+!serviceDate
+){
 
-
-const existingService =
-await Service.findOne({
-
-    serviceType,
-
-    serviceDate:new Date(serviceDate)
-
-});
-
-
-
-if(existingService){
 
 return res.status(400).json({
 
-    success:false,
+success:false,
 
-    message:
-    "A service with this type already exists on this date"
+message:
+"Name, service type and date are required"
 
 });
 
@@ -87,23 +266,81 @@ return res.status(400).json({
 
 
 
+// Check duplicate service
 
 
-// ==========================================
-// Close previous active service
-// ==========================================
+const start =
+new Date(serviceDate);
 
-await Service.updateMany(
+start.setHours(
+0,0,0,0
+);
 
-{
-    active:true
-},
 
-{
-    active:false
+
+const end =
+new Date(serviceDate);
+
+end.setHours(
+23,59,59,999
+);
+
+
+
+
+
+const existing =
+await Service.findOne({
+
+serviceType,
+
+serviceDate:{
+$gte:start,
+$lte:end
 }
 
-);
+});
+
+
+
+
+
+if(existing){
+
+
+return res.status(400).json({
+
+success:false,
+
+message:
+"Service already exists for this date"
+
+});
+
+}
+
+
+
+
+
+// Close previous active service
+
+
+await Service.updateMany({
+
+status:"Active",
+
+attendanceOpen:true
+
+},{
+
+status:"Completed",
+
+attendanceOpen:false,
+
+closedAt:new Date()
+
+});
 
 
 
@@ -112,8 +349,22 @@ await Service.updateMany(
 
 
 const attendanceCode =
-generateAttendanceCode();
+await generateUniqueCode();
 
+
+
+
+
+const expiry =
+new Date(serviceDate);
+
+
+expiry.setHours(
+23,
+59,
+59,
+999
+);
 
 
 
@@ -123,25 +374,33 @@ generateAttendanceCode();
 const service =
 await Service.create({
 
-    name,
+name,
 
-    serviceType,
+serviceType,
 
-    serviceDate,
+serviceDate,
 
-    startTime,
+startTime,
 
-    endTime,
+endTime,
 
-    description,
+description:description || "",
 
-    attendanceCode,
 
-    generatedBy:req.user._id,
+attendanceCode,
 
-    active:true,
 
-    closed:false
+codeExpiresAt:expiry,
+
+
+status:"Active",
+
+
+attendanceOpen:true,
+
+
+generatedBy:req.user._id
+
 
 });
 
@@ -151,48 +410,49 @@ await Service.create({
 
 
 
-// ==========================================
-// Create Service Notifications
-// Notify Admins and Pastors
-// ==========================================
+
+// Notify Admin and Pastors
 
 
 const managers =
 await User.find({
 
-    role:{
-        $in:[
-            "Admin",
-            "Pastor"
-        ]
-    },
+role:{
+$in:[
+"Admin",
+"Pastor"
+]
+},
 
-    isActive:true
-
-});
-
-
-
-
-
-
-for(const manager of managers){
-
-
-await Notification.create({
-
-    recipient:manager._id,
-
-    title:"New Service Created",
-
-    message:
-    `${name} has been scheduled for ${new Date(serviceDate).toDateString()}`,
-
-    type:"Service",
-
-    relatedId:service._id
+isActive:true
 
 });
+
+
+
+
+
+if(managers.length){
+
+
+await Notification.insertMany(
+
+managers.map(manager=>({
+
+recipient:manager._id,
+
+title:"New Service Created",
+
+message:
+`${name} scheduled for ${new Date(serviceDate).toDateString()}`,
+
+type:"Service",
+
+relatedId:service._id
+
+}))
+
+);
 
 
 }
@@ -205,11 +465,12 @@ await Notification.create({
 
 res.status(201).json({
 
-    success:true,
+success:true,
 
-    message:"Service created successfully",
+message:
+"Service created successfully",
 
-    service
+service
 
 });
 
@@ -221,9 +482,9 @@ catch(error){
 
 res.status(500).json({
 
-    success:false,
+success:false,
 
-    message:error.message
+message:error.message
 
 });
 
@@ -246,6 +507,7 @@ res.status(500).json({
 // GET /api/services/active
 // ==========================================
 
+
 const getActiveService = async(req,res)=>{
 
 
@@ -255,20 +517,25 @@ try{
 const service =
 await Service.findOne({
 
-    active:true
+status:"Active",
+
+attendanceOpen:true
 
 });
 
 
 
 
+
 if(!service){
+
 
 return res.status(404).json({
 
-    success:false,
+success:false,
 
-    message:"No active service found"
+message:
+"No active service found"
 
 });
 
@@ -277,11 +544,52 @@ return res.status(404).json({
 
 
 
+
+// Expire attendance code
+
+
+if(
+
+service.codeExpiresAt &&
+new Date() > service.codeExpiresAt
+
+){
+
+
+service.status="Completed";
+
+service.attendanceOpen=false;
+
+service.closedAt=new Date();
+
+
+await service.save();
+
+
+
+
+
+return res.status(400).json({
+
+success:false,
+
+message:
+"Attendance code expired"
+
+});
+
+
+}
+
+
+
+
+
 res.json({
 
-    success:true,
+success:true,
 
-    service
+service
 
 });
 
@@ -293,9 +601,9 @@ catch(error){
 
 res.status(500).json({
 
-    success:false,
+success:false,
 
-    message:error.message
+message:error.message
 
 });
 
@@ -314,9 +622,10 @@ res.status(500).json({
 
 
 // ==========================================
-// End Service + Generate Follow Ups
+// End Service
 // PATCH /api/services/:id/end
 // ==========================================
+
 
 const endService = async(req,res)=>{
 
@@ -326,19 +635,22 @@ try{
 
 const service =
 await Service.findById(
-    req.params.id
+req.params.id
 );
+
 
 
 
 
 if(!service){
 
+
 return res.status(404).json({
 
-    success:false,
+success:false,
 
-    message:"Service not found"
+message:
+"Service not found"
 
 });
 
@@ -347,14 +659,15 @@ return res.status(404).json({
 
 
 
+if(service.status==="Completed"){
 
-if(!service.active){
 
 return res.status(400).json({
 
-    success:false,
+success:false,
 
-    message:"Service already closed"
+message:
+"Service already completed"
 
 });
 
@@ -364,13 +677,21 @@ return res.status(400).json({
 
 
 
+// Update attendance first
+
+await updateAttendanceSummary(
+service._id
+);
 
 
-// Generate follow-ups
+
+
+
+// Generate follow ups
 
 const followUps =
 await generateFollowUps(
-    service._id
+service._id
 );
 
 
@@ -378,15 +699,11 @@ await generateFollowUps(
 
 
 
+service.status="Completed";
 
-// Close service
-
-service.active=false;
-
-service.closed=true;
+service.attendanceOpen=false;
 
 service.closedAt=new Date();
-
 
 
 await service.save();
@@ -397,44 +714,52 @@ await service.save();
 
 
 
-// Notify Admins and Pastors
+
+// Notify leaders
 
 
-const managers =
+const leaders =
 await User.find({
 
-    role:{
-        $in:[
-            "Admin",
-            "Pastor"
-        ]
-    },
+role:{
+$in:[
+"Admin",
+"Pastor",
+"Leader"
+]
+},
 
-    isActive:true
-
-});
-
-
-
-
-
-for(const manager of managers){
-
-
-await Notification.create({
-
-    recipient:manager._id,
-
-    title:"Service Ended",
-
-    message:
-    `${service.name} has ended. ${followUps.length} follow-up tasks were generated.`,
-
-    type:"Service",
-
-    relatedId:service._id
+isActive:true
 
 });
+
+
+
+
+
+if(leaders.length){
+
+
+await Notification.insertMany(
+
+leaders.map(user=>({
+
+
+recipient:user._id,
+
+title:"Service Completed",
+
+message:
+`${service.name} completed. ${followUps.length} follow ups created.`,
+
+type:"Service",
+
+relatedId:service._id
+
+
+}))
+
+);
 
 
 }
@@ -445,22 +770,18 @@ await Notification.create({
 
 
 
+
 res.json({
 
-    success:true,
+success:true,
 
-    message:"Service closed successfully",
+message:
+"Service completed successfully",
 
-    service:{
+followUpsCreated:
+followUps.length,
 
-        id:service._id,
-
-        name:service.name
-
-    },
-
-    followUpsCreated:
-    followUps.length
+service
 
 
 });
@@ -473,9 +794,9 @@ catch(error){
 
 res.status(500).json({
 
-    success:false,
+success:false,
 
-    message:error.message
+message:error.message
 
 });
 
@@ -498,6 +819,7 @@ res.status(500).json({
 // GET /api/services
 // ==========================================
 
+
 const getServices = async(req,res)=>{
 
 
@@ -507,9 +829,17 @@ try{
 const services =
 await Service.find()
 
+.populate(
+
+"generatedBy",
+
+"firstName lastName"
+
+)
+
 .sort({
 
-    serviceDate:-1
+serviceDate:-1
 
 });
 
@@ -519,11 +849,11 @@ await Service.find()
 
 res.json({
 
-    success:true,
+success:true,
 
-    count:services.length,
+count:services.length,
 
-    services
+services
 
 });
 
@@ -535,9 +865,9 @@ catch(error){
 
 res.status(500).json({
 
-    success:false,
+success:false,
 
-    message:error.message
+message:error.message
 
 });
 
@@ -546,6 +876,90 @@ res.status(500).json({
 
 
 };
+
+
+
+
+
+
+
+
+
+// ==========================================
+// Get Service By ID
+// GET /api/services/:id
+// ==========================================
+
+
+const getServiceById = async(req,res)=>{
+
+
+try{
+
+
+const service =
+await Service.findById(
+req.params.id
+)
+
+.populate(
+
+"generatedBy",
+
+"firstName lastName"
+
+);
+
+
+
+
+
+if(!service){
+
+
+return res.status(404).json({
+
+success:false,
+
+message:
+"Service not found"
+
+});
+
+}
+
+
+
+
+
+res.json({
+
+success:true,
+
+service
+
+});
+
+
+
+}
+catch(error){
+
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
+
+
+};
+
 
 
 
@@ -563,7 +977,9 @@ getActiveService,
 
 endService,
 
-getServices
+getServices,
+
+getServiceById
 
 
 };

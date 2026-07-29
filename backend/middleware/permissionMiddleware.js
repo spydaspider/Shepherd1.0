@@ -1,77 +1,168 @@
-const permissions =
-require("../config/permissions");
+const {
+    hasPermission
+} = require("../config/permissions");
+
+
+
+
+
 
 
 const checkPermission = (permission)=>{
 
 
-return (req,res,next)=>{
+    return (req,res,next)=>{
 
 
-console.log("========================");
-console.log("USER FROM REQUEST:");
-console.log(req.user);
-
-console.log("USER ROLE:");
-console.log(req.user?.role);
-
-console.log("REQUIRED PERMISSION:");
-console.log(permission);
-
-console.log("AVAILABLE PERMISSIONS:");
-console.log(
-    permissions[req.user?.role]
-);
-
-console.log("========================");
+        try{
 
 
+            // ==========================================
+            // Check Authentication
+            // ==========================================
 
-const userRole = req.user.role;
+            if(!req.user){
 
 
-const allowedPermissions =
-permissions[userRole];
+                return res.status(401).json({
+
+                    success:false,
+
+                    message:
+                    "Authentication required"
+
+                });
+
+
+            }
 
 
 
-if(!allowedPermissions){
-
-return res.status(403).json({
-
-success:false,
-
-message:"Role has no permissions"
-
-});
-
-}
 
 
 
-if(!allowedPermissions.includes(permission)){
 
 
-return res.status(403).json({
-
-success:false,
-
-message:"You do not have permission to perform this action"
-
-});
+            // ==========================================
+            // Check User Role
+            // ==========================================
 
 
-}
+            const userRole =
+            req.user.role;
 
 
 
-next();
+            if(!userRole){
+
+
+                return res.status(403).json({
+
+                    success:false,
+
+                    message:
+                    "User role not assigned"
+
+                });
+
+
+            }
+
+
+
+
+
+
+
+
+
+            // ==========================================
+            // Permission Check
+            // ==========================================
+
+
+            const allowed =
+
+            hasPermission(
+
+                userRole,
+
+                permission
+
+            );
+
+
+
+
+
+
+
+
+
+            if(!allowed){
+
+
+                return res.status(403).json({
+
+                    success:false,
+
+                    message:
+
+                    `Access denied. Missing permission: ${permission}`
+
+                });
+
+
+            }
+
+
+
+
+
+
+
+
+            next();
+
+
+
+
+        }
+
+        catch(error){
+
+
+            console.error(
+                "Permission Middleware Error:",
+                error
+            );
+
+
+
+            res.status(500).json({
+
+                success:false,
+
+                message:
+                "Permission check failed"
+
+            });
+
+
+        }
+
+
+    };
 
 
 };
 
 
-};
 
 
-module.exports = checkPermission;
+
+
+
+
+module.exports =
+checkPermission;

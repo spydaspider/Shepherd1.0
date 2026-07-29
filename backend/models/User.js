@@ -2,492 +2,1181 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
 
+
 const userSchema = new mongoose.Schema(
 {
-    // ==========================
-    // Personal Information
-    // ==========================
 
-    firstName:{
-        type:String,
-        required:[true,"First name is required"],
-        trim:true
-    },
+// =====================================================
+// PERSONAL INFORMATION
+// =====================================================
 
 
-    lastName:{
-        type:String,
-        required:[true,"Last name is required"],
-        trim:true
-    },
+firstName:{
+
+    type:String,
+
+    required:[
+        true,
+        "First name is required"
+    ],
+
+    trim:true
+
+},
+
+
+
+
+lastName:{
+
+    type:String,
+
+    required:[
+        true,
+        "Last name is required"
+    ],
+
+    trim:true
+
+},
+
+
+
+
+
+email:{
+
+    type:String,
+
+    lowercase:true,
+
+    trim:true,
+
+    unique:true,
+
+    sparse:true
+
+},
+
+
+
+
+
+phone:{
+
+    type:String,
+
+    trim:true,
+
+    unique:true,
+
+    sparse:true
+
+},
+
+
+
+
+
+profileImage:{
+
+    type:String,
+
+    default:""
+
+},
+
+
+
+
+
+gender:{
+
+    type:String,
+
+    enum:[
+
+        "Male",
+        "Female"
+
+    ],
+
+    required:true
+
+},
+
+
+
+
+
+dateOfBirth:{
+
+    type:Date,
+
+    default:null
+
+},
+
+
+
+
+
+maritalStatus:{
+
+    type:String,
+
+    enum:[
+
+        "Single",
+        "Married",
+        "Divorced",
+        "Widowed"
+
+    ],
+
+    default:"Single"
+
+},
+
+
+
+
+
+occupation:{
+
+    type:String,
+
+    trim:true,
+
+    default:""
+
+},
+
+
+
+
+
+address:{
+
+    type:String,
+
+    trim:true,
+
+    default:""
+
+},
+
+
+
+
+
+gpsLocation:{
+
+    latitude:Number,
+
+    longitude:Number
+
+},
+
+
+
+
+
+emergencyContact:{
+
+    type:String,
+
+    default:""
+
+},
+
+
+
+
+emergencyPhone:{
+
+    type:String,
+
+    default:""
+
+},
+
+
+
+
+
+
+
+// =====================================================
+// ACCOUNT MANAGEMENT
+// =====================================================
+
+
+hasAccount:{
+
+    type:Boolean,
+
+    default:false
+
+},
+
+
+
+
+loginEnabled:{
+
+    type:Boolean,
+
+    default:false
+
+},
+
+
+
+
+
+password:{
+
+    type:String,
+
+    minlength:6,
+
+    select:false,
+
+    required:function(){
+
+        return this.hasAccount;
+
+    }
+
+},
+
+
+
+
+
+mustChangePassword:{
+
+    type:Boolean,
+
+    default:false
+
+},
+
+
+
+
+
+accountCreatedAt:{
+
+    type:Date,
+
+    default:null
+
+},
+
+
+
+
+
+accountCreatedBy:{
+
+    type:mongoose.Schema.Types.ObjectId,
+
+    ref:"User",
+
+    default:null
+
+},
+
+
+
+
+
+lastLogin:{
+
+    type:Date,
+
+    default:null
+
+},
+
+
+
+
+
+
+
+// =====================================================
+// CHURCH INFORMATION
+// =====================================================
+
+
+membershipNumber:{
+
+    type:String,
+
+    unique:true,
+
+    sparse:true
+
+},
+
+
+
+
+
+joinedChurchDate:{
+
+    type:Date,
+
+    default:Date.now
+
+},
+
+
+
+
+
+baptized:{
+
+    type:Boolean,
+
+    default:false
+
+},
+
+
+
+
+
+branch:{
+
+    type:String,
+
+    default:"Main Branch"
+
+},
+
+
+
+
+
+department:{
+
+    type:String,
+
+    default:""
+
+},
+
+
+
+
+
+cellGroup:{
+
+    type:String,
+
+    default:""
+
+},
+
+
+
+
+
+area:{
+
+    type:String,
+
+    default:""
+
+},
+
+
+
+
+
+
+
+membershipType:{
+
+    type:String,
+
+    enum:[
+
+        "Visitor",
+
+        "New Convert",
+
+        "Member",
+
+        "Worker",
+
+        "Leader",
+
+        "Pastor"
+
+    ],
+
+    default:"Member"
+
+},
+
+
+
+
+
+
+
+// =====================================================
+// SYSTEM ROLE
+// =====================================================
+
+
+role:{
+
+    type:String,
+
+    enum:[
+
+        "Member",
+
+        "Child",
+
+        "Leader",
+
+        "Pastor",
+
+        "Admin"
+
+    ],
+
+    default:"Member"
+
+},
+
+
+
+
+
+roleAssignedAt:{
+
+    type:Date,
+
+    default:null
+
+},
+
+
+
+
+
+roleAssignedBy:{
+
+    type:mongoose.Schema.Types.ObjectId,
+
+    ref:"User",
+
+    default:null
+
+},
+
+
+
+
+
+
+
+// =====================================================
+// MEMBER STATUS
+// =====================================================
+
+
+status:{
+
+    type:String,
+
+    enum:[
+
+        "Active",
+
+        "Inactive",
+
+        "Transferred",
+
+        "Suspended"
+
+    ],
+
+    default:"Active"
+
+},
+
+
+
+
+
+isActive:{
+
+    type:Boolean,
+
+    default:true
+
+},
+
+
+
+
+
+deleted:{
+
+    type:Boolean,
+
+    default:false
+
+},
+
+
+
+
+
+registrationSource:{
+
+    type:String,
+
+    enum:[
+
+        "Online",
+
+        "Parent",
+
+        "Admin",
+
+        "Import",
+
+        "Visitor"
+
+    ],
+
+    default:"Admin"
+
+},
+
+
+
+
+
+
+
+// =====================================================
+// FAMILY MANAGEMENT
+// =====================================================
+
+
+isChild:{
+
+    type:Boolean,
+
+    default:false
+
+},
+
+
+
+
+
+parent:{
+
+    type:mongoose.Schema.Types.ObjectId,
+
+    ref:"User",
+
+    default:null
+
+},
+
+
+
+
+
+guardian:{
+
+    type:mongoose.Schema.Types.ObjectId,
+
+    ref:"User",
+
+    default:null
+
+},
+
+
+
+
+
+relationship:{
+
+    type:String,
+
+    enum:[
+
+        "Father",
+
+        "Mother",
+
+        "Guardian",
+
+        "Other"
+
+    ],
+
+    default:"Guardian"
+
+},
+
+
+
+
+
+children:[
+
+    {
+
+        type:mongoose.Schema.Types.ObjectId,
+
+        ref:"User"
+
+    }
+
+],
+
+
+
+
+
+familyId:{
+
+    type:String,
+
+    index:true,
+
+    default:null
+
+},
+
+
+
+
+
+
+
+// =====================================================
+// ATTENDANCE TRACKING
+// =====================================================
+
+
+totalAttendance:{
+
+    type:Number,
+
+    default:0
+
+},
+
+
+
+
+
+attendancePercentage:{
+
+    type:Number,
+
+    default:0,
+
+    min:0,
+
+    max:100
+
+},
+
+
+
+
+
+lastAttendance:{
+
+    type:Date,
+
+    default:null
+
+},
+
+
+
+
+
+lastServiceAttended:{
+
+    type:mongoose.Schema.Types.ObjectId,
+
+    ref:"Service",
+
+    default:null
+
+},
+
+
+
+
+
+
+
+// =====================================================
+// NOTIFICATION SETTINGS
+// =====================================================
+
+
+notificationSettings:{
 
 
     email:{
-        type:String,
-        unique:true,
-        sparse:true,
-        lowercase:true,
-        trim:true
-    },
 
-
-    phone:{
-        type:String,
-        required:function(){
-            return !this.isChild;
-        },
-        unique:true,
-        sparse:true,
-        trim:true
-    },
-
-
-    password:{
-        type:String,
-        required:function(){
-            return !this.isChild;
-        },
-        minlength:6,
-        select:false
-    },
-
-
-    profileImage:{
-        type:String,
-        default:""
-    },
-
-
-    gender:{
-        type:String,
-        enum:[
-            "Male",
-            "Female"
-        ],
-        required:true
-    },
-
-
-    dateOfBirth:{
-        type:Date,
-        required:true
-    },
-
-
-    maritalStatus:{
-        type:String,
-        enum:[
-            "Single",
-            "Married",
-            "Divorced",
-            "Widowed"
-        ],
-        default:"Single"
-    },
-
-
-    occupation:{
-        type:String,
-        trim:true,
-        default:""
-    },
-
-
-    address:{
-        type:String,
-        trim:true,
-        default:""
-    },
-
-
-    gpsLocation:{
-        latitude:Number,
-        longitude:Number
-    },
-
-
-    emergencyContact:{
-        type:String,
-        trim:true,
-        default:""
-    },
-
-
-    emergencyPhone:{
-        type:String,
-        trim:true,
-        default:""
-    },
-
-
-
-    // ==========================
-    // Child Information
-    // ==========================
-
-
-    school:{
-        type:String,
-        trim:true,
-        default:""
-    },
-
-
-    schoolClass:{
-        type:String,
-        trim:true,
-        default:""
-    },
-
-
-
-    // ==========================
-    // Church Information
-    // ==========================
-
-
-    membershipNumber:{
-        type:String,
-        unique:true,
-        sparse:true
-    },
-
-
-    joinedChurchDate:{
-        type:Date,
-        default:Date.now
-    },
-
-
-    baptized:{
         type:Boolean,
-        default:false
-    },
 
-
-    branch:{
-        type:String,
-        default:"Main Branch"
-    },
-
-
-    department:{
-        type:String,
-        default:""
-    },
-
-
-    cellGroup:{
-        type:String,
-        default:""
-    },
-
-
-    area:{
-        type:String,
-        default:""
-    },
-
-
-    membershipType:{
-        type:String,
-        enum:[
-            "Visitor",
-            "New Convert",
-            "Member",
-            "Worker",
-            "Leader",
-            "Pastor"
-        ],
-        default:"Member"
-    },
-
-
-    role:{
-        type:String,
-        enum:[
-            "Member",
-            "Child",
-            "Leader",
-            "Pastor",
-            "Admin"
-        ],
-        default:"Member"
-    },
-
-
-    status:{
-        type:String,
-        enum:[
-            "Active",
-            "Inactive",
-            "Transferred",
-            "Suspended"
-        ],
-        default:"Active"
-    },
-
-
-    isActive:{
-        type:Boolean,
         default:true
+
     },
 
 
-    registrationSource:{
-        type:String,
-        enum:[
-            "Online",
-            "Parent",
-            "Admin",
-            "Import",
-            "Visitor"
-        ],
-        default:"Online"
-    },
+    push:{
 
-
-
-    // ==========================
-    // Family Relationship
-    // ==========================
-
-
-    isChild:{
         type:Boolean,
-        default:false
+
+        default:true
+
     },
 
 
-    // Parent of this child
+    sms:{
 
-    parent:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User",
-        default:null
-    },
-
-
-    // Guardian if different from parent
-
-    guardian:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User",
-        default:null
-    },
-
-
-    // Parent's children
-
-    children:[
-        {
-            type:mongoose.Schema.Types.ObjectId,
-            ref:"User"
-        }
-    ],
-
-
-    // Who created this record
-
-    createdBy:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User",
-        default:null
-    },
-
-
-    // Connect family members
-
-    familyId:{
-        type:String,
-        index:true,
-        default:null
-    },
-
-
-
-    // ==========================
-    // Attendance Information
-    // ==========================
-
-
-    attendancePercentage:{
-        type:Number,
-        default:0,
-        min:0,
-        max:100
-    },
-
-
-    lastAttendance:{
-        type:Date,
-        default:null
-    },
-
-
-
-    // ==========================
-    // Account Information
-    // ==========================
-
-
-    isVerified:{
         type:Boolean,
+
         default:false
-    },
 
-
-    phoneVerified:{
-        type:Boolean,
-        default:false
-    },
-
-
-    lastLogin:{
-        type:Date,
-        default:null
     }
 
 
 },
+
+
+
+
+
+
+
+// =====================================================
+// VERIFICATION
+// =====================================================
+
+
+isVerified:{
+
+    type:Boolean,
+
+    default:false
+
+},
+
+
+
+
+
+phoneVerified:{
+
+    type:Boolean,
+
+    default:false
+
+},
+
+
+
+
+
+
+
+// =====================================================
+// AUDIT
+// =====================================================
+
+
+createdBy:{
+
+    type:mongoose.Schema.Types.ObjectId,
+
+    ref:"User",
+
+    default:null
+
+},
+
+
+
+
+
+updatedBy:{
+
+    type:mongoose.Schema.Types.ObjectId,
+
+    ref:"User",
+
+    default:null
+
+}
+
+
+},
+
 {
-    timestamps:true
-});
+
+timestamps:true
+
+}
+
+);
 
 
 
-// ==========================
-// Password Hashing
-// ==========================
+
+
+
+
+
+
+// =====================================================
+// PASSWORD HASHING
+// =====================================================
 
 
 userSchema.pre(
 "save",
 async function(next){
 
-    if(!this.isModified("password")){
-        return next();
-    }
+
+if(
+!this.isModified("password")
+){
+
+return next();
+
+}
 
 
-    const salt =
-        await bcrypt.genSalt(10);
 
 
-    this.password =
-        await bcrypt.hash(
-            this.password,
-            salt
-        );
+
+if(!this.password){
+
+return next();
+
+}
 
 
-    next();
+
+
+
+const salt =
+await bcrypt.genSalt(10);
+
+
+
+
+this.password =
+await bcrypt.hash(
+    this.password,
+    salt
+);
+
+
+
+
+next();
+
 
 });
 
 
 
-// ==========================
-// Password Comparison
-// ==========================
+
+
+
+
+
+
+// =====================================================
+// PASSWORD COMPARISON
+// =====================================================
 
 
 userSchema.methods.matchPassword =
 async function(password){
 
-    return await bcrypt.compare(
-        password,
-        this.password
-    );
+
+if(!this.password){
+
+return false;
+
+}
+
+
+
+return await bcrypt.compare(
+
+    password,
+
+    this.password
+
+);
+
 
 };
 
 
 
-// ==========================
-// Full Name Virtual
-// ==========================
+
+
+
+
+
+
+// =====================================================
+// FULL NAME VIRTUAL
+// =====================================================
 
 
 userSchema.virtual("fullName")
 .get(function(){
 
-    return `${this.firstName} ${this.lastName}`;
+
+return `${this.firstName} ${this.lastName}`;
+
 
 });
 
 
 
-// ==========================
-// Age Virtual
-// ==========================
+
+
+
+
+
+
+// =====================================================
+// AGE VIRTUAL
+// =====================================================
 
 
 userSchema.virtual("age")
 .get(function(){
 
-    if(!this.dateOfBirth){
-        return null;
-    }
 
+if(!this.dateOfBirth){
 
-    const today = new Date();
+return null;
 
-    const birthDate =
-        new Date(this.dateOfBirth);
-
-
-    let age =
-        today.getFullYear()
-        -
-        birthDate.getFullYear();
-
-
-    const month =
-        today.getMonth()
-        -
-        birthDate.getMonth();
+}
 
 
 
-    if(
-        month < 0 ||
-        (
-            month === 0 &&
-            today.getDate() < birthDate.getDate()
-        )
-    ){
-
-        age--;
-
-    }
+const today =
+new Date();
 
 
-    return age;
+const birth =
+new Date(
+this.dateOfBirth
+);
+
+
+
+let age =
+today.getFullYear()
+-
+birth.getFullYear();
+
+
+
+const month =
+today.getMonth()
+-
+birth.getMonth();
+
+
+
+if(
+month < 0 ||
+(
+month === 0 &&
+today.getDate() < birth.getDate()
+)
+
+){
+
+age--;
+
+}
+
+
+
+return age;
+
 
 });
 
 
 
-// Include virtual fields
+
+
+
+
+
+
+// =====================================================
+// CHILD VALIDATION
+// =====================================================
+
+
+userSchema.pre(
+"save",
+function(next){
+
+
+
+if(
+this.isChild &&
+!this.parent
+){
+
+return next(
+new Error(
+"Child must have a parent"
+)
+);
+
+}
+
+
+
+next();
+
+
+});
+
+
+
+
+
+
+
+
+
+// =====================================================
+// DATABASE INDEXES
+// =====================================================
+
+
+userSchema.index({
+
+role:1
+
+});
+
+
+userSchema.index({
+
+status:1
+
+});
+
+
+userSchema.index({
+
+isActive:1
+
+});
+
+
+userSchema.index({
+
+parent:1
+
+});
+
+
+userSchema.index({
+
+membershipType:1
+
+});
+
+
+userSchema.index({
+
+firstName:1,
+
+lastName:1
+
+});
+
+
+userSchema.index({
+
+phone:1
+
+});
+
+
+userSchema.index({
+
+email:1
+
+});
+
+
+
+
+
+
+
+
+
+// Include virtuals
 
 userSchema.set(
 "toJSON",
 {
-    virtuals:true
-});
+virtuals:true
+}
+);
 
 
 userSchema.set(
 "toObject",
 {
-    virtuals:true
-});
+virtuals:true
+}
+);
+
+
+
+
+
 
 
 
 module.exports =
 mongoose.model(
-    "User",
-    userSchema
+"User",
+userSchema
 );

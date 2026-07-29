@@ -3,141 +3,61 @@ const Attendance = require("../models/Attendance");
 
 
 
-// ==========================================
-// Get All Members
-// GET /api/members
-// ==========================================
 
-const getMembers = async (req, res) => {
+// =====================================================
+// Generate Unique Membership Number
+// =====================================================
 
-    try {
+const generateMembershipNumber = async()=>{
 
 
-        const {
-            search,
-            gender,
-            membershipType,
-            status,
-            isChild
-        } = req.query;
+let number;
+
+let exists=true;
 
 
 
-        let filter = {
-            isActive:true
-        };
+while(exists){
+
+
+const year =
+new Date().getFullYear();
+
+
+const random =
+Math.floor(
+10000 + Math.random()*90000
+);
 
 
 
-        // Search by name/email/phone
-
-        if(search){
-
-            filter.$or = [
-
-                {
-                    firstName:{
-                        $regex:search,
-                        $options:"i"
-                    }
-                },
-
-                {
-                    lastName:{
-                        $regex:search,
-                        $options:"i"
-                    }
-                },
-
-                {
-                    email:{
-                        $regex:search,
-                        $options:"i"
-                    }
-                },
-
-                {
-                    phone:{
-                        $regex:search,
-                        $options:"i"
-                    }
-                }
-
-            ];
-
-        }
+number =
+`CH-${year}-${random}`;
 
 
 
-        if(gender){
+const member =
+await User.findOne({
 
-            filter.gender = gender;
+membershipNumber:number
 
-        }
-
-
-
-        if(membershipType){
-
-            filter.membershipType =
-            membershipType;
-
-        }
+});
 
 
 
-        if(status){
+if(!member){
 
-            filter.status =
-            status;
+exists=false;
 
-        }
-
+}
 
 
-        if(isChild !== undefined){
-
-            filter.isChild =
-            isChild === "true";
-
-        }
+}
 
 
 
-        const members =
-        await User.find(filter)
-        .sort({
-            createdAt:-1
-        });
+return number;
 
-
-
-        res.json({
-
-            success:true,
-
-            count:members.length,
-
-            members
-
-        });
-
-
-
-    }
-    catch(error){
-
-
-        res.status(500).json({
-
-            success:false,
-
-            message:error.message
-
-        });
-
-
-    }
 
 };
 
@@ -145,10 +65,256 @@ const getMembers = async (req, res) => {
 
 
 
-// ==========================================
-// Get Single Member Profile
+
+
+
+
+// =====================================================
+// Get All Members
+// GET /api/members
+// =====================================================
+
+const getMembers = async(req,res)=>{
+
+
+try{
+
+
+const {
+
+search,
+
+gender,
+
+membershipType,
+
+status,
+
+role,
+
+isChild,
+
+hasAccount,
+
+page=1,
+
+limit=20
+
+
+}=req.query;
+
+
+
+
+
+const filter={
+
+
+deleted:false
+
+
+};
+
+
+
+
+
+if(gender)
+filter.gender=gender;
+
+
+
+if(membershipType)
+filter.membershipType=membershipType;
+
+
+
+if(status)
+filter.status=status;
+
+
+
+if(role)
+filter.role=role;
+
+
+
+if(isChild !== undefined)
+filter.isChild =
+isChild==="true";
+
+
+
+if(hasAccount !== undefined)
+filter.hasAccount =
+hasAccount==="true";
+
+
+
+
+
+
+
+if(search){
+
+
+filter.$or=[
+
+
+{
+firstName:{
+$regex:search,
+$options:"i"
+}
+},
+
+
+{
+lastName:{
+$regex:search,
+$options:"i"
+}
+},
+
+
+{
+email:{
+$regex:search,
+$options:"i"
+}
+},
+
+
+{
+phone:{
+$regex:search,
+$options:"i"
+}
+},
+
+
+{
+membershipNumber:{
+$regex:search,
+$options:"i"
+}
+}
+
+
+];
+
+
+}
+
+
+
+
+
+
+
+const skip =
+(Number(page)-1)
+*
+Number(limit);
+
+
+
+
+
+
+const members =
+await User.find(filter)
+
+.populate(
+"parent",
+"firstName lastName phone"
+)
+
+.populate(
+"children",
+"firstName lastName"
+)
+
+.sort({
+
+createdAt:-1
+
+})
+
+.skip(skip)
+
+.limit(Number(limit));
+
+
+
+
+
+
+
+const total =
+await User.countDocuments(filter);
+
+
+
+
+
+
+
+res.json({
+
+success:true,
+
+page:Number(page),
+
+pages:
+Math.ceil(
+total / limit
+),
+
+count:members.length,
+
+total,
+
+members
+
+});
+
+
+
+
+
+}
+catch(error){
+
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Get Single Member
 // GET /api/members/:id
-// ==========================================
+// =====================================================
 
 const getMemberById = async(req,res)=>{
 
@@ -157,50 +323,72 @@ try{
 
 
 const member =
-await User.findById(
-    req.params.id
-)
+
+await User.findOne({
+
+_id:req.params.id,
+
+deleted:false
+
+})
+
+
 .populate(
-    "children",
-    "firstName lastName gender dateOfBirth"
+"parent",
+"firstName lastName phone"
 )
+
 .populate(
-    "parent",
-    "firstName lastName phone"
+"children",
+"firstName lastName gender dateOfBirth"
 );
+
+
 
 
 
 if(!member){
 
+
 return res.status(404).json({
 
-    success:false,
+success:false,
 
-    message:"Member not found"
+message:"Member not found"
 
 });
+
 
 }
 
 
 
 
-// Attendance history
+
+
+
 
 const attendance =
+
 await Attendance.find({
 
-    user:member._id
+user:member._id
 
 })
+
 .populate(
-    "service",
-    "name serviceDate"
+"service",
+"name serviceDate"
 )
+
 .sort({
-    createdAt:-1
+
+createdAt:-1
+
 });
+
+
+
 
 
 
@@ -213,6 +401,227 @@ member,
 
 attendance
 
+});
+
+
+
+}
+catch(error){
+
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Create Member
+// POST /api/members
+// =====================================================
+
+const createMember = async(req,res)=>{
+
+
+try{
+
+
+const {
+
+firstName,
+
+lastName,
+
+email,
+
+phone,
+
+gender,
+
+dateOfBirth,
+
+isChild,
+
+parent,
+
+role,
+
+...otherData
+
+
+}=req.body;
+
+
+
+
+
+
+if(
+!firstName ||
+!lastName ||
+!gender
+
+){
+
+
+return res.status(400).json({
+
+success:false,
+
+message:
+"First name, last name and gender are required"
+
+});
+
+
+}
+
+
+
+
+
+
+const memberRole =
+
+isChild
+
+?
+
+"Child"
+
+:
+
+(role || "Member");
+
+
+
+
+
+
+
+const member =
+
+await User.create({
+
+
+
+firstName,
+
+lastName,
+
+
+email:
+email || undefined,
+
+
+phone:
+phone || undefined,
+
+
+gender,
+
+
+dateOfBirth,
+
+
+
+...otherData,
+
+
+
+role:memberRole,
+
+
+isChild:
+isChild || false,
+
+
+parent:
+parent || null,
+
+
+
+membershipNumber:
+await generateMembershipNumber(),
+
+
+
+registrationSource:"Admin",
+
+
+
+createdBy:req.user._id
+
+
+});
+
+
+
+
+
+
+
+
+
+// Add child to parent
+
+if(
+parent
+){
+
+
+await User.findByIdAndUpdate(
+
+parent,
+
+{
+
+$addToSet:{
+
+children:member._id
+
+}
+
+}
+
+);
+
+
+}
+
+
+
+
+
+
+
+
+res.status(201).json({
+
+success:true,
+
+message:
+"Member created successfully",
+
+member
 
 });
 
@@ -234,114 +643,20 @@ message:error.message
 }
 
 
-
-};
-
-
-// ==========================================
-// Create New Member
-// POST /api/members
-// ==========================================
-
-const createMember = async(req,res)=>{
-
-
-try{
-
-
-const member = await User.create({
-
-    firstName:req.body.firstName,
-
-    lastName:req.body.lastName,
-
-    email:req.body.email,
-
-    phone:req.body.phone,
-
-    gender:req.body.gender,
-
-    dateOfBirth:req.body.dateOfBirth,
-
-    maritalStatus:req.body.maritalStatus,
-
-    occupation:req.body.occupation,
-
-    address:req.body.address,
-
-    emergencyContact:req.body.emergencyContact,
-
-    emergencyPhone:req.body.emergencyPhone,
-
-    school:req.body.school,
-
-    schoolClass:req.body.schoolClass,
-
-    baptized:req.body.baptized,
-
-    branch:req.body.branch,
-
-    department:req.body.department,
-
-    cellGroup:req.body.cellGroup,
-
-    area:req.body.area,
-
-    membershipType:
-    req.body.membershipType || "Member",
-
-    role:
-    req.body.role || "Member",
-
-    isChild:
-    req.body.isChild || false,
-
-    status:"Active",
-
-    isActive:true
-
-});
-
-
-
-
-res.status(201).json({
-
-    success:true,
-
-    message:"Member created successfully",
-
-    member
-
-});
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-    success:false,
-
-    message:error.message
-
-});
-
-
-}
-
-
 };
 
 
 
 
-// ==========================================
+
+
+
+
+
+// =====================================================
 // Update Member
 // PATCH /api/members/:id
-// ==========================================
+// =====================================================
 
 const updateMember = async(req,res)=>{
 
@@ -350,13 +665,21 @@ try{
 
 
 const member =
-await User.findById(
-    req.params.id
-);
+
+await User.findOne({
+
+_id:req.params.id,
+
+deleted:false
+
+});
+
+
 
 
 
 if(!member){
+
 
 return res.status(404).json({
 
@@ -366,42 +689,82 @@ message:"Member not found"
 
 });
 
+
 }
 
 
 
 
-const allowedFields = [
 
-    "firstName",
-    "lastName",
-    "phone",
-    "email",
-    "gender",
-    "dateOfBirth",
-    "address",
-    "occupation",
-    "department",
-    "cellGroup",
-    "area",
-    "membershipType"
+
+const allowedFields=[
+
+
+"firstName",
+
+"lastName",
+
+"phone",
+
+"email",
+
+"gender",
+
+"dateOfBirth",
+
+"maritalStatus",
+
+"occupation",
+
+"address",
+
+"emergencyContact",
+
+"emergencyPhone",
+
+"baptized",
+
+"branch",
+
+"department",
+
+"cellGroup",
+
+"area",
+
+"membershipType"
+
 
 ];
+
+
+
+
 
 
 
 allowedFields.forEach(field=>{
 
 
-    if(req.body[field] !== undefined){
+if(
+req.body[field] !== undefined
+){
 
-        member[field] =
-        req.body[field];
+member[field]=req.body[field];
 
-    }
+}
 
 
 });
+
+
+
+
+
+
+
+member.updatedBy =
+req.user._id;
 
 
 
@@ -409,14 +772,18 @@ await member.save();
 
 
 
+
+
+
+
 res.json({
 
 success:true,
 
-message:"Member updated successfully",
+message:
+"Member updated successfully",
 
 member
-
 
 });
 
@@ -445,10 +812,13 @@ message:error.message
 
 
 
-// ==========================================
+
+
+
+// =====================================================
 // Change Member Status
 // PATCH /api/members/:id/status
-// ==========================================
+// =====================================================
 
 const changeMemberStatus = async(req,res)=>{
 
@@ -457,19 +827,28 @@ try{
 
 
 const {
-    status
+
+status
+
 }=req.body;
 
 
 
+
+
 const member =
+
 await User.findById(
-    req.params.id
+req.params.id
 );
 
 
 
+
+
+
 if(!member){
+
 
 return res.status(404).json({
 
@@ -479,24 +858,25 @@ message:"Member not found"
 
 });
 
-}
-
-
-
-member.status = status;
-
-
-
-if(status === "Inactive"){
-
-    member.isActive = false;
 
 }
-else{
 
-    member.isActive = true;
 
-}
+
+
+
+
+
+member.status=status;
+
+
+member.isActive =
+status==="Active";
+
+
+
+member.updatedBy =
+req.user._id;
 
 
 
@@ -504,16 +884,21 @@ await member.save();
 
 
 
+
+
+
+
 res.json({
 
 success:true,
 
-message:"Member status updated",
+message:
+"Member status updated",
 
 member
 
-
 });
+
 
 
 
@@ -540,16 +925,19 @@ message:error.message
 
 
 
-module.exports = {
+
+
+
+module.exports={
 
 
 getMembers,
 
 getMemberById,
 
-updateMember,
-
 createMember,
+
+updateMember,
 
 changeMemberStatus
 

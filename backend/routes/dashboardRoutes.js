@@ -12,12 +12,15 @@ const {
 
     getServiceDashboard
 
+
 } = require("../controllers/dashboardController");
 
 
 
 const {
+
     protect
+
 } = require("../middleware/authMiddleware");
 
 
@@ -28,10 +31,16 @@ require("../middleware/permissionMiddleware");
 
 
 
-// ==========================================
-// Main Dashboard
+
+
+
+
+
+// =================================================
+// Main Admin Dashboard
 // GET /api/dashboard
-// ==========================================
+// =================================================
+
 
 router.get(
 
@@ -50,10 +59,16 @@ router.get(
 
 
 
-// ==========================================
-// Church Overview Dashboard
+
+
+
+
+
+// =================================================
+// Church Overview
 // GET /api/dashboard/overview
-// ==========================================
+// =================================================
+
 
 router.get(
 
@@ -73,10 +88,15 @@ router.get(
 
 
 
-// ==========================================
-// Service Dashboard
+
+
+
+
+// =================================================
+// Single Service Dashboard
 // GET /api/dashboard/service/:serviceId
-// ==========================================
+// =================================================
+
 
 router.get(
 
@@ -91,6 +111,12 @@ router.get(
     getServiceDashboard
 
 );
+
+
+
+
+
+
 
 
 

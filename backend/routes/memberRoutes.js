@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 
+
 const {
 
     getMembers,
@@ -15,7 +16,9 @@ const {
 
     changeMemberStatus
 
+
 } = require("../controllers/memberController");
+
 
 
 
@@ -32,10 +35,12 @@ require("../middleware/permissionMiddleware");
 
 
 
-// ==========================================
+
+
+// =====================================================
 // Get All Members
 // GET /api/members
-// ==========================================
+// =====================================================
 
 router.get(
 
@@ -56,49 +61,14 @@ router.get(
 
 
 
-// ==========================================
-// Get Single Member Profile
-// GET /api/members/:id
-// ==========================================
-
-router.get(
-
-    "/:id",
-
-    protect,
-
-    checkPermission(
-        "VIEW_PROFILE"
-    ),
-
-    getMemberById
-
-);
 
 
 
 
-
-
-// ==========================================
-// Update Member
-// PATCH /api/members/:id
-// ==========================================
-
-router.patch(
-
-    "/:id",
-
-    protect,
-
-    checkPermission(
-        "UPDATE_USER"
-    ),
-
-    updateMember
-
-);
-
+// =====================================================
+// Create Member
+// POST /api/members
+// =====================================================
 
 router.post(
 
@@ -116,10 +86,43 @@ router.post(
 
 
 
-// ==========================================
+
+
+
+
+
+
+// =====================================================
+// Update Member
+// PATCH /api/members/:id
+// =====================================================
+
+router.patch(
+
+    "/:id",
+
+    protect,
+
+    checkPermission(
+        "UPDATE_USER"
+    ),
+
+    updateMember
+
+);
+
+
+
+
+
+
+
+
+
+// =====================================================
 // Change Member Status
 // PATCH /api/members/:id/status
-// ==========================================
+// =====================================================
 
 router.patch(
 
@@ -134,6 +137,34 @@ router.patch(
     changeMemberStatus
 
 );
+
+
+
+
+
+
+
+
+
+// =====================================================
+// Get Single Member Profile
+// GET /api/members/:id
+// =====================================================
+
+router.get(
+
+    "/:id",
+
+    protect,
+
+    checkPermission(
+        "VIEW_PROFILE"
+    ),
+
+    getMemberById
+
+);
+
 
 
 

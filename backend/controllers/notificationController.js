@@ -2,17 +2,21 @@ const Notification = require("../models/Notification");
 
 
 
+
+
 // ==========================================
 // Create Notification
 // POST /api/notifications
 // ==========================================
 
+
 const createNotification = async(req,res)=>{
+
 
 try{
 
 
-const{
+const {
 
 recipient,
 
@@ -28,7 +32,34 @@ relatedId
 
 
 
+
+
+if(
+!recipient ||
+!title ||
+!message
+){
+
+
+return res.status(400).json({
+
+success:false,
+
+message:
+"Recipient, title and message are required"
+
+});
+
+
+}
+
+
+
+
+
+
 const notification =
+
 await Notification.create({
 
 recipient,
@@ -37,11 +68,14 @@ title,
 
 message,
 
-type,
+type:type || "General",
 
-relatedId
+relatedId:relatedId || null
 
 });
+
+
+
 
 
 
@@ -49,11 +83,14 @@ res.status(201).json({
 
 success:true,
 
-message:"Notification created successfully",
+message:
+"Notification created successfully",
 
 notification
 
 });
+
+
 
 
 }
@@ -73,6 +110,106 @@ message:error.message
 
 
 };
+
+
+
+
+
+
+
+
+
+// ==========================================
+// Create Multiple Notifications
+// Used for Service / FollowUp alerts
+// POST /api/notifications/bulk
+// ==========================================
+
+
+const createBulkNotifications = async(req,res)=>{
+
+
+try{
+
+
+const notifications =
+req.body.notifications;
+
+
+
+
+
+if(
+!Array.isArray(notifications) ||
+notifications.length===0
+){
+
+
+return res.status(400).json({
+
+success:false,
+
+message:
+"Notifications array required"
+
+});
+
+
+}
+
+
+
+
+
+
+
+const created =
+
+await Notification.insertMany(
+notifications
+);
+
+
+
+
+
+
+res.status(201).json({
+
+success:true,
+
+message:
+"Notifications created successfully",
+
+count:
+created.length,
+
+notifications:
+created
+
+});
+
+
+
+}
+catch(error){
+
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
+
+
+};
+
+
 
 
 
@@ -85,14 +222,44 @@ message:error.message
 // GET /api/notifications
 // ==========================================
 
+
 const getNotifications = async(req,res)=>{
 
 
 try{
 
 
-const notifications =
-await Notification.find({
+const page =
+Number(req.query.page) || 1;
+
+
+const limit =
+Number(req.query.limit) || 20;
+
+
+const skip =
+(page-1)*limit;
+
+
+
+
+
+
+
+const [
+
+notifications,
+
+total,
+
+unreadCount
+
+
+]=await Promise.all([
+
+
+
+Notification.find({
 
 recipient:req.user._id
 
@@ -102,18 +269,41 @@ recipient:req.user._id
 
 createdAt:-1
 
-});
+})
+
+.skip(skip)
+
+.limit(limit),
 
 
 
-const unreadCount =
-await Notification.countDocuments({
+
+
+Notification.countDocuments({
+
+recipient:req.user._id
+
+}),
+
+
+
+
+
+Notification.countDocuments({
 
 recipient:req.user._id,
 
 isRead:false
 
-});
+})
+
+
+]);
+
+
+
+
+
 
 
 
@@ -121,13 +311,23 @@ res.json({
 
 success:true,
 
-count:notifications.length,
+
+page,
+
+limit,
+
+
+total,
+
 
 unreadCount,
 
+
 notifications
 
+
 });
+
 
 
 }
@@ -147,6 +347,8 @@ message:error.message
 
 
 };
+
+
 
 
 
@@ -159,6 +361,7 @@ message:error.message
 // GET /api/notifications/unread
 // ==========================================
 
+
 const getUnreadNotifications = async(req,res)=>{
 
 
@@ -166,6 +369,7 @@ try{
 
 
 const notifications =
+
 await Notification.find({
 
 recipient:req.user._id,
@@ -182,15 +386,21 @@ createdAt:-1
 
 
 
+
+
+
+
 res.json({
 
 success:true,
 
-count:notifications.length,
+count:
+notifications.length,
 
 notifications
 
 });
+
 
 
 }
@@ -210,6 +420,8 @@ message:error.message
 
 
 };
+
+
 
 
 
@@ -222,6 +434,7 @@ message:error.message
 // PATCH /api/notifications/:id/read
 // ==========================================
 
+
 const markAsRead = async(req,res)=>{
 
 
@@ -229,41 +442,61 @@ try{
 
 
 const notification =
-await Notification.findById(
-req.params.id
-);
+
+await Notification.findOne({
+
+_id:req.params.id,
+
+recipient:req.user._id
+
+});
+
+
+
 
 
 
 if(!notification){
 
+
 return res.status(404).json({
 
 success:false,
 
-message:"Notification not found"
+message:
+"Notification not found"
 
 });
+
 
 }
 
 
 
 
-if(
-notification.recipient.toString() !==
-req.user._id.toString()
-){
 
-return res.status(403).json({
 
-success:false,
 
-message:"Not authorized"
+
+if(notification.isRead){
+
+
+return res.json({
+
+success:true,
+
+message:
+"Already marked as read",
+
+notification
 
 });
 
+
 }
+
+
+
 
 
 
@@ -272,7 +505,12 @@ notification.isRead=true;
 
 notification.readAt=new Date();
 
+
 await notification.save();
+
+
+
+
 
 
 
@@ -281,11 +519,14 @@ res.json({
 
 success:true,
 
-message:"Notification marked as read",
+message:
+"Notification marked as read",
 
 notification
 
 });
+
+
 
 
 }
@@ -313,10 +554,12 @@ message:error.message
 
 
 
+
 // ==========================================
-// Mark All Notifications As Read
+// Mark All As Read
 // PATCH /api/notifications/read-all
 // ==========================================
+
 
 const markAllAsRead = async(req,res)=>{
 
@@ -347,13 +590,17 @@ readAt:new Date()
 
 
 
+
 res.json({
 
 success:true,
 
-message:"All notifications marked as read"
+message:
+"All notifications marked as read"
 
 });
+
+
 
 
 }
@@ -373,6 +620,7 @@ message:error.message
 
 
 };
+
 
 
 
@@ -386,6 +634,7 @@ message:error.message
 // DELETE /api/notifications/:id
 // ==========================================
 
+
 const deleteNotification = async(req,res)=>{
 
 
@@ -393,41 +642,36 @@ try{
 
 
 const notification =
-await Notification.findById(
-req.params.id
-);
+
+await Notification.findOne({
+
+_id:req.params.id,
+
+recipient:req.user._id
+
+});
+
+
+
 
 
 
 if(!notification){
 
+
 return res.status(404).json({
 
 success:false,
 
-message:"Notification not found"
+message:
+"Notification not found"
 
 });
+
 
 }
 
 
-
-
-if(
-notification.recipient.toString() !==
-req.user._id.toString()
-){
-
-return res.status(403).json({
-
-success:false,
-
-message:"Not authorized"
-
-});
-
-}
 
 
 
@@ -437,13 +681,17 @@ await notification.deleteOne();
 
 
 
+
+
 res.json({
 
 success:true,
 
-message:"Notification deleted successfully"
+message:
+"Notification deleted successfully"
 
 });
+
 
 
 }
@@ -470,9 +718,14 @@ message:error.message
 
 
 
+
+
 module.exports={
 
+
 createNotification,
+
+createBulkNotifications,
 
 getNotifications,
 
@@ -483,5 +736,6 @@ markAsRead,
 markAllAsRead,
 
 deleteNotification
+
 
 };

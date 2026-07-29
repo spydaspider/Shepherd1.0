@@ -5,7 +5,9 @@ const followUpSchema = new mongoose.Schema(
 
 {
 
-    // Member being followed up
+    // ==========================================
+    // Member Being Followed Up
+    // ==========================================
 
     member:{
 
@@ -18,7 +20,13 @@ const followUpSchema = new mongoose.Schema(
     },
 
 
-    // Service they missed
+
+
+
+
+    // ==========================================
+    // Service Missed
+    // ==========================================
 
     service:{
 
@@ -32,7 +40,13 @@ const followUpSchema = new mongoose.Schema(
 
 
 
-    // Person assigned to follow up
+
+
+
+
+    // ==========================================
+    // Assigned Leader
+    // ==========================================
 
     assignedTo:{
 
@@ -45,6 +59,14 @@ const followUpSchema = new mongoose.Schema(
     },
 
 
+
+
+
+
+
+    // ==========================================
+    // Follow Up Method
+    // ==========================================
 
     type:{
 
@@ -68,6 +90,15 @@ const followUpSchema = new mongoose.Schema(
 
 
 
+
+
+
+
+
+    // ==========================================
+    // Follow Up Status
+    // ==========================================
+
     status:{
 
         type:String,
@@ -90,6 +121,100 @@ const followUpSchema = new mongoose.Schema(
 
 
 
+
+
+
+
+
+    // ==========================================
+    // Priority
+    // ==========================================
+
+    priority:{
+
+        type:String,
+
+        enum:[
+
+            "Low",
+
+            "Medium",
+
+            "High"
+
+        ],
+
+        default:"Medium"
+
+    },
+
+
+
+
+
+
+
+
+    // ==========================================
+    // Scheduled Date
+    // ==========================================
+
+    followUpDate:{
+
+        type:Date,
+
+        default:Date.now
+
+    },
+
+
+
+
+
+
+
+
+    // ==========================================
+    // Follow Up Result
+    // ==========================================
+
+    outcome:{
+
+        type:String,
+
+        enum:[
+
+            "No Response",
+
+            "Will Return",
+
+            "Moved Away",
+
+            "Sick",
+
+            "Busy",
+
+            "Transferred",
+
+            "Other"
+
+        ],
+
+        default:"Other"
+
+    },
+
+
+
+
+
+
+
+
+    // ==========================================
+    // Notes
+    // ==========================================
+
     notes:{
 
         type:String,
@@ -100,6 +225,15 @@ const followUpSchema = new mongoose.Schema(
 
 
 
+
+
+
+
+
+    // ==========================================
+    // Contact Tracking
+    // ==========================================
+
     contactedDate:{
 
         type:Date,
@@ -109,6 +243,28 @@ const followUpSchema = new mongoose.Schema(
     },
 
 
+
+
+
+    completedDate:{
+
+        type:Date,
+
+        default:null
+
+    },
+
+
+
+
+
+
+
+
+    // ==========================================
+    // Audit
+    // ==========================================
+
     createdBy:{
 
         type:mongoose.Schema.Types.ObjectId,
@@ -117,10 +273,25 @@ const followUpSchema = new mongoose.Schema(
 
         required:true
 
+    },
+
+
+
+
+    updatedBy:{
+
+        type:mongoose.Schema.Types.ObjectId,
+
+        ref:"User",
+
+        default:null
+
     }
 
 
+
 },
+
 
 {
 
@@ -129,6 +300,84 @@ const followUpSchema = new mongoose.Schema(
 }
 
 );
+
+
+
+
+
+
+
+
+
+// ==========================================
+// Indexes
+// ==========================================
+
+
+// Prevent duplicate follow-up generation
+
+followUpSchema.index(
+
+{
+
+member:1,
+
+service:1
+
+},
+
+{
+
+unique:true
+
+}
+
+);
+
+
+
+
+
+// Pending tasks lookup
+
+followUpSchema.index({
+
+status:1,
+
+followUpDate:1
+
+});
+
+
+
+
+
+// Leader dashboard lookup
+
+followUpSchema.index({
+
+assignedTo:1,
+
+status:1
+
+});
+
+
+
+
+
+// Member history
+
+followUpSchema.index({
+
+member:1
+
+});
+
+
+
+
+
 
 
 module.exports =

@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 
+
 const {
 
     getFollowUps,
@@ -13,9 +14,18 @@ const {
 
     getCompletedFollowUps,
 
-    updateFollowUp
+    getOverdueFollowUps,
+
+    createFollowUp,
+
+    updateFollowUp,
+
+    getFollowUpStats
+
 
 } = require("../controllers/followUpController");
+
+
 
 
 
@@ -24,16 +34,49 @@ const {
 } = require("../middleware/authMiddleware");
 
 
+
 const checkPermission =
 require("../middleware/permissionMiddleware");
 
 
 
 
-// =====================================
+
+
+
+// =================================================
+// Get Follow Up Statistics
+// GET /api/followups/stats
+// =================================================
+
+
+router.get(
+
+    "/stats",
+
+    protect,
+
+    checkPermission(
+        "MANAGE_FOLLOWUPS"
+    ),
+
+    getFollowUpStats
+
+);
+
+
+
+
+
+
+
+
+
+// =================================================
 // Get All Follow Ups
-// GET /api/followup
-// =====================================
+// GET /api/followups
+// =================================================
+
 
 router.get(
 
@@ -53,10 +96,15 @@ router.get(
 
 
 
-// =====================================
+
+
+
+
+// =================================================
 // Get Pending Follow Ups
-// GET /api/followup/pending
-// =====================================
+// GET /api/followups/pending
+// =================================================
+
 
 router.get(
 
@@ -76,10 +124,15 @@ router.get(
 
 
 
-// =====================================
+
+
+
+
+// =================================================
 // Get Completed Follow Ups
-// GET /api/followup/completed
-// =====================================
+// GET /api/followups/completed
+// =================================================
+
 
 router.get(
 
@@ -99,10 +152,71 @@ router.get(
 
 
 
-// =====================================
+
+
+
+
+// =================================================
+// Get Overdue Follow Ups
+// GET /api/followups/overdue
+// =================================================
+
+
+router.get(
+
+    "/overdue",
+
+    protect,
+
+    checkPermission(
+        "MANAGE_FOLLOWUPS"
+    ),
+
+    getOverdueFollowUps
+
+);
+
+
+
+
+
+
+
+
+
+// =================================================
+// Create Follow Up
+// POST /api/followups
+// =================================================
+
+
+router.post(
+
+    "/",
+
+    protect,
+
+    checkPermission(
+        "MANAGE_FOLLOWUPS"
+    ),
+
+    createFollowUp
+
+);
+
+
+
+
+
+
+
+
+
+// =================================================
 // Get Single Follow Up
-// GET /api/followup/:id
-// =====================================
+// GET /api/followups/:id
+// =================================================
+
 
 router.get(
 
@@ -122,10 +236,15 @@ router.get(
 
 
 
-// =====================================
+
+
+
+
+// =================================================
 // Update Follow Up
-// PATCH /api/followup/:id
-// =====================================
+// PATCH /api/followups/:id
+// =================================================
+
 
 router.patch(
 
@@ -140,6 +259,9 @@ router.patch(
     updateFollowUp
 
 );
+
+
+
 
 
 

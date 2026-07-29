@@ -3,75 +3,153 @@ const User = require("../models/User");
 
 
 
+
+
+// =====================================================
+// Protect Routes
+// Verify JWT and attach user
+// =====================================================
+
 const protect = async (req, res, next) => {
 
-    let token;
+
+    try {
 
 
-    if(
-        req.headers.authorization &&
-        req.headers.authorization.startsWith("Bearer")
-    ){
+        let token;
 
-        try {
 
-            // Get token
+
+        // Check Authorization Header
+
+        if(
+
+            req.headers.authorization &&
+
+            req.headers.authorization.startsWith("Bearer")
+
+        ){
+
 
             token =
             req.headers.authorization.split(" ")[1];
 
 
-            // Verify token
 
-            const decoded =
-            jwt.verify(
-                token,
-                process.env.JWT_SECRET
-            );
+        }
+        else{
 
-
-            // Find user
-
-            req.user =
-            await User.findById(decoded.id)
-            .select("-password");
-
-
-            if(!req.user){
-
-                return res.status(401).json({
-
-                    success:false,
-                    message:"User not found"
-
-                });
-
-            }
-
-
-            next();
-
-
-        } catch(error){
 
             return res.status(401).json({
 
                 success:false,
-                message:"Not authorized, token failed"
+
+                message:"Not authorized, no token"
 
             });
+
 
         }
 
 
+
+
+
+
+        // Verify token
+
+        const decoded =
+        jwt.verify(
+
+            token,
+
+            process.env.JWT_SECRET
+
+        );
+
+
+
+
+
+
+
+        // Get user from database
+
+        const user =
+        await User.findById(decoded.id)
+        .select("-password");
+
+
+
+
+
+
+        if(!user){
+
+
+            return res.status(401).json({
+
+                success:false,
+
+                message:"User no longer exists"
+
+            });
+
+
+        }
+
+
+
+
+
+
+
+        // Check account status
+
+        if(user.isActive === false){
+
+
+            return res.status(403).json({
+
+                success:false,
+
+                message:"Account has been disabled"
+
+            });
+
+
+        }
+
+
+
+
+
+
+
+        // Attach user to request
+
+        req.user = user;
+
+
+
+
+
+
+        next();
+
+
+
+
+
     }
-    else{
+    catch(error){
 
 
         return res.status(401).json({
 
             success:false,
-            message:"Not authorized, no token"
+
+            message:"Not authorized, token failed"
 
         });
 
@@ -79,10 +157,15 @@ const protect = async (req, res, next) => {
     }
 
 
+
 };
 
 
 
+
+
 module.exports = {
+
     protect
+
 };

@@ -2,9 +2,13 @@ const express = require("express");
 
 const router = express.Router();
 
+
+
 const {
 
     createNotification,
+
+    createBulkNotifications,
 
     getNotifications,
 
@@ -16,21 +20,28 @@ const {
 
     deleteNotification
 
+
 } = require("../controllers/notificationController");
 
+
+
 const {
-
     protect
-
 } = require("../middleware/authMiddleware");
+
+
 
 const checkPermission =
 require("../middleware/permissionMiddleware");
 
 
 
+
+
+
+
 // ==========================================
-// Create Notification
+// Admin Create Notification
 // POST /api/notifications
 // ==========================================
 
@@ -40,7 +51,9 @@ router.post(
 
     protect,
 
-    checkPermission("MANAGE_NOTIFICATIONS"),
+    checkPermission(
+        "MANAGE_NOTIFICATIONS"
+    ),
 
     createNotification
 
@@ -48,8 +61,46 @@ router.post(
 
 
 
+
+
+
+
+
+
 // ==========================================
-// Get My Notifications
+// Admin Create Bulk Notifications
+// Used for:
+// - Service announcements
+// - Follow up assignments
+// - Church alerts
+//
+// POST /api/notifications/bulk
+// ==========================================
+
+router.post(
+
+    "/bulk",
+
+    protect,
+
+    checkPermission(
+        "MANAGE_NOTIFICATIONS"
+    ),
+
+    createBulkNotifications
+
+);
+
+
+
+
+
+
+
+
+
+// ==========================================
+// Get Logged In User Notifications
 // GET /api/notifications
 // ==========================================
 
@@ -62,6 +113,12 @@ router.get(
     getNotifications
 
 );
+
+
+
+
+
+
 
 
 
@@ -82,8 +139,14 @@ router.get(
 
 
 
+
+
+
+
+
+
 // ==========================================
-// Mark Notification As Read
+// Mark Single Notification As Read
 // PATCH /api/notifications/:id/read
 // ==========================================
 
@@ -96,6 +159,12 @@ router.patch(
     markAsRead
 
 );
+
+
+
+
+
+
 
 
 
@@ -116,6 +185,12 @@ router.patch(
 
 
 
+
+
+
+
+
+
 // ==========================================
 // Delete Notification
 // DELETE /api/notifications/:id
@@ -130,5 +205,11 @@ router.delete(
     deleteNotification
 
 );
+
+
+
+
+
+
 
 module.exports = router;

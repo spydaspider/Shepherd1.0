@@ -5,19 +5,26 @@ const Notification = require("../models/Notification");
 
 
 
-const generateFollowUps = async(serviceId)=>{
+
+// =====================================================
+// Generate Follow Ups After Service Completion
+// =====================================================
+
+const generateFollowUps = async(serviceId, createdBy)=>{
+
 
 try{
 
 
 // ==========================================
-// Get all active members
+// Get Active Members
 // ==========================================
 
-const members =
-await User.find({
+const members = await User.find({
 
     isActive:true,
+
+    deleted:false,
 
     role:{
         $in:[
@@ -31,56 +38,81 @@ await User.find({
 
 
 
+
 // ==========================================
-// Get attendance records
+// Get Present Members
 // ==========================================
+
 
 const attendance =
 await Attendance.find({
 
-    service:serviceId
+    service:serviceId,
+
+    status:"Present",
+
+    isDeleted:false
 
 });
 
 
 
+
+
 const attendedIds =
 attendance.map(
-    item => item.user.toString()
+    record =>
+    record.user.toString()
 );
 
 
 
 
+
+
 // ==========================================
-// Find absentees
+// Find Absentees
 // ==========================================
+
 
 const absentees =
-members.filter(
+members.filter(member=>
 
-member =>
-
-!attendedIds.includes(
-member._id.toString()
-)
+    !attendedIds.includes(
+        member._id.toString()
+    )
 
 );
 
 
 
 
+
+if(absentees.length === 0){
+
+    return [];
+
+}
+
+
+
+
+
+
+
 // ==========================================
-// Get Admins and Pastors
+// Get Leaders
 // ==========================================
 
-const followUpManagers =
+
+const leaders =
 await User.find({
 
     role:{
         $in:[
-            "Admin",
-            "Pastor"
+            "Leader",
+            "Pastor",
+            "Admin"
         ]
     },
 
@@ -92,8 +124,26 @@ await User.find({
 
 
 
+if(leaders.length === 0){
 
-let createdFollowUps=[];
+    return [];
+
+}
+
+
+
+
+
+
+
+
+let followUps = [];
+
+let notifications = [];
+
+let leaderIndex = 0;
+
+
 
 
 
@@ -103,93 +153,229 @@ let createdFollowUps=[];
 // Create Follow Ups
 // ==========================================
 
+
 for(const absentee of absentees){
 
 
-for(const manager of followUpManagers){
+
+let memberToFollow = absentee;
 
 
+
+
+
+// If child, follow up parent instead
+
+if(
+    absentee.isChild &&
+    absentee.parent
+){
+
+    const parent =
+    await User.findById(
+        absentee.parent
+    );
+
+
+    if(parent){
+
+        memberToFollow = parent;
+
+    }
+
+}
+
+
+
+
+
+
+// Check duplicate
 
 const exists =
 await FollowUp.findOne({
 
-    member:absentee._id,
+    member:memberToFollow._id,
 
-    service:serviceId,
-
-    assignedTo:manager._id
+    service:serviceId
 
 });
 
 
 
 
-if(!exists){
 
+if(exists){
 
+    continue;
 
-const followUp =
-await FollowUp.create({
-
-    member:absentee._id,
-
-    service:serviceId,
-
-    assignedTo:manager._id,
-
-    type:"Phone Call",
-
-    status:"Pending",
-
-    createdBy:manager._id
-
-});
-
-
-
-
-createdFollowUps.push(followUp);
+}
 
 
 
 
 
-// ==========================================
-// Create Notification
-// ==========================================
 
-await Notification.create({
 
-    recipient:manager._id,
+const assignedLeader =
 
-    title:"New Follow-up Assigned",
+leaders[
+    leaderIndex %
+    leaders.length
+];
+
+
+leaderIndex++;
+
+
+
+
+
+
+
+
+const followUp = {
+
+
+    member:
+    memberToFollow._id,
+
+
+    service:
+    serviceId,
+
+
+    assignedTo:
+    assignedLeader._id,
+
+
+    type:
+    "Phone Call",
+
+
+    status:
+    "Pending",
+
+
+    priority:
+    "Medium",
+
+
+    followUpDate:
+    new Date(
+        Date.now()
+        +
+        24*60*60*1000
+    ),
+
+
+    createdBy:
+    createdBy || assignedLeader._id
+
+
+};
+
+
+
+
+
+
+followUps.push(
+    followUp
+);
+
+
+
+
+
+
+notifications.push({
+
+
+    recipient:
+    assignedLeader._id,
+
+
+    title:
+    "New Follow Up Assigned",
+
 
     message:
-    `You have been assigned a follow-up task for ${absentee.firstName} ${absentee.lastName}`,
+    `${memberToFollow.firstName} ${memberToFollow.lastName} missed the service and requires follow up`,
 
-    type:"FollowUp",
 
-    relatedId:followUp._id
+    type:
+    "FollowUp"
+
+
 
 });
 
 
 
 
+}
+
+
+
+
+
+
+
+// ==========================================
+// Save Follow Ups
+// ==========================================
+
+
+const createdFollowUps =
+
+await FollowUp.insertMany(
+    followUps
+);
+
+
+
+
+
+
+
+// Add notification references
+
+notifications =
+notifications.map(
+(notification,index)=>({
+
+    ...notification,
+
+    relatedId:
+    createdFollowUps[index]._id
+
+})
+);
+
+
+
+
+
+
+
+
+if(notifications.length){
+
+await Notification.insertMany(
+    notifications
+);
 
 }
 
 
 
-}
 
-
-
-}
 
 
 
 return createdFollowUps;
+
 
 
 
@@ -202,6 +388,11 @@ throw error;
 
 
 };
+
+
+
+
+
 
 
 

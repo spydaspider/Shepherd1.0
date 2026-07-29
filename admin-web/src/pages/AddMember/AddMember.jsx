@@ -7,6 +7,7 @@ import api from "../../api/axios";
 import styles from "./AddMember.module.css";
 
 
+
 const AddMember = () => {
 
 
@@ -14,26 +15,35 @@ const navigate = useNavigate();
 
 
 
+const [loading,setLoading] = useState(false);
+
+const [error,setError] = useState("");
+
+
+
 const [formData,setFormData] = useState({
 
     firstName:"",
     lastName:"",
+
     email:"",
     phone:"",
 
-    gender:"",
+    hasAccount:false,
+    password:"",
 
+    gender:"",
     dateOfBirth:"",
 
-    maritalStatus:"",
+    maritalStatus:"Single",
 
     occupation:"",
 
     address:"",
 
     emergencyContact:"",
-
     emergencyPhone:"",
+
 
     branch:"Main Branch",
 
@@ -43,9 +53,11 @@ const [formData,setFormData] = useState({
 
     area:"",
 
+
     membershipType:"Member",
 
     role:"Member",
+
 
     isChild:false,
 
@@ -56,22 +68,22 @@ const [formData,setFormData] = useState({
 
 
 
-const [loading,setLoading] = useState(false);
-
-
-
-
 
 const handleChange = (e)=>{
 
 
-const {name,value,type,checked}=e.target;
+const {
+    name,
+    value,
+    type,
+    checked
+}=e.target;
 
 
 
-setFormData({
+setFormData(prev=>({
 
-    ...formData,
+    ...prev,
 
     [name]:
 
@@ -85,7 +97,8 @@ setFormData({
 
     value
 
-});
+}));
+
 
 
 };
@@ -100,6 +113,26 @@ const handleSubmit = async(e)=>{
 
 
 e.preventDefault();
+
+
+setError("");
+
+
+
+if(
+formData.hasAccount &&
+!formData.password
+){
+
+setError(
+"Password is required when creating an account"
+);
+
+return;
+
+}
+
+
 
 
 try{
@@ -119,7 +152,9 @@ formData
 
 
 
-console.log(response.data);
+console.log(
+response.data
+);
 
 
 
@@ -128,19 +163,19 @@ navigate("/members");
 
 
 }
-
 catch(error){
 
 
-console.log(
+setError(
 
-error.response?.data || error.message
+error.response?.data?.message ||
+
+"Failed to create member"
 
 );
 
 
 }
-
 finally{
 
 
@@ -161,26 +196,18 @@ setLoading(false);
 
 return (
 
+
 <div className={styles.page}>
 
 
 {/* HEADER */}
 
+
 <div className={styles.header}>
 
 
-<div className={styles.titleArea}>
-
-
-<div className={styles.icon}>
-
-+
-
-</div>
-
-
-
 <div>
+
 
 <h1>
 Add New Member
@@ -188,15 +215,11 @@ Add New Member
 
 
 <p>
-Create a new church member profile
+Create a church member profile
 </p>
 
 
 </div>
-
-
-</div>
-
 
 
 
@@ -211,9 +234,10 @@ onClick={()=>navigate("/members")}
 
 >
 
-← Back To Members
+← Back
 
 </button>
+
 
 
 </div>
@@ -238,7 +262,26 @@ onSubmit={handleSubmit}
 
 
 
+{
+error &&
+
+<div className={styles.error}>
+
+{error}
+
+</div>
+
+}
+
+
+
+
+
+
+
+
 {/* PERSONAL INFORMATION */}
+
 
 
 <section className={styles.card}>
@@ -284,6 +327,7 @@ onChange={handleChange}
 
 
 
+
 <input
 
 name="email"
@@ -297,6 +341,7 @@ value={formData.email}
 onChange={handleChange}
 
 />
+
 
 
 
@@ -319,6 +364,8 @@ onChange={handleChange}
 
 
 
+
+
 <select
 
 name="gender"
@@ -329,19 +376,24 @@ onChange={handleChange}
 
 >
 
+
 <option value="">
-Select Gender
+Gender
 </option>
+
 
 <option>
 Male
 </option>
 
+
 <option>
 Female
 </option>
 
+
 </select>
+
 
 
 
@@ -365,7 +417,6 @@ onChange={handleChange}
 
 
 
-
 <select
 
 name="maritalStatus"
@@ -375,11 +426,6 @@ value={formData.maritalStatus}
 onChange={handleChange}
 
 >
-
-
-<option value="">
-Marital Status
-</option>
 
 
 <option>
@@ -397,7 +443,15 @@ Divorced
 </option>
 
 
+<option>
+Widowed
+</option>
+
+
+
 </select>
+
+
 
 
 
@@ -431,7 +485,103 @@ onChange={handleChange}
 
 
 
+{/* ACCOUNT */}
+
+
+
+<section className={styles.card}>
+
+
+<h2>
+🔐 Account Access
+</h2>
+
+
+
+
+<div className={styles.toggle}>
+
+
+<label>
+
+
+<input
+
+type="checkbox"
+
+name="hasAccount"
+
+checked={formData.hasAccount}
+
+onChange={handleChange}
+
+/>
+
+
+Create login account
+
+
+</label>
+
+
+
+<p>
+
+Enable this if the member should login and mark attendance personally.
+
+</p>
+
+
+</div>
+
+
+
+
+
+{
+
+formData.hasAccount &&
+
+
+<div className={styles.grid}>
+
+
+<input
+
+type="password"
+
+name="password"
+
+placeholder="Temporary Password"
+
+value={formData.password}
+
+onChange={handleChange}
+
+/>
+
+
+</div>
+
+
+}
+
+
+
+
+
+</section>
+
+
+
+
+
+
+
+
+
 {/* CHURCH INFORMATION */}
+
 
 
 <section className={styles.card}>
@@ -443,40 +593,8 @@ onChange={handleChange}
 
 
 
+
 <div className={styles.grid}>
-
-
-<select
-
-name="role"
-
-value={formData.role}
-
-onChange={handleChange}
-
->
-
-
-<option>
-Member
-</option>
-
-<option>
-Admin
-</option>
-
-<option>
-Pastor
-</option>
-
-<option>
-Leader
-</option>
-
-
-</select>
-
-
 
 
 
@@ -503,8 +621,63 @@ Visitor
 
 
 <option>
-Child
+New Convert
 </option>
+
+
+<option>
+Worker
+</option>
+
+
+<option>
+Leader
+</option>
+
+
+<option>
+Pastor
+</option>
+
+
+</select>
+
+
+
+
+
+
+
+<select
+
+name="role"
+
+value={formData.role}
+
+onChange={handleChange}
+
+>
+
+
+<option>
+Member
+</option>
+
+
+<option>
+Leader
+</option>
+
+
+<option>
+Pastor
+</option>
+
+
+<option>
+Admin
+</option>
+
 
 
 </select>
@@ -569,6 +742,7 @@ onChange={handleChange}
 
 
 
+
 <input
 
 name="area"
@@ -586,6 +760,7 @@ onChange={handleChange}
 </div>
 
 
+
 </section>
 
 
@@ -597,6 +772,7 @@ onChange={handleChange}
 
 
 {/* ADDRESS */}
+
 
 
 <section className={styles.card}>
@@ -629,6 +805,8 @@ onChange={handleChange}
 
 
 
+
+
 <input
 
 name="emergencyContact"
@@ -640,6 +818,7 @@ value={formData.emergencyContact}
 onChange={handleChange}
 
 />
+
 
 
 
@@ -677,6 +856,7 @@ onChange={handleChange}
 {/* OPTIONS */}
 
 
+
 <section className={styles.card}>
 
 
@@ -696,15 +876,16 @@ onChange={handleChange}
 
 type="checkbox"
 
-name="baptized"
+name="isChild"
 
-checked={formData.baptized}
+checked={formData.isChild}
 
 onChange={handleChange}
 
 />
 
-Baptized
+
+Child Member
 
 </label>
 
@@ -721,16 +902,16 @@ Baptized
 
 type="checkbox"
 
-name="isChild"
+name="baptized"
 
-checked={formData.isChild}
+checked={formData.baptized}
 
 onChange={handleChange}
 
 />
 
-Child Member
 
+Baptized
 
 </label>
 
@@ -749,7 +930,8 @@ Child Member
 
 
 
-{/* ACTION BUTTONS */}
+{/* BUTTONS */}
+
 
 
 <div className={styles.actions}>
@@ -773,8 +955,6 @@ Cancel
 
 
 
-
-
 <button
 
 type="submit"
@@ -792,7 +972,7 @@ loading
 
 ?
 
-"Saving..."
+"Creating..."
 
 :
 
@@ -812,6 +992,7 @@ loading
 
 
 
+
 </form>
 
 
@@ -823,6 +1004,7 @@ loading
 
 
 };
+
 
 
 export default AddMember;

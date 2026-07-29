@@ -1,156 +1,567 @@
 const mongoose = require("mongoose");
 
+
+
 const serviceSchema = new mongoose.Schema(
-  {
-    // ==================================
-    // Service Information
-    // ==================================
 
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+{
 
-    serviceType: {
-      type: String,
-      enum: [
+// =====================================================
+// SERVICE INFORMATION
+// =====================================================
+
+
+name:{
+
+    type:String,
+
+    required:[
+        true,
+        "Service name is required"
+    ],
+
+    trim:true
+
+},
+
+
+
+
+serviceType:{
+
+    type:String,
+
+    enum:[
+
         "Sunday Worship",
+
         "Sunday Evening",
+
         "Bible Study",
+
         "Prayer Meeting",
+
         "Youth Service",
+
         "Children Service",
+
         "Special Service",
+
         "Convention",
+
         "Funeral",
+
         "Wedding",
-        "Other",
-      ],
-      required: true,
+
+        "Other"
+
+    ],
+
+    required:true
+
+},
+
+
+
+
+
+serviceDate:{
+
+    type:Date,
+
+    required:true
+
+},
+
+
+
+
+
+startTime:{
+
+    type:String,
+
+    default:""
+
+},
+
+
+
+
+endTime:{
+
+    type:String,
+
+    default:""
+
+},
+
+
+
+
+
+description:{
+
+    type:String,
+
+    trim:true,
+
+    default:""
+
+},
+
+
+
+
+
+
+
+// =====================================================
+// SERVICE STATUS
+// =====================================================
+
+
+status:{
+
+
+    type:String,
+
+
+    enum:[
+
+        "Scheduled",
+
+        "Active",
+
+        "Completed",
+
+        "Cancelled"
+
+    ],
+
+
+    default:"Scheduled"
+
+
+},
+
+
+
+
+
+
+
+// =====================================================
+// ATTENDANCE CONTROL
+// =====================================================
+
+
+attendanceCode:{
+
+
+    type:String,
+
+
+    required:true,
+
+
+    unique:true,
+
+
+    trim:true
+
+
+},
+
+
+
+
+
+
+codeExpiresAt:{
+
+
+    type:Date,
+
+
+    required:true
+
+
+},
+
+
+
+
+
+
+attendanceOpen:{
+
+
+    type:Boolean,
+
+
+    default:false
+
+
+},
+
+
+
+
+
+
+
+// =====================================================
+// ATTENDANCE SUMMARY
+// =====================================================
+
+
+attendanceSummary:{
+
+
+
+    totalPresent:{
+
+
+        type:Number,
+
+
+        default:0
+
+
     },
 
-    serviceDate: {
-      type: Date,
-      required: true,
+
+
+
+
+    totalAbsent:{
+
+
+        type:Number,
+
+
+        default:0
+
+
     },
 
-    startTime: {
-      type: String,
-      default: "",
+
+
+
+
+    adultsPresent:{
+
+
+        type:Number,
+
+
+        default:0
+
+
     },
 
-    endTime: {
-      type: String,
-      default: "",
+
+
+
+
+    childrenPresent:{
+
+
+        type:Number,
+
+
+        default:0
+
+
     },
 
-    // ==================================
-    // Attendance
-    // ==================================
 
-    attendanceCode: {
-      type: String,
-      required: true,
+
+
+
+    malePresent:{
+
+
+        type:Number,
+
+
+        default:0
+
+
     },
 
-    active: {
-      type: Boolean,
-      default: true,
+
+
+
+
+    femalePresent:{
+
+
+        type:Number,
+
+
+        default:0
+
+
     },
 
-    closed: {
-      type: Boolean,
-      default: false,
-    },
 
-    closedAt: {
-      type: Date,
-      default: null,
-    },
 
-    attendanceSummary: {
-      totalPresent: {
-        type: Number,
-        default: 0,
-      },
 
-      totalAbsent: {
-        type: Number,
-        default: 0,
-      },
 
-      adultsPresent: {
-        type: Number,
-        default: 0,
-      },
+    attendanceRate:{
 
-      childrenPresent: {
-        type: Number,
-        default: 0,
-      },
 
-      malePresent: {
-        type: Number,
-        default: 0,
-      },
+        type:Number,
 
-      femalePresent: {
-        type: Number,
-        default: 0,
-      },
 
-      attendanceRate: {
-        type: Number,
-        default: 0,
-      },
-    },
+        default:0
 
-    // ==================================
-    // Audit
-    // ==================================
 
-    generatedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    }
 
-    description: {
-      type: String,
-      default: "",
-    },
-  },
-  {
-    timestamps: true,
-  }
+
+
+},
+
+
+
+
+
+
+
+// =====================================================
+// SERVICE CLOSING
+// =====================================================
+
+
+closedAt:{
+
+
+    type:Date,
+
+
+    default:null
+
+
+},
+
+
+
+
+
+
+
+
+
+// =====================================================
+// AUDIT
+// =====================================================
+
+
+generatedBy:{
+
+
+    type:mongoose.Schema.Types.ObjectId,
+
+
+    ref:"User",
+
+
+    required:true
+
+
+}
+
+
+
+},
+
+
+{
+
+    timestamps:true
+
+}
+
 );
 
-// ==================================
-// Indexes
-// ==================================
 
-// Only one active service at a time
-serviceSchema.index(
-  {
-    active: 1,
-  },
-  {
-    unique: true,
-    partialFilterExpression: {
-      active: true,
-    },
-  }
+
+
+
+
+
+
+
+
+// =====================================================
+// INDEXES
+// =====================================================
+
+
+
+// Latest services
+
+serviceSchema.index({
+
+    serviceDate:-1
+
+});
+
+
+
+
+
+
+// Active attendance lookup
+
+serviceSchema.index({
+
+    status:1,
+
+    attendanceOpen:1
+
+});
+
+
+
+
+
+
+// Attendance code lookup
+
+serviceSchema.index({
+
+    attendanceCode:1
+
+});
+
+
+
+
+
+
+// Prevent duplicate service type same day
+
+serviceSchema.index({
+
+    serviceType:1,
+
+    serviceDate:1
+
+});
+
+
+
+
+
+
+
+
+
+// =====================================================
+// VIRTUALS
+// =====================================================
+
+
+serviceSchema.virtual(
+"attendancePercentage"
+)
+.get(function(){
+
+
+return this.attendanceSummary?.attendanceRate || 0;
+
+
+});
+
+
+
+
+
+
+serviceSchema.set(
+"toJSON",
+{
+    virtuals:true
+}
 );
 
-// Fast attendance code lookup
-serviceSchema.index({
-  attendanceCode: 1,
+
+
+serviceSchema.set(
+"toObject",
+{
+    virtuals:true
+}
+);
+
+
+
+
+
+
+
+
+
+// =====================================================
+// VALIDATION BEFORE SAVE
+// =====================================================
+
+
+serviceSchema.pre(
+"save",
+function(next){
+
+
+
+if(
+
+this.status === "Completed"
+
+){
+
+    this.attendanceOpen=false;
+
+
+}
+
+
+
+
+
+if(
+
+this.status === "Cancelled"
+
+){
+
+    this.attendanceOpen=false;
+
+
+}
+
+
+
+
+
+next();
+
+
 });
 
-// Fast service history sorting
-serviceSchema.index({
-  serviceDate: -1,
-});
 
-module.exports = mongoose.model("Service", serviceSchema);
+
+
+
+
+
+
+
+module.exports =
+mongoose.model(
+    "Service",
+    serviceSchema
+);
