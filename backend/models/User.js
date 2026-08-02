@@ -1130,18 +1130,6 @@ lastName:1
 });
 
 
-userSchema.index({
-
-phone:1
-
-});
-
-
-userSchema.index({
-
-email:1
-
-});
 
 
 

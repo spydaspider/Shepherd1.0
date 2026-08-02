@@ -1,36 +1,62 @@
-import { useEffect, useState } from "react";
+import { 
+    useEffect, 
+    useState 
+} from "react";
+
+
+import {
+    PieChart,
+    Pie,
+    Cell,
+    Tooltip,
+    ResponsiveContainer,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid
+} from "recharts";
+
 
 import api from "../../api/axios";
 
 import styles from "./Dashboard.module.css";
 
 
+
+
+
 const Dashboard = () => {
 
 
-    const [dashboard, setDashboard] = useState(null);
-
-    const [loading, setLoading] = useState(true);
-
-
-
-
-    useEffect(() => {
+    const [
+        dashboard,
+        setDashboard
+    ] = useState(null);
 
 
-        const fetchDashboard = async () => {
+
+    const [
+        loading,
+        setLoading
+    ] = useState(true);
 
 
-            try {
 
 
-                const response = await api.get("/dashboard");
+
+    useEffect(()=>{
 
 
-                console.log(
-                    "Dashboard data:",
-                    response.data
-                );
+        const fetchDashboard = async()=>{
+
+
+            try{
+
+
+                const response =
+                await api.get("/dashboard");
+
 
 
                 setDashboard(
@@ -39,16 +65,18 @@ const Dashboard = () => {
 
 
 
-            } catch(error) {
+            }
+            catch(error){
 
 
                 console.log(
-                    "Dashboard error:",
-                    error.response?.data || error.message
+                    error.response?.data ||
+                    error.message
                 );
 
 
-            } finally {
+            }
+            finally{
 
 
                 setLoading(false);
@@ -60,44 +88,87 @@ const Dashboard = () => {
         };
 
 
+
         fetchDashboard();
 
 
-    }, []);
+
+    },[]);
 
 
 
 
 
 
-    if(loading){
 
-        return (
+    if(loading)
+    return <h2>Loading Dashboard...</h2>;
 
-            <h2>
-                Loading Dashboard...
-            </h2>
 
-        );
 
-    }
+
+    if(!dashboard)
+    return <h2>Unable to load dashboard</h2>;
 
 
 
 
 
 
-    if(!dashboard){
 
-        return (
 
-            <h2>
-                Unable to load dashboard
-            </h2>
+    const attendanceData = [
 
-        );
 
-    }
+        {
+            name:"Present",
+            value:
+            dashboard.attendance?.present || 0
+        },
+
+
+        {
+            name:"Absent",
+            value:
+            dashboard.attendance?.absent || 0
+        }
+
+
+    ];
+
+
+
+
+
+
+
+    const genderData = [
+
+
+        {
+
+            name:"Male",
+
+            value:
+            dashboard.members?.male || 0
+
+        },
+
+
+        {
+
+            name:"Female",
+
+            value:
+            dashboard.members?.female || 0
+
+        }
+
+
+    ];
+
+
+
 
 
 
@@ -106,81 +177,84 @@ const Dashboard = () => {
 
     return (
 
+<div className={styles.dashboard}>
 
-        <div className={styles.dashboard}>
 
+{/* HEADER */}
 
-            <h1>
-                Dashboard
-            </h1>
+<div className={styles.header}>
 
 
-            <p>
-                Welcome to Shepherd Admin Panel
-            </p>
+<h1>
+Dashboard
+</h1>
 
 
+<p>
+Welcome to Shepherd Church Management System
+</p>
 
 
+</div>
 
 
-            {/* Statistics Cards */}
 
 
-            <div className={styles.cards}>
 
 
-                <div className={styles.card}>
 
-                    <h3>
-                        Total Members
-                    </h3>
 
 
-                    <h2>
-                        {dashboard.members?.totalMembers || 0}
-                    </h2>
+{/* STAT CARDS */}
 
-                </div>
 
+<div className={styles.cards}>
 
 
+<div className={styles.card}>
 
+<h3>
+Total Members
+</h3>
 
-                <div className={styles.card}>
+<h2>
+{dashboard.members?.totalMembers || 0}
+</h2>
 
+</div>
 
-                    <h3>
-                        Adults
-                    </h3>
 
 
-                    <h2>
-                        {dashboard.members?.adults || 0}
-                    </h2>
 
 
-                </div>
+<div className={styles.card}>
 
+<h3>
+Adults
+</h3>
 
+<h2>
+{dashboard.members?.adults || 0}
+</h2>
 
+</div>
 
 
 
-                <div className={styles.card}>
 
 
-                    <h3>
-                        Children
-                    </h3>
 
+<div className={styles.card}>
 
-                    <h2>
-                        {dashboard.members?.children || 0}
-                    </h2>
+<h3>
+Children
+</h3>
 
+<h2>
+{dashboard.members?.children || 0}
+</h2>
 
-                </div>
+</div>
 
 
 
@@ -188,428 +262,554 @@ const Dashboard = () => {
 
 
 
-                <div className={styles.card}>
 
+<div className={styles.card}>
 
-                    <h3>
-                        Pending Follow Ups
-                    </h3>
+<h3>
+Present
+</h3>
 
+<h2>
+{dashboard.attendance?.present || 0}
+</h2>
 
-                    <h2>
-                        {dashboard.followUps?.pending || 0}
-                    </h2>
+</div>
 
 
-                </div>
 
 
 
-            </div>
 
 
 
 
+<div className={styles.card}>
 
+<h3>
+Attendance Rate
+</h3>
 
+<h2>
+{dashboard.attendance?.rate || 0}%
+</h2>
 
+</div>
 
 
-            {/* Service + Attendance */}
 
 
 
-            <div className={styles.dashboardGrid}>
 
 
 
 
+<div className={styles.card}>
 
-                {/* Active Service */}
+<h3>
+Follow Ups
+</h3>
 
+<h2>
+{dashboard.followUps?.pending || 0}
+</h2>
 
-                <div className={styles.section}>
+</div>
 
 
-                    <h2>
-                        Active Service
-                    </h2>
 
+</div>
 
 
 
-                    {
 
-                    dashboard.service ?
 
 
 
-                    <div className={styles.serviceCard}>
 
 
-                        <h3>
-                            {dashboard.service.name}
-                        </h3>
+{/* SERVICE + PIE CHART */}
 
 
+<div className={styles.topGrid}>
 
-                        <p>
 
-                            Type:
 
-                            <strong>
-                                {" "}
-                                {dashboard.service.serviceType}
-                            </strong>
 
-                        </p>
+<div className={styles.section}>
 
 
+<h2>
+Current Service
+</h2>
 
 
 
-                        <p>
+{
 
-                            Attendance Code:
+dashboard.service ?
 
-                            <strong>
-                                {" "}
-                                {dashboard.service.attendanceCode}
-                            </strong>
 
-                        </p>
+<div className={styles.serviceCard}>
 
 
+<h3>
+{dashboard.service.name}
+</h3>
 
-                    </div>
 
+<p>
+Type:
+<strong>
+{" "}
+{dashboard.service.serviceType}
+</strong>
+</p>
 
 
 
-                    :
+<p>
+Status:
+<strong>
+{" "}
+{dashboard.service.status}
+</strong>
+</p>
 
 
 
-                    <p>
-                        No active service
-                    </p>
+<p>
+Attendance Code:
+<strong>
+{" "}
+{dashboard.service.attendanceCode}
+</strong>
+</p>
 
 
-                    }
 
+</div>
 
 
-                </div>
+:
 
+<p>
+No active service
+</p>
 
 
+}
 
 
 
+</div>
 
 
 
 
 
 
-                {/* Attendance */}
 
 
-                <div className={styles.section}>
+<div className={styles.chartContainer}>
 
 
-                    <h2>
-                        Attendance
-                    </h2>
+<h2>
+Attendance
+</h2>
 
 
+<ResponsiveContainer
+width="100%"
+height={250}
+>
 
-                    <p>
 
-                        Present:
+<PieChart>
 
-                        <strong>
-                            {" "}
-                            {dashboard.attendance?.present || 0}
-                        </strong>
 
-                    </p>
+<Pie
 
+data={attendanceData}
 
+dataKey="value"
 
+nameKey="name"
 
-                    <p>
+outerRadius={90}
 
-                        Absent:
+label
 
-                        <strong>
-                            {" "}
-                            {dashboard.attendance?.absent || 0}
-                        </strong>
 
-                    </p>
+>
 
 
+{
+attendanceData.map(
+(item,index)=>(
 
+<Cell
+key={index}
+/>
 
+)
 
-                    <p>
+)
+}
 
-                        Rate:
 
-                        <strong>
-                            {" "}
-                            {dashboard.attendance?.rate || 0}%
-                        </strong>
+</Pie>
 
-                    </p>
 
+<Tooltip/>
 
 
-                </div>
+</PieChart>
 
 
+</ResponsiveContainer>
 
-            </div>
 
 
+</div>
 
 
 
 
 
+</div>
 
 
 
 
 
-            {/* Recent Members */}
 
 
-            <div className={styles.section}>
 
 
-                <h2>
-                    Recent Members
-                </h2>
 
 
 
+{/* CHARTS */}
 
 
-                {
 
+<div className={styles.bottomGrid}>
 
-                dashboard.recentMembers &&
 
-                dashboard.recentMembers.length > 0 ?
+<div className={styles.chartContainer}>
 
 
+<h2>
+Gender Distribution
+</h2>
 
 
 
-                <table className={styles.memberTable}>
+<ResponsiveContainer
+width="100%"
+height={250}
+>
 
 
-                    <thead>
+<PieChart>
 
 
-                        <tr>
+<Pie
 
+data={genderData}
 
-                            <th>
-                                Name
-                            </th>
+dataKey="value"
 
+nameKey="name"
 
-                            <th>
-                                Gender
-                            </th>
+outerRadius={90}
 
+label
 
-                            <th>
-                                Type
-                            </th>
+>
 
 
-                            <th>
-                                Joined
-                            </th>
+{
+genderData.map(
+(item,index)=>(
 
+<Cell
+key={index}
+/>
 
-                        </tr>
+)
 
+)
+}
 
-                    </thead>
 
+</Pie>
 
 
 
+<Tooltip/>
 
 
+</PieChart>
 
-                    <tbody>
 
+</ResponsiveContainer>
 
 
-                    {
 
+</div>
 
-                    dashboard.recentMembers.map((member)=>(
 
 
 
-                    <tr key={member._id}>
 
 
-                        <td>
 
 
-                            <div className={styles.memberInfo}>
+<div className={styles.chartContainer}>
 
 
-                                <div className={styles.avatar}>
+<h2>
+Attendance Trend
+</h2>
 
 
-                                    {
-                                    member.firstName
-                                    ?.charAt(0)
-                                    }
 
+<ResponsiveContainer
+width="100%"
+height={250}
+>
 
-                                    {
-                                    member.lastName
-                                    ?.charAt(0)
-                                    }
 
+<LineChart
 
-                                </div>
+data={
+dashboard.attendanceTrend || []
+}
 
 
+>
 
 
-                                <span>
+<CartesianGrid/>
 
-                                    {
-                                    member.firstName
-                                    }
 
-                                    {" "}
+<XAxis
+dataKey="name"
+/>
 
-                                    {
-                                    member.lastName
-                                    }
 
+<YAxis/>
 
-                                </span>
 
+<Tooltip/>
 
 
-                            </div>
+<Line
 
+type="monotone"
 
-                        </td>
+dataKey="present"
 
+/>
 
 
 
+</LineChart>
 
 
-                        <td>
+</ResponsiveContainer>
 
-                            {
-                            member.gender || "N/A"
-                            }
 
-                        </td>
 
 
+</div>
 
 
 
 
-                        <td>
+</div>
 
-                            {
-                            member.role || "Member"
-                            }
 
-                        </td>
 
 
 
 
 
 
-                        <td>
 
 
-                            {
 
-                            new Date(
-                                member.createdAt
-                            )
-                            .toLocaleDateString(
-                                "en-US",
-                                {
-                                    month:"short",
-                                    day:"numeric"
-                                }
-                            )
 
-                            }
 
+{/* MEMBERS TABLE */}
 
-                        </td>
 
 
+<div className={styles.section}>
 
-                    </tr>
 
+<h2>
+Recent Members
+</h2>
 
 
-                    ))
 
 
+<table className={styles.memberTable}>
 
-                    }
 
+<thead>
 
+<tr>
 
-                    </tbody>
+<th>
+Name
+</th>
 
+<th>
+Gender
+</th>
 
 
-                </table>
+<th>
+Role
+</th>
 
 
+<th>
+Joined
+</th>
 
 
+</tr>
 
 
-                :
+</thead>
 
 
 
 
 
-                <p>
-                    No recent members found
-                </p>
+<tbody>
 
 
+{
 
-                }
+dashboard.recentMembers?.map(member=>(
 
 
+<tr key={member._id}>
 
-            </div>
 
+<td>
 
 
+<div className={styles.memberInfo}>
 
 
-        </div>
+<div className={styles.avatar}>
+
+
+{
+member.firstName?.charAt(0)
+}
+
+
+{
+member.lastName?.charAt(0)
+}
+
+
+</div>
+
+
+
+<span>
+
+{
+member.firstName
+}
+
+{" "}
+
+{
+member.lastName
+}
+
+</span>
+
+
+</div>
+
+
+</td>
+
+
+
+
+<td>
+
+{
+member.gender
+}
+
+</td>
+
+
+
+
+<td>
+
+{
+member.role
+}
+
+</td>
+
+
+
+
+<td>
+
+{
+new Date(
+member.createdAt
+)
+.toLocaleDateString()
+}
+
+</td>
+
+
+
+</tr>
+
+
+
+))
+
+
+}
+
+
+
+</tbody>
+
+
+
+</table>
+
+
+
+</div>
+
+
+
+
+
+
+</div>
 
 
     );

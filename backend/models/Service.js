@@ -430,13 +430,6 @@ serviceSchema.index({
 
 
 
-// Attendance code lookup
-
-serviceSchema.index({
-
-    attendanceCode:1
-
-});
 
 
 

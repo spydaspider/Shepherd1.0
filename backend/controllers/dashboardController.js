@@ -6,21 +6,14 @@ const Attendance = require("../models/Attendance");
 
 
 
-
 // =====================================================
 // Main Dashboard
 // GET /api/dashboard
 // =====================================================
 
-
 const getDashboard = async(req,res)=>{
 
-
 try{
-
-
-const today = new Date();
-
 
 
 // ==========================================
@@ -44,50 +37,37 @@ female
 ] = await Promise.all([
 
 
+
 User.countDocuments({
-
-isActive:true
-
+    isActive:true
 }),
 
 
 
 User.countDocuments({
-
-isActive:true,
-
-isChild:false
-
+    isActive:true,
+    isChild:false
 }),
 
 
 
 User.countDocuments({
-
-isActive:true,
-
-isChild:true
-
+    isActive:true,
+    isChild:true
 }),
 
 
 
 User.countDocuments({
-
-isActive:true,
-
-gender:"Male"
-
+    isActive:true,
+    gender:"Male"
 }),
 
 
 
 User.countDocuments({
-
-isActive:true,
-
-gender:"Female"
-
+    isActive:true,
+    gender:"Female"
 })
 
 
@@ -98,12 +78,12 @@ gender:"Female"
 
 
 
+// ==========================================
+// NEW MEMBERS THIS MONTH
+// ==========================================
 
-// New members this month
 
-
-const startMonth =
-new Date();
+const startMonth = new Date();
 
 
 startMonth.setDate(1);
@@ -117,8 +97,6 @@ startMonth.setHours(
 
 
 
-
-
 const newMembers =
 
 await User.countDocuments({
@@ -126,7 +104,7 @@ await User.countDocuments({
 isActive:true,
 
 createdAt:{
-$gte:startMonth
+    $gte:startMonth
 }
 
 });
@@ -140,13 +118,11 @@ $gte:startMonth
 
 
 // ==========================================
-// ACTIVE SERVICE
+// SERVICE
 // ==========================================
 
 
-let service =
-
-await Service.findOne({
+let service = await Service.findOne({
 
 status:"Active",
 
@@ -158,28 +134,23 @@ attendanceOpen:true
 
 
 
+// If no active service,
+// get latest service created
+
+
 if(!service){
 
 
-service =
-
-await Service.findOne({
-
-serviceDate:{
-$lte:today
-}
-
-})
+service = await Service.findOne({})
 
 .sort({
 
-serviceDate:-1
+createdAt:-1
 
 });
 
 
 }
-
 
 
 
@@ -218,8 +189,6 @@ female:0
 
 
 
-
-
 if(service){
 
 
@@ -228,7 +197,7 @@ service.attendanceSummary || {};
 
 
 
-attendance={
+attendance = {
 
 
 present:
@@ -259,7 +228,6 @@ female:
 summary.femalePresent || 0
 
 
-
 };
 
 
@@ -287,7 +255,7 @@ completedFollowUps,
 overdueFollowUps
 
 
-] = await Promise.all([
+]= await Promise.all([
 
 
 
@@ -299,6 +267,7 @@ status:"Pending"
 
 
 
+
 FollowUp.countDocuments({
 
 status:"Completed"
@@ -307,17 +276,18 @@ status:"Completed"
 
 
 
+
 FollowUp.countDocuments({
 
 status:{
-$in:[
-"Pending",
-"Unable To Reach"
-]
+    $in:[
+        "Pending",
+        "Unable To Reach"
+    ]
 },
 
 followUpDate:{
-$lt:today
+    $lt:new Date()
 }
 
 
@@ -325,6 +295,8 @@ $lt:today
 
 
 ]);
+
+
 
 
 
@@ -386,17 +358,11 @@ createdAt
 
 const recentServices =
 
-await Service.find({
-
-serviceDate:{
-$lte:today
-}
-
-})
+await Service.find({})
 
 .sort({
 
-serviceDate:-1
+createdAt:-1
 
 })
 
@@ -408,8 +374,8 @@ serviceDate:-1
 name
 serviceType
 serviceDate
-attendanceSummary
 status
+attendanceSummary
 `
 
 );
@@ -433,6 +399,7 @@ success:true,
 
 
 dashboard:{
+
 
 
 members:{
@@ -477,19 +444,14 @@ serviceType:service.serviceType,
 
 serviceDate:service.serviceDate,
 
-attendanceCode:
-service.attendanceCode,
+attendanceCode:service.attendanceCode,
 
-status:
-service.status,
+status:service.status,
 
-attendanceOpen:
-service.attendanceOpen,
-
+attendanceOpen:service.attendanceOpen,
 
 attendanceSummary:
 service.attendanceSummary
-
 
 
 }
@@ -507,9 +469,7 @@ null,
 
 
 
-
 attendance,
-
 
 
 
@@ -550,28 +510,30 @@ recentMembers,
 
 
 
+
 attendanceTrend:
 
-
-recentServices.map(item=>({
-
-
-name:item.name,
+recentServices.map(service=>({
 
 
-date:item.serviceDate,
+name:
+service.name,
 
 
-status:item.status,
+date:
+service.serviceDate,
+
+
+status:
+service.status,
 
 
 present:
-item.attendanceSummary?.totalPresent || 0,
+service.attendanceSummary?.totalPresent || 0,
 
 
 rate:
-item.attendanceSummary?.attendanceRate || 0
-
+service.attendanceSummary?.attendanceRate || 0
 
 
 }))
@@ -583,9 +545,7 @@ item.attendanceSummary?.attendanceRate || 0
 }
 
 
-
 });
-
 
 
 
@@ -607,6 +567,9 @@ message:error.message
 
 
 };
+
+
+
 
 
 
@@ -645,51 +608,32 @@ female
 
 
 User.countDocuments({
-
 isActive:true
-
 }),
 
 
-
 User.countDocuments({
-
 isActive:true,
-
 isChild:false
-
 }),
 
 
-
 User.countDocuments({
-
 isActive:true,
-
 isChild:true
-
 }),
 
 
-
 User.countDocuments({
-
 isActive:true,
-
 gender:"Male"
-
 }),
 
 
-
 User.countDocuments({
-
 isActive:true,
-
 gender:"Female"
-
 })
-
 
 
 ]);
@@ -698,15 +642,11 @@ gender:"Female"
 
 
 
-
 res.json({
-
 
 success:true,
 
-
 overview:{
-
 
 totalMembers,
 
@@ -718,19 +658,13 @@ male,
 
 female
 
-
 }
-
-
 
 });
 
 
-
-
 }
 catch(error){
-
 
 res.status(500).json({
 
@@ -739,7 +673,6 @@ success:false,
 message:error.message
 
 });
-
 
 }
 
@@ -769,9 +702,7 @@ try{
 const service =
 
 await Service.findById(
-
 req.params.serviceId
-
 );
 
 
@@ -807,29 +738,14 @@ service:service._id
 
 
 .populate(
-
 "user",
-
-`
-firstName
-lastName
-gender
-phone
-isChild
-`
-
+"firstName lastName gender phone isChild"
 )
 
 
 .populate(
-
 "markedBy",
-
-`
-firstName
-lastName
-`
-
+"firstName lastName"
 )
 
 
@@ -847,9 +763,7 @@ createdAt:-1
 
 res.json({
 
-
 success:true,
-
 
 
 service:{
@@ -857,38 +771,27 @@ service:{
 
 id:service._id,
 
-
 name:service.name,
-
 
 serviceType:service.serviceType,
 
-
 serviceDate:service.serviceDate,
 
-
 status:service.status,
-
 
 attendanceOpen:
 service.attendanceOpen,
 
-
 attendanceCode:
 service.attendanceCode
-
 
 
 },
 
 
 
-
-
 attendanceSummary:
 service.attendanceSummary,
-
-
 
 
 
@@ -900,9 +803,7 @@ attendanceCount:
 attendanceRecords.length
 
 
-
 });
-
 
 
 
@@ -930,15 +831,12 @@ message:error.message
 
 
 
-
 module.exports={
-
 
 getDashboard,
 
 getOverview,
 
 getServiceDashboard
-
 
 };

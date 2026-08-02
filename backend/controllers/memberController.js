@@ -12,9 +12,7 @@ const generateMembershipNumber = async()=>{
 
 
 let number;
-
-let exists=true;
-
+let exists = true;
 
 
 while(exists){
@@ -55,12 +53,10 @@ exists=false;
 }
 
 
-
 return number;
 
 
 };
-
 
 
 
@@ -106,15 +102,11 @@ limit=20
 
 
 
-
 const filter={
-
 
 deleted:false
 
-
 };
-
 
 
 
@@ -123,26 +115,21 @@ if(gender)
 filter.gender=gender;
 
 
-
 if(membershipType)
 filter.membershipType=membershipType;
-
 
 
 if(status)
 filter.status=status;
 
 
-
 if(role)
 filter.role=role;
-
 
 
 if(isChild !== undefined)
 filter.isChild =
 isChild==="true";
-
 
 
 if(hasAccount !== undefined)
@@ -153,13 +140,10 @@ hasAccount==="true";
 
 
 
-
-
 if(search){
 
 
 filter.$or=[
-
 
 {
 firstName:{
@@ -168,14 +152,12 @@ $options:"i"
 }
 },
 
-
 {
 lastName:{
 $regex:search,
 $options:"i"
 }
 },
-
 
 {
 email:{
@@ -184,14 +166,12 @@ $options:"i"
 }
 },
 
-
 {
 phone:{
 $regex:search,
 $options:"i"
 }
 },
-
 
 {
 membershipNumber:{
@@ -200,12 +180,10 @@ $options:"i"
 }
 }
 
-
 ];
 
 
 }
-
 
 
 
@@ -220,9 +198,8 @@ Number(limit);
 
 
 
-
-
 const members =
+
 await User.find(filter)
 
 .populate(
@@ -249,12 +226,9 @@ createdAt:-1
 
 
 
-
-
 const total =
+
 await User.countDocuments(filter);
-
-
 
 
 
@@ -268,18 +242,17 @@ page:Number(page),
 
 pages:
 Math.ceil(
-total / limit
+total / Number(limit)
 ),
-
-count:members.length,
 
 total,
 
+count:members.length,
+
 members
 
+
 });
-
-
 
 
 
@@ -300,8 +273,6 @@ message:error.message
 
 
 };
-
-
 
 
 
@@ -366,8 +337,6 @@ message:"Member not found"
 
 
 
-
-
 const attendance =
 
 await Attendance.find({
@@ -377,8 +346,11 @@ user:member._id
 })
 
 .populate(
+
 "service",
+
 "name serviceDate"
+
 )
 
 .sort({
@@ -386,7 +358,6 @@ user:member._id
 createdAt:-1
 
 });
-
 
 
 
@@ -431,8 +402,6 @@ message:error.message
 
 
 
-
-
 // =====================================================
 // Create Member
 // POST /api/members
@@ -467,7 +436,7 @@ role,
 ...otherData
 
 
-}=req.body;
+}=req.body || {};
 
 
 
@@ -499,17 +468,79 @@ message:
 
 
 
-const memberRole =
 
-isChild
+if(isChild && !parent){
 
-?
 
-"Child"
+return res.status(400).json({
 
-:
+success:false,
 
-(role || "Member");
+message:
+"Child must have a parent"
+
+});
+
+
+}
+
+
+
+
+
+
+if(email){
+
+
+const exists =
+await User.findOne({
+
+email
+
+});
+
+
+if(exists){
+
+return res.status(400).json({
+
+success:false,
+
+message:"Email already exists"
+
+});
+
+}
+
+}
+
+
+
+if(phone){
+
+
+const exists =
+await User.findOne({
+
+phone
+
+});
+
+
+if(exists){
+
+return res.status(400).json({
+
+success:false,
+
+message:"Phone already exists"
+
+});
+
+}
+
+}
+
 
 
 
@@ -522,36 +553,34 @@ const member =
 await User.create({
 
 
-
 firstName,
 
 lastName,
 
+email:email || undefined,
 
-email:
-email || undefined,
-
-
-phone:
-phone || undefined,
-
+phone:phone || undefined,
 
 gender,
 
-
 dateOfBirth,
-
 
 
 ...otherData,
 
 
+role:
+isChild
+?
+"Child"
+:
+(role || "Member"),
 
-role:memberRole,
 
 
 isChild:
-isChild || false,
+Boolean(isChild),
+
 
 
 parent:
@@ -580,12 +609,7 @@ createdBy:req.user._id
 
 
 
-
-// Add child to parent
-
-if(
-parent
-){
+if(parent){
 
 
 await User.findByIdAndUpdate(
@@ -622,6 +646,7 @@ message:
 "Member created successfully",
 
 member
+
 
 });
 
@@ -696,7 +721,6 @@ message:"Member not found"
 
 
 
-
 const allowedFields=[
 
 
@@ -732,7 +756,9 @@ const allowedFields=[
 
 "area",
 
-"membershipType"
+"membershipType",
+
+"role"
 
 
 ];
@@ -741,23 +767,19 @@ const allowedFields=[
 
 
 
-
-
 allowedFields.forEach(field=>{
 
 
-if(
-req.body[field] !== undefined
-){
+if(req.body[field] !== undefined){
+
 
 member[field]=req.body[field];
+
 
 }
 
 
 });
-
-
 
 
 
@@ -774,8 +796,6 @@ await member.save();
 
 
 
-
-
 res.json({
 
 success:true,
@@ -785,8 +805,8 @@ message:
 
 member
 
-});
 
+});
 
 
 }
@@ -830,7 +850,25 @@ const {
 
 status
 
-}=req.body;
+}=req.body || {};
+
+
+
+
+
+if(!status){
+
+
+return res.status(400).json({
+
+success:false,
+
+message:"Status is required"
+
+});
+
+
+}
 
 
 
@@ -841,7 +879,6 @@ const member =
 await User.findById(
 req.params.id
 );
-
 
 
 
@@ -866,7 +903,6 @@ message:"Member not found"
 
 
 
-
 member.status=status;
 
 
@@ -880,8 +916,8 @@ req.user._id;
 
 
 
-await member.save();
 
+await member.save();
 
 
 
@@ -897,8 +933,8 @@ message:
 
 member
 
-});
 
+});
 
 
 
