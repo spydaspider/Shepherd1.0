@@ -14,6 +14,8 @@ import AdminLayout from "./layouts/AdminLayout/AdminLayout";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import Members from "./pages/Members/Members";
 import AddMember from "./pages/AddMember/AddMember";
+import ViewMember from "./pages/Members/ViewMember";
+import EditMember from "./pages/Members/EditMember";
 
 
 
@@ -67,11 +69,21 @@ element={
 path="/members" 
 element={<Members />} 
 />
+
 <Route
 path="/members/add"
 element={<AddMember />}
 />
 
+<Route
+path="/members/:id"
+element={<ViewMember />}
+/>
+
+<Route
+path="/members/edit/:id"
+element={<EditMember />}
+/>
 </Routes>
 
 

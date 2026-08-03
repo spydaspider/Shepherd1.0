@@ -615,28 +615,6 @@ guardian:{
 
 
 
-relationship:{
-
-    type:String,
-
-    enum:[
-
-        "Father",
-
-        "Mother",
-
-        "Guardian",
-
-        "Other"
-
-    ],
-
-    default:"Guardian"
-
-},
-
-
-
 
 
 children:[

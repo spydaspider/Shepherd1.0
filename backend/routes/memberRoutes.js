@@ -4,9 +4,12 @@ const router = express.Router();
 
 
 
+// Controllers
 const {
 
     getMembers,
+
+    getParents,
 
     getMemberById,
 
@@ -22,8 +25,10 @@ const {
 
 
 
+// Middleware
 const {
     protect
+
 } = require("../middleware/authMiddleware");
 
 
@@ -37,8 +42,9 @@ require("../middleware/permissionMiddleware");
 
 
 
+
 // =====================================================
-// Get All Members
+// GET ALL MEMBERS
 // GET /api/members
 // =====================================================
 
@@ -64,9 +70,38 @@ router.get(
 
 
 
+// =====================================================
+// GET PARENTS
+// GET /api/members/parents
+//
+// Used when creating child members
+// Returns only adult members
+// =====================================================
+
+router.get(
+
+    "/parents",
+
+    protect,
+
+    checkPermission(
+        "VIEW_MEMBERS"
+    ),
+
+    getParents
+
+);
+
+
+
+
+
+
+
+
 
 // =====================================================
-// Create Member
+// CREATE MEMBER
 // POST /api/members
 // =====================================================
 
@@ -93,7 +128,7 @@ router.post(
 
 
 // =====================================================
-// Update Member
+// UPDATE MEMBER
 // PATCH /api/members/:id
 // =====================================================
 
@@ -120,7 +155,7 @@ router.patch(
 
 
 // =====================================================
-// Change Member Status
+// CHANGE MEMBER STATUS
 // PATCH /api/members/:id/status
 // =====================================================
 
@@ -147,7 +182,7 @@ router.patch(
 
 
 // =====================================================
-// Get Single Member Profile
+// GET SINGLE MEMBER PROFILE
 // GET /api/members/:id
 // =====================================================
 
@@ -164,6 +199,7 @@ router.get(
     getMemberById
 
 );
+
 
 
 

@@ -355,15 +355,22 @@ onClick={()=>navigate("/members/add")}
                             <td>
 
 
-                                <button className={styles.viewBtn}>
-                                    View
-                                </button>
+                               <button
+    className={styles.viewBtn}
+    onClick={() => navigate(`/members/${member._id}`)}
+>
+    View
+</button>
 
 
-                                <button className={styles.editBtn}>
-                                    Edit
-                                </button>
-
+                               <button
+className={styles.editBtn}
+onClick={() =>
+navigate(`/members/edit/${member._id}`)
+}
+>
+    Edit
+</button>
 
                                 <button className={styles.deleteBtn}>
                                     Delete

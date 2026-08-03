@@ -1,5 +1,4 @@
 import { useState } from "react";
-
 import { useNavigate } from "react-router-dom";
 
 import api from "../../api/axios";
@@ -21,47 +20,123 @@ const [error,setError] = useState("");
 
 
 
+
+
 const [formData,setFormData] = useState({
 
-    firstName:"",
-    lastName:"",
-
-    email:"",
-    phone:"",
-
-    hasAccount:false,
-    password:"",
-
-    gender:"",
-    dateOfBirth:"",
-
-    maritalStatus:"Single",
-
-    occupation:"",
-
-    address:"",
-
-    emergencyContact:"",
-    emergencyPhone:"",
 
 
-    branch:"Main Branch",
+// =========================
+// PERSONAL INFORMATION
+// =========================
 
-    department:"",
+firstName:"",
 
-    cellGroup:"",
+lastName:"",
 
-    area:"",
+email:"",
+
+phone:"",
+
+gender:"",
+
+dateOfBirth:"",
+
+maritalStatus:"Single",
+
+occupation:"",
+
+address:"",
 
 
-    membershipType:"Member",
-
-    role:"Member",
 
 
-    isChild:false,
 
-    baptized:false
+// =========================
+// EMERGENCY
+// =========================
+
+emergencyContact:"",
+
+emergencyPhone:"",
+
+
+
+
+
+
+// =========================
+// ACCOUNT
+// =========================
+
+hasAccount:false,
+
+password:"",
+
+mustChangePassword:true,
+
+
+
+
+
+
+
+// =========================
+// CHURCH INFORMATION
+// =========================
+
+membershipType:"Member",
+
+role:"Member",
+
+status:"Active",
+
+
+branch:"Main Branch",
+
+department:"",
+
+cellGroup:"",
+
+area:"",
+
+
+baptized:false,
+
+
+
+
+
+
+
+// =========================
+// CHILDREN
+// =========================
+
+children:[],
+
+
+
+
+
+
+// =========================
+// NOTIFICATIONS
+// =========================
+
+notificationSettings:{
+
+
+email:true,
+
+push:true,
+
+sms:false
+
+
+}
+
+
 
 });
 
@@ -69,33 +144,102 @@ const [formData,setFormData] = useState({
 
 
 
-const handleChange = (e)=>{
+
+
+
+
+// =================================
+// NORMAL INPUT HANDLER
+// =================================
+
+
+const handleChange=(e)=>{
 
 
 const {
-    name,
-    value,
-    type,
-    checked
+
+name,
+
+value,
+
+type,
+
+checked
+
+}=e.target;
+
+
+
+
+setFormData(prev=>({
+
+
+...prev,
+
+
+[name]:
+
+type==="checkbox"
+
+?
+
+checked
+
+:
+
+value
+
+
+
+}));
+
+
+};
+
+
+
+
+
+
+
+
+
+
+// =================================
+// NOTIFICATION HANDLER
+// =================================
+
+
+const handleNotificationChange=(e)=>{
+
+
+const {
+
+name,
+
+checked
+
 }=e.target;
 
 
 
 setFormData(prev=>({
 
-    ...prev,
 
-    [name]:
+...prev,
 
-    type==="checkbox"
 
-    ?
+notificationSettings:{
 
-    checked
 
-    :
+...prev.notificationSettings,
 
-    value
+
+[name]:checked
+
+
+}
+
 
 }));
 
@@ -109,7 +253,155 @@ setFormData(prev=>({
 
 
 
-const handleSubmit = async(e)=>{
+
+
+
+// =================================
+// CHILD MANAGEMENT
+// =================================
+
+
+const addChild = ()=>{
+
+
+setFormData(prev=>({
+
+
+...prev,
+
+
+children:[
+
+
+...prev.children,
+
+
+{
+
+
+firstName:"",
+
+lastName:"",
+
+gender:"",
+
+dateOfBirth:"",
+
+relationship:"Child"
+
+
+}
+
+
+]
+
+
+}));
+
+
+
+};
+
+
+
+
+
+
+
+
+
+const removeChild=(index)=>{
+
+
+setFormData(prev=>({
+
+
+...prev,
+
+
+children:
+
+prev.children.filter(
+
+(_,i)=>i !== index
+
+)
+
+
+}));
+
+
+
+};
+
+
+
+
+
+
+
+
+
+const handleChildChange=(index,e)=>{
+
+
+const {
+
+name,
+
+value
+
+}=e.target;
+
+
+
+const updatedChildren =
+
+[
+
+...formData.children
+
+];
+
+
+
+updatedChildren[index][name]=value;
+
+
+
+
+setFormData(prev=>({
+
+
+...prev,
+
+
+children:updatedChildren
+
+
+}));
+
+
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+// =================================
+// SUBMIT FORM
+// =================================
+
+
+const handleSubmit=async(e)=>{
 
 
 e.preventDefault();
@@ -119,18 +411,61 @@ setError("");
 
 
 
+
+
+
 if(
-formData.hasAccount &&
-!formData.password
+
+!formData.firstName ||
+
+!formData.lastName ||
+
+!formData.gender
+
 ){
 
+
 setError(
-"Password is required when creating an account"
+
+"First name, last name and gender are required"
+
 );
+
 
 return;
 
+
 }
+
+
+
+
+
+
+
+if(
+
+formData.hasAccount &&
+
+!formData.password
+
+){
+
+
+setError(
+
+"Password is required when creating an account"
+
+);
+
+
+return;
+
+
+}
+
+
+
 
 
 
@@ -142,19 +477,135 @@ setLoading(true);
 
 
 
-const response = await api.post(
+
+
+
+const payload={
+
+
+
+...formData,
+
+
+
+
+email:
+
+formData.email.trim()
+
+||
+
+undefined,
+
+
+
+
+
+phone:
+
+formData.phone.trim()
+
+||
+
+undefined,
+
+
+
+
+
+dateOfBirth:
+
+formData.dateOfBirth
+
+||
+
+null,
+
+
+
+
+
+hasAccount:
+
+Boolean(
+
+formData.hasAccount
+
+),
+
+
+
+
+
+loginEnabled:
+
+Boolean(
+
+formData.hasAccount
+
+),
+
+
+
+
+
+children:
+formData.children.map(child=>({
+
+    firstName: child.firstName,
+
+    lastName: child.lastName || formData.lastName,
+
+    gender: child.gender,
+
+    dateOfBirth: child.dateOfBirth || null
+
+}))
+
+
+
+};
+
+
+
+
+
+
+
+
+
+if(!formData.hasAccount){
+
+
+delete payload.password;
+
+
+}
+
+
+
+
+
+
+
+
+const response =
+
+await api.post(
 
 "/members",
 
-formData
+payload
 
 );
 
 
 
-console.log(
-response.data
-);
+
+
+
+console.log(response.data);
+
 
 
 
@@ -166,11 +617,23 @@ navigate("/members");
 catch(error){
 
 
+console.log(
+
+error.response?.data
+
+);
+
+
+
 setError(
 
-error.response?.data?.message ||
 
-"Failed to create member"
+error.response?.data?.message
+
+||
+
+"Failed creating member"
+
 
 );
 
@@ -185,7 +648,9 @@ setLoading(false);
 }
 
 
+
 };
+
 
 
 
@@ -196,11 +661,7 @@ setLoading(false);
 
 return (
 
-
 <div className={styles.page}>
-
-
-{/* HEADER */}
 
 
 <div className={styles.header}>
@@ -208,18 +669,18 @@ return (
 
 <div>
 
-
 <h1>
 Add New Member
 </h1>
 
 
 <p>
-Create a church member profile
+Create member profile and family details
 </p>
 
 
 </div>
+
 
 
 
@@ -248,8 +709,6 @@ onClick={()=>navigate("/members")}
 
 
 
-
-
 <form
 
 className={styles.form}
@@ -257,8 +716,6 @@ className={styles.form}
 onSubmit={handleSubmit}
 
 >
-
-
 
 
 
@@ -279,9 +736,9 @@ error &&
 
 
 
-
-{/* PERSONAL INFORMATION */}
-
+{/* =========================
+PERSONAL INFORMATION
+========================= */}
 
 
 <section className={styles.card}>
@@ -293,7 +750,9 @@ error &&
 
 
 
+
 <div className={styles.grid}>
+
 
 
 <input
@@ -311,6 +770,7 @@ onChange={handleChange}
 
 
 
+
 <input
 
 name="lastName"
@@ -322,6 +782,7 @@ value={formData.lastName}
 onChange={handleChange}
 
 />
+
 
 
 
@@ -347,6 +808,8 @@ onChange={handleChange}
 
 
 
+
+
 <input
 
 name="phone"
@@ -358,7 +821,6 @@ value={formData.phone}
 onChange={handleChange}
 
 />
-
 
 
 
@@ -378,18 +840,26 @@ onChange={handleChange}
 
 
 <option value="">
-Gender
+
+Select Gender
+
 </option>
 
 
-<option>
+<option value="Male">
+
 Male
+
 </option>
 
 
-<option>
+
+<option value="Female">
+
 Female
+
 </option>
+
 
 
 </select>
@@ -411,6 +881,7 @@ value={formData.dateOfBirth}
 onChange={handleChange}
 
 />
+
 
 
 
@@ -448,7 +919,6 @@ Widowed
 </option>
 
 
-
 </select>
 
 
@@ -472,7 +942,10 @@ onChange={handleChange}
 
 
 
+
+
 </div>
+
 
 
 </section>
@@ -485,8 +958,9 @@ onChange={handleChange}
 
 
 
-{/* ACCOUNT */}
-
+{/* =========================
+ACCOUNT ACCESS
+========================= */}
 
 
 <section className={styles.card}>
@@ -497,9 +971,6 @@ onChange={handleChange}
 </h2>
 
 
-
-
-<div className={styles.toggle}>
 
 
 <label>
@@ -518,21 +989,12 @@ onChange={handleChange}
 />
 
 
-Create login account
+Create Login Account
 
 
 </label>
 
 
-
-<p>
-
-Enable this if the member should login and mark attendance personally.
-
-</p>
-
-
-</div>
 
 
 
@@ -541,6 +1003,7 @@ Enable this if the member should login and mark attendance personally.
 {
 
 formData.hasAccount &&
+
 
 
 <div className={styles.grid}>
@@ -561,12 +1024,37 @@ onChange={handleChange}
 />
 
 
+
+
+
+<label>
+
+
+<input
+
+type="checkbox"
+
+name="mustChangePassword"
+
+checked={formData.mustChangePassword}
+
+onChange={handleChange}
+
+/>
+
+
+Force password change first login
+
+
+</label>
+
+
+
 </div>
 
 
+
 }
-
-
 
 
 
@@ -580,8 +1068,9 @@ onChange={handleChange}
 
 
 
-{/* CHURCH INFORMATION */}
-
+{/* =========================
+CHURCH INFORMATION
+========================= */}
 
 
 <section className={styles.card}>
@@ -593,10 +1082,7 @@ onChange={handleChange}
 
 
 
-
 <div className={styles.grid}>
-
-
 
 
 <select
@@ -611,17 +1097,17 @@ onChange={handleChange}
 
 
 <option>
-Member
-</option>
-
-
-<option>
 Visitor
 </option>
 
 
 <option>
 New Convert
+</option>
+
+
+<option>
+Member
 </option>
 
 
@@ -641,7 +1127,6 @@ Pastor
 
 
 </select>
-
 
 
 
@@ -679,6 +1164,45 @@ Admin
 </option>
 
 
+</select>
+
+
+
+
+
+
+
+
+<select
+
+name="status"
+
+value={formData.status}
+
+onChange={handleChange}
+
+>
+
+
+<option>
+Active
+</option>
+
+
+<option>
+Inactive
+</option>
+
+
+<option>
+Transferred
+</option>
+
+
+<option>
+Suspended
+</option>
+
 
 </select>
 
@@ -705,7 +1229,6 @@ onChange={handleChange}
 
 
 
-
 <input
 
 name="department"
@@ -717,8 +1240,6 @@ value={formData.department}
 onChange={handleChange}
 
 />
-
-
 
 
 
@@ -742,7 +1263,6 @@ onChange={handleChange}
 
 
 
-
 <input
 
 name="area"
@@ -757,7 +1277,251 @@ onChange={handleChange}
 
 
 
+
 </div>
+
+
+
+</section>
+
+
+
+
+
+{/* =========================
+CHILDREN INFORMATION
+========================= */}
+
+
+<section className={styles.card}>
+
+
+<h2>
+👨‍👩‍👧 Children
+</h2>
+
+
+
+<p>
+Add children belonging to this member.
+</p>
+
+
+
+
+
+<button
+
+type="button"
+
+className={styles.addBtn}
+
+onClick={addChild}
+
+>
+
++ Add Child
+
+</button>
+
+
+
+
+
+
+
+
+{
+
+formData.children.map((child,index)=>(
+
+
+
+<div
+
+key={index}
+
+className={styles.childCard}
+
+>
+
+
+
+
+<div className={styles.childHeader}>
+
+
+<h3>
+
+Child {index + 1}
+
+</h3>
+
+
+
+
+<button
+
+type="button"
+
+className={styles.removeBtn}
+
+onClick={()=>removeChild(index)}
+
+>
+
+Remove
+
+</button>
+
+
+
+</div>
+
+
+
+
+
+
+
+<div className={styles.grid}>
+
+
+
+
+
+<input
+
+name="firstName"
+
+placeholder="Child First Name"
+
+value={child.firstName}
+
+onChange={(e)=>
+
+handleChildChange(index,e)
+
+}
+
+/>
+
+
+
+
+
+
+
+<input
+
+name="lastName"
+
+placeholder="Child Last Name"
+
+value={child.lastName}
+
+onChange={(e)=>
+
+handleChildChange(index,e)
+
+}
+
+/>
+
+
+
+
+
+
+
+
+<select
+
+name="gender"
+
+value={child.gender}
+
+onChange={(e)=>
+
+handleChildChange(index,e)
+
+}
+
+>
+
+
+<option value="">
+
+Select Gender
+
+</option>
+
+
+
+<option value="Male">
+
+Male
+
+</option>
+
+
+
+<option value="Female">
+
+Female
+
+</option>
+
+
+
+</select>
+
+
+
+
+
+
+
+<input
+
+type="date"
+
+name="dateOfBirth"
+
+value={child.dateOfBirth}
+
+onChange={(e)=>
+
+handleChildChange(index,e)
+
+}
+
+/>
+
+
+
+
+
+
+
+
+
+
+
+</div>
+
+
+
+
+
+</div>
+
+
+
+))
+
+
+}
 
 
 
@@ -771,7 +1535,9 @@ onChange={handleChange}
 
 
 
-{/* ADDRESS */}
+{/* =========================
+ADDRESS & EMERGENCY
+========================= */}
 
 
 
@@ -784,7 +1550,11 @@ onChange={handleChange}
 
 
 
+
 <div className={styles.grid}>
+
+
+
 
 
 <input
@@ -807,11 +1577,12 @@ onChange={handleChange}
 
 
 
+
 <input
 
 name="emergencyContact"
 
-placeholder="Emergency Contact"
+placeholder="Emergency Contact Name"
 
 value={formData.emergencyContact}
 
@@ -830,7 +1601,7 @@ onChange={handleChange}
 
 name="emergencyPhone"
 
-placeholder="Emergency Phone"
+placeholder="Emergency Contact Phone"
 
 value={formData.emergencyPhone}
 
@@ -840,7 +1611,11 @@ onChange={handleChange}
 
 
 
+
+
+
 </div>
+
 
 
 </section>
@@ -853,7 +1628,146 @@ onChange={handleChange}
 
 
 
-{/* OPTIONS */}
+{/* =========================
+NOTIFICATIONS
+========================= */}
+
+
+
+<section className={styles.card}>
+
+
+<h2>
+🔔 Notification Settings
+</h2>
+
+
+
+
+
+
+
+<div className={styles.checkboxGroup}>
+
+
+
+
+
+
+<label>
+
+
+<input
+
+type="checkbox"
+
+name="email"
+
+checked={
+
+formData.notificationSettings.email
+
+}
+
+onChange={handleNotificationChange}
+
+/>
+
+
+Email Notifications
+
+
+</label>
+
+
+
+
+
+
+
+
+
+<label>
+
+
+<input
+
+type="checkbox"
+
+name="push"
+
+checked={
+
+formData.notificationSettings.push
+
+}
+
+onChange={handleNotificationChange}
+
+/>
+
+
+Push Notifications
+
+
+</label>
+
+
+
+
+
+
+
+
+
+<label>
+
+
+<input
+
+type="checkbox"
+
+name="sms"
+
+checked={
+
+formData.notificationSettings.sms
+
+}
+
+onChange={handleNotificationChange}
+
+/>
+
+
+SMS Notifications
+
+
+</label>
+
+
+
+
+
+
+
+</div>
+
+
+
+</section>
+
+
+
+
+
+
+
+
+
+{/* =========================
+ADDITIONAL INFORMATION
+========================= */}
 
 
 
@@ -863,33 +1777,6 @@ onChange={handleChange}
 <h2>
 ⚙ Additional Information
 </h2>
-
-
-
-
-<div className={styles.checkbox}>
-
-
-<label>
-
-<input
-
-type="checkbox"
-
-name="isChild"
-
-checked={formData.isChild}
-
-onChange={handleChange}
-
-/>
-
-
-Child Member
-
-</label>
-
-
 
 
 
@@ -913,11 +1800,11 @@ onChange={handleChange}
 
 Baptized
 
+
 </label>
 
 
 
-</div>
 
 
 </section>
@@ -930,11 +1817,18 @@ Baptized
 
 
 
-{/* BUTTONS */}
+{/* =========================
+ACTIONS
+========================= */}
+
 
 
 
 <div className={styles.actions}>
+
+
+
+
 
 
 <button
@@ -947,9 +1841,14 @@ onClick={()=>navigate("/members")}
 
 >
 
+
 Cancel
 
+
 </button>
+
+
+
 
 
 
@@ -959,9 +1858,9 @@ Cancel
 
 type="submit"
 
-className={styles.saveBtn}
-
 disabled={loading}
+
+className={styles.saveBtn}
 
 >
 
@@ -981,11 +1880,15 @@ loading
 }
 
 
+
 </button>
 
 
 
+
+
 </div>
+
 
 
 
@@ -1001,6 +1904,7 @@ loading
 
 
 );
+
 
 
 };

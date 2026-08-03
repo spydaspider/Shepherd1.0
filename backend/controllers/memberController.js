@@ -5,56 +5,80 @@ const Attendance = require("../models/Attendance");
 
 
 // =====================================================
-// Generate Unique Membership Number
+// Generate Membership Number
 // =====================================================
 
 const generateMembershipNumber = async()=>{
 
-
-let number;
-let exists = true;
-
-
-while(exists){
+    let exists = true;
+    let number;
 
 
-const year =
-new Date().getFullYear();
+    while(exists){
+
+        const year = new Date().getFullYear();
+
+        const random =
+        Math.floor(
+            10000 + Math.random()*90000
+        );
 
 
-const random =
-Math.floor(
-10000 + Math.random()*90000
-);
-
-
-
-number =
-`CH-${year}-${random}`;
+        number =
+        `CH-${year}-${random}`;
 
 
 
-const member =
-await User.findOne({
-
-membershipNumber:number
-
-});
+        const member =
+        await User.findOne({
+            membershipNumber:number
+        });
 
 
 
-if(!member){
+        if(!member){
 
-exists=false;
+            exists=false;
 
-}
+        }
+
+    }
 
 
-}
+    return number;
+
+};
 
 
-return number;
+// =====================================================
+// Generate Family ID
+// =====================================================
 
+const generateFamilyId = async () => {
+
+    let exists = true;
+    let familyId;
+
+    while (exists) {
+
+        const year = new Date().getFullYear();
+
+        const random = Math.floor(
+            1000 + Math.random() * 9000
+        );
+
+        familyId = `FAM-${year}-${random}`;
+
+        const family = await User.findOne({
+            familyId
+        });
+
+        if (!family) {
+            exists = false;
+        }
+    }
+
+    return familyId;
 
 };
 
@@ -62,11 +86,8 @@ return number;
 
 
 
-
-
-
 // =====================================================
-// Get All Members
+// GET ALL MEMBERS
 // GET /api/members
 // =====================================================
 
@@ -90,8 +111,6 @@ role,
 
 isChild,
 
-hasAccount,
-
 page=1,
 
 limit=20
@@ -101,12 +120,12 @@ limit=20
 
 
 
-
 const filter={
 
 deleted:false
 
 };
+
 
 
 
@@ -129,12 +148,9 @@ filter.role=role;
 
 if(isChild !== undefined)
 filter.isChild =
-isChild==="true";
+isChild === "true";
 
 
-if(hasAccount !== undefined)
-filter.hasAccount =
-hasAccount==="true";
 
 
 
@@ -160,14 +176,14 @@ $options:"i"
 },
 
 {
-email:{
+phone:{
 $regex:search,
 $options:"i"
 }
 },
 
 {
-phone:{
+email:{
 $regex:search,
 $options:"i"
 }
@@ -180,6 +196,7 @@ $options:"i"
 }
 }
 
+
 ];
 
 
@@ -190,10 +207,14 @@ $options:"i"
 
 
 
+
 const skip =
 (Number(page)-1)
 *
 Number(limit);
+
+
+
 
 
 
@@ -213,9 +234,7 @@ await User.find(filter)
 )
 
 .sort({
-
 createdAt:-1
-
 })
 
 .skip(skip)
@@ -226,9 +245,12 @@ createdAt:-1
 
 
 
-const total =
 
+
+const total =
 await User.countDocuments(filter);
+
+
 
 
 
@@ -247,10 +269,10 @@ total / Number(limit)
 
 total,
 
-count:members.length,
+count:
+members.length,
 
 members
-
 
 });
 
@@ -282,10 +304,13 @@ message:error.message
 
 
 
+
+
 // =====================================================
-// Get Single Member
+// GET SINGLE MEMBER
 // GET /api/members/:id
 // =====================================================
+
 
 const getMemberById = async(req,res)=>{
 
@@ -308,6 +333,7 @@ deleted:false
 "parent",
 "firstName lastName phone"
 )
+
 
 .populate(
 "children",
@@ -346,18 +372,14 @@ user:member._id
 })
 
 .populate(
-
 "service",
-
 "name serviceDate"
-
 )
 
 .sort({
-
 createdAt:-1
-
 });
+
 
 
 
@@ -370,7 +392,58 @@ success:true,
 
 member,
 
-attendance
+summary:{
+
+
+totalServices:
+attendance.length,
+
+
+attended:
+attendance.filter(
+a=>a.present
+).length,
+
+
+absent:
+attendance.filter(
+a=>!a.present
+).length,
+
+
+rate:
+
+attendance.length
+
+?
+
+Math.round(
+(
+attendance.filter(
+a=>a.present
+).length
+/
+attendance.length
+)
+*
+100
+)
+
+:
+
+0
+
+
+},
+
+
+lastAttendance:
+
+attendance[0] || null,
+
+
+history:attendance
+
 
 });
 
@@ -400,17 +473,96 @@ message:error.message
 
 
 
-
+// =====================================================
+// GET AVAILABLE PARENTS
+// GET /api/members/parents
+// =====================================================
 
 // =====================================================
-// Create Member
+// GET AVAILABLE PARENTS
+// GET /api/members/parents
+// =====================================================
+
+const getParents = async(req,res)=>{
+
+try{
+
+
+const parents = await User.find({
+
+deleted:false,
+
+isChild:false,
+
+status:"Active",
+
+role:{
+    $in:[
+        "Member",
+        "Leader",
+        "Pastor"
+    ]
+}
+
+})
+
+.select(
+"firstName lastName phone membershipNumber role"
+)
+
+.sort({
+
+firstName:1
+
+});
+
+
+
+
+
+res.json({
+
+success:true,
+
+parents
+
+});
+
+
+}
+catch(error){
+
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+
+}
+
+
+};
+// =====================================================
+// CREATE MEMBER
+// POST /api/members
+// =====================================================
+
+// =====================================================
+// CREATE MEMBER WITH CHILDREN
 // POST /api/members
 // =====================================================
 
 const createMember = async(req,res)=>{
 
-
 try{
+
+
+const data = req.body;
+
 
 
 const {
@@ -425,31 +577,30 @@ phone,
 
 gender,
 
-dateOfBirth,
 
-isChild,
+children=[],
 
-parent,
+hasAccount=false,
 
-role,
-
-...otherData
+password
 
 
-}=req.body || {};
+}=data;
 
 
 
 
+
+// ===============================
+// VALIDATION
+// ===============================
 
 
 if(
 !firstName ||
 !lastName ||
 !gender
-
 ){
-
 
 return res.status(400).json({
 
@@ -460,27 +611,25 @@ message:
 
 });
 
-
 }
 
 
 
 
 
-
-
-if(isChild && !parent){
-
+if(
+hasAccount &&
+!password
+){
 
 return res.status(400).json({
 
 success:false,
 
 message:
-"Child must have a parent"
+"Password required when creating account"
 
 });
-
 
 }
 
@@ -488,15 +637,16 @@ message:
 
 
 
+// ===============================
+// CHECK DUPLICATES
+// ===============================
+
 
 if(email){
 
-
 const exists =
 await User.findOne({
-
 email
-
 });
 
 
@@ -506,24 +656,24 @@ return res.status(400).json({
 
 success:false,
 
-message:"Email already exists"
+message:
+"Email already exists"
 
 });
 
 }
 
 }
+
+
 
 
 
 if(phone){
 
-
 const exists =
 await User.findOne({
-
 phone
-
 });
 
 
@@ -533,7 +683,8 @@ return res.status(400).json({
 
 success:false,
 
-message:"Phone already exists"
+message:
+"Phone already exists"
 
 });
 
@@ -547,57 +698,88 @@ message:"Phone already exists"
 
 
 
-
-const member =
-
-await User.create({
-
-
-firstName,
-
-lastName,
-
-email:email || undefined,
-
-phone:phone || undefined,
-
-gender,
-
-dateOfBirth,
+// ===============================
+// CREATE PARENT
+// ===============================
 
 
-...otherData,
+const membershipNumber =
+await generateMembershipNumber();
+const familyId =
+await generateFamilyId();
+
+
+
+
+const parent = await User.create({
+
+...data,
+
+
+familyId,
+
+
+children:[],
+
+membershipNumber,
+
+
+
+isChild:false,
+
+
+parent:null,
+
+
+guardian:null,
+
 
 
 role:
-isChild
+data.role || "Member",
+
+
+
+hasAccount:Boolean(hasAccount),
+
+
+
+loginEnabled:Boolean(hasAccount),
+
+
+
+mustChangePassword:
+hasAccount
 ?
-"Child"
+true
 :
-(role || "Member"),
+false,
 
 
 
-isChild:
-Boolean(isChild),
+accountCreatedAt:
+hasAccount
+?
+new Date()
+:
+null,
 
 
 
-parent:
-parent || null,
-
-
-
-membershipNumber:
-await generateMembershipNumber(),
+accountCreatedBy:
+hasAccount
+?
+req.user?._id
+:
+null,
 
 
 
 registrationSource:"Admin",
 
 
-
-createdBy:req.user._id
+createdBy:
+req.user?._id || null
 
 
 });
@@ -608,29 +790,105 @@ createdBy:req.user._id
 
 
 
+// ===============================
+// CREATE CHILDREN
+// ===============================
 
-if(parent){
+
+let createdChildren=[];
 
 
-await User.findByIdAndUpdate(
 
-parent,
+if(
+Array.isArray(children)
+&&
+children.length > 0
+){
 
-{
 
-$addToSet:{
+for(
+const child of children
+){
 
-children:member._id
 
-}
 
-}
+const childMember = await User.create({
 
+    firstName: child.firstName,
+
+    lastName: child.lastName || lastName,
+
+    gender: child.gender,
+
+    dateOfBirth: child.dateOfBirth || null,
+
+    isChild: true,
+
+    parent: parent._id,
+
+    guardian: parent._id,
+
+    role: "Child",
+
+    membershipType: "Member",
+
+    status: "Active",
+
+    registrationSource: "Parent",
+
+    createdBy: req.user?._id || null
+
+});
+
+
+
+
+createdChildren.push(
+childMember._id
 );
 
 
+
 }
 
+
+
+
+
+// update parent children array
+
+
+parent.children =
+createdChildren;
+
+
+
+await parent.save();
+
+
+
+}
+
+
+
+
+
+
+
+
+
+// ===============================
+// RESPONSE
+// ===============================
+
+
+const result =
+await User.findById(parent._id)
+
+.populate(
+"children",
+"firstName lastName gender dateOfBirth"
+);
 
 
 
@@ -643,17 +901,22 @@ res.status(201).json({
 success:true,
 
 message:
-"Member created successfully",
+"Member and children created successfully",
 
-member
+familyId,
 
+member:result
 
 });
 
 
 
+
 }
 catch(error){
+
+
+console.log(error);
 
 
 res.status(500).json({
@@ -679,9 +942,10 @@ message:error.message
 
 
 // =====================================================
-// Update Member
+// UPDATE MEMBER
 // PATCH /api/members/:id
 // =====================================================
+
 
 const updateMember = async(req,res)=>{
 
@@ -710,7 +974,8 @@ return res.status(404).json({
 
 success:false,
 
-message:"Member not found"
+message:
+"Member not found"
 
 });
 
@@ -721,72 +986,32 @@ message:"Member not found"
 
 
 
-const allowedFields=[
-
-
-"firstName",
-
-"lastName",
-
-"phone",
-
-"email",
-
-"gender",
-
-"dateOfBirth",
-
-"maritalStatus",
-
-"occupation",
-
-"address",
-
-"emergencyContact",
-
-"emergencyPhone",
-
-"baptized",
-
-"branch",
-
-"department",
-
-"cellGroup",
-
-"area",
-
-"membershipType",
-
-"role"
-
-
-];
 
 
 
+Object.keys(req.body).forEach(field=>{
 
 
-allowedFields.forEach(field=>{
-
-
-if(req.body[field] !== undefined){
-
+if(field !== "password"){
 
 member[field]=req.body[field];
 
-
 }
 
 
 });
+
+
 
 
 
 
 
 member.updatedBy =
-req.user._id;
+req.user?._id || null;
+
+
+
 
 
 
@@ -835,10 +1060,13 @@ message:error.message
 
 
 
+
+
 // =====================================================
-// Change Member Status
+// CHANGE STATUS
 // PATCH /api/members/:id/status
 // =====================================================
+
 
 const changeMemberStatus = async(req,res)=>{
 
@@ -850,7 +1078,7 @@ const {
 
 status
 
-}=req.body || {};
+}=req.body;
 
 
 
@@ -863,12 +1091,14 @@ return res.status(400).json({
 
 success:false,
 
-message:"Status is required"
+message:
+"Status required"
 
 });
 
 
 }
+
 
 
 
@@ -891,7 +1121,8 @@ return res.status(404).json({
 
 success:false,
 
-message:"Member not found"
+message:
+"Member not found"
 
 });
 
@@ -912,8 +1143,7 @@ status==="Active";
 
 
 member.updatedBy =
-req.user._id;
-
+req.user?._id || null;
 
 
 
@@ -932,7 +1162,6 @@ message:
 "Member status updated",
 
 member
-
 
 });
 
@@ -962,10 +1191,7 @@ message:error.message
 
 
 
-
-
 module.exports={
-
 
 getMembers,
 
@@ -975,7 +1201,8 @@ createMember,
 
 updateMember,
 
-changeMemberStatus
+changeMemberStatus,
 
+getParents
 
 };

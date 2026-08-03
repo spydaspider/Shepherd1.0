@@ -1,0 +1,60 @@
+.container{
+
+padding:30px;
+
+background:#f5f7fb;
+
+height:calc(100vh - 70px);
+
+overflow-y:auto;
+
+}
+
+
+
+.form{
+
+background:white;
+
+padding:30px;
+
+border-radius:15px;
+
+display:grid;
+
+gap:15px;
+
+max-width:600px;
+
+}
+
+
+
+.form input,
+.form select{
+
+padding:12px;
+
+border-radius:8px;
+
+border:1px solid #ddd;
+
+}
+
+
+
+.form button{
+
+padding:12px;
+
+background:#0f2a5f;
+
+color:white;
+
+border:none;
+
+border-radius:8px;
+
+cursor:pointer;
+
+}
