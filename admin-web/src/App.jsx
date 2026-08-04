@@ -16,6 +16,9 @@ import Members from "./pages/Members/Members";
 import AddMember from "./pages/AddMember/AddMember";
 import ViewMember from "./pages/Members/ViewMember";
 import EditMember from "./pages/Members/EditMember";
+import Services from "./pages/Services/Services";
+import AddService from "./pages/Services/AddService";
+import ViewService from "./pages/Services/ViewService";
 
 
 
@@ -84,6 +87,22 @@ element={<ViewMember />}
 path="/members/edit/:id"
 element={<EditMember />}
 />
+
+<Route
+    path="/services"
+    element={<Services />}
+/>
+
+<Route
+    path="/services/add"
+    element={<AddService />}
+/>
+
+<Route
+    path="/services/:id"
+    element={<ViewService />}
+/>
+
 </Routes>
 
 

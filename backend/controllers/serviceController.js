@@ -891,78 +891,130 @@ message:error.message
 // ==========================================
 
 
-const getServiceById = async(req,res)=>{
+// ==========================================
+// Get Service By ID
+// GET /api/services/:id
+// ==========================================
+
+const getServiceById = async (req, res) => {
+
+    try {
 
 
-try{
-
-
-const service =
-await Service.findById(
-req.params.id
-)
-
-.populate(
-
-"generatedBy",
-
-"firstName lastName"
-
-);
-
-
+        let service = await Service.findById(
+            req.params.id
+        )
+        .populate(
+            "generatedBy",
+            "firstName lastName"
+        );
 
 
 
-if(!service){
+        if (!service) {
 
+            return res.status(404).json({
 
-return res.status(404).json({
+                success:false,
 
-success:false,
+                message:"Service not found"
 
-message:
-"Service not found"
+            });
 
-});
-
-}
+        }
 
 
 
 
 
-res.json({
+        // Update summary for active services
+        if(service.status === "Active"){
 
-success:true,
-
-service
-
-});
-
+            await updateAttendanceSummary(
+                service._id
+            );
 
 
-}
-catch(error){
+            // fetch fresh updated service
+            service = await Service.findById(
+                req.params.id
+            )
+            .populate(
+                "generatedBy",
+                "firstName lastName"
+            );
+
+        }
 
 
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
 
 
-}
 
+
+
+        const attendance = await Attendance.find({
+
+            service: service._id
+
+        })
+        .populate(
+
+            "user",
+
+            "firstName lastName gender isChild membershipNumber"
+
+        )
+        .sort({
+
+            createdAt:-1
+
+        });
+
+
+
+
+
+
+        res.json({
+
+            success:true,
+
+            service,
+
+            attendanceSummary:
+            service.attendanceSummary,
+
+
+            attendanceCount:
+            attendance.length,
+
+
+            attendance
+
+
+        });
+
+
+
+    }
+    catch(error){
+
+
+        console.log(error);
+
+
+        res.status(500).json({
+
+            success:false,
+
+            message:error.message
+
+        });
+
+
+    }
 
 };
-
-
-
-
 
 
 
