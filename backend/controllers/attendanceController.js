@@ -1169,6 +1169,112 @@ message:error.message
 
 
 };
+const markAdminAttendance = async(req,res)=>{
+
+try{
+
+const {
+serviceId,
+userId
+}=req.body;
+
+
+const service =
+await Service.findById(serviceId);
+
+
+if(!service){
+
+return res.status(404).json({
+
+success:false,
+message:"Service not found"
+
+});
+
+}
+
+
+
+const existing =
+await Attendance.findOne({
+
+service:serviceId,
+
+user:userId
+
+});
+
+
+
+if(existing){
+
+return res.status(400).json({
+
+success:false,
+message:"Attendance already marked"
+
+});
+
+}
+
+
+
+
+const attendance =
+await Attendance.create({
+
+service:serviceId,
+
+user:userId,
+
+status:"Present",
+
+attendanceMethod:"Admin",
+
+markedBy:req.user._id,
+
+attendanceDate:new Date(),
+
+checkedInAt:new Date()
+
+});
+
+
+
+
+
+await updateAttendanceSummary(serviceId);
+
+
+
+
+
+res.json({
+
+success:true,
+
+message:"Attendance marked",
+
+attendance
+
+});
+
+
+}
+catch(error){
+
+res.status(500).json({
+
+success:false,
+
+message:error.message
+
+});
+
+}
+
+};
 
 
 

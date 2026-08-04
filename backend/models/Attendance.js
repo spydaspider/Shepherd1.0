@@ -150,7 +150,7 @@ attendanceDate:{
     type:Date,
 
 
-    default:null
+    default:Date.now 
 
 
 },
@@ -166,7 +166,7 @@ checkedInAt:{
     type:Date,
 
 
-    default:null
+    default:Date.now 
 
 
 },

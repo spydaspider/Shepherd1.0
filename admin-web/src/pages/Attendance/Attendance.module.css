@@ -1,0 +1,454 @@
+.attendance {
+
+    padding:30px;
+
+    background:#f4f6fb;
+
+    height:calc(100vh - 70px);
+
+    overflow-y:auto;
+
+}
+
+
+
+
+
+
+/* ===========================
+   Header
+=========================== */
+
+
+.header {
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    margin-bottom:25px;
+
+}
+
+
+.header h1 {
+
+    margin:0;
+
+    font-size:28px;
+
+}
+
+
+.header p {
+
+    margin-top:8px;
+
+    color:#666;
+
+}
+
+
+
+
+
+
+
+
+/* ===========================
+   Service Selector
+=========================== */
+
+
+.serviceBox {
+
+    background:white;
+
+    padding:25px;
+
+    border-radius:12px;
+
+    margin-bottom:25px;
+
+    box-shadow:
+    0 4px 12px rgba(0,0,0,0.05);
+
+}
+
+
+
+.serviceBox h2 {
+
+    margin-bottom:15px;
+
+}
+
+
+
+.serviceSelect {
+
+    width:100%;
+
+    max-width:400px;
+
+    padding:12px;
+
+    border-radius:8px;
+
+    border:1px solid #ddd;
+
+    font-size:15px;
+
+}
+
+
+
+
+
+
+
+
+
+/* ===========================
+   Member Search
+=========================== */
+
+
+.searchBox {
+
+    background:white;
+
+    padding:20px;
+
+    border-radius:12px;
+
+    margin-bottom:20px;
+
+}
+
+
+
+.searchBox input {
+
+    width:100%;
+
+    padding:12px 15px;
+
+    border-radius:8px;
+
+    border:1px solid #ddd;
+
+    font-size:15px;
+
+}
+
+
+
+
+
+
+
+
+
+/* ===========================
+   Member List
+=========================== */
+
+
+.memberContainer {
+
+    background:white;
+
+    border-radius:12px;
+
+    overflow:hidden;
+
+    box-shadow:
+    0 4px 12px rgba(0,0,0,0.05);
+
+}
+
+
+
+
+
+table {
+
+    width:100%;
+
+    border-collapse:collapse;
+
+}
+
+
+
+thead {
+
+    background:#f1f3f8;
+
+}
+
+
+
+th {
+
+    padding:15px;
+
+    text-align:left;
+
+    font-size:14px;
+
+}
+
+
+
+td {
+
+    padding:15px;
+
+    border-bottom:1px solid #eee;
+
+}
+
+
+
+
+
+
+
+.memberInfo {
+
+    display:flex;
+
+    align-items:center;
+
+    gap:12px;
+
+}
+
+
+
+
+
+.avatar {
+
+    width:40px;
+
+    height:40px;
+
+    border-radius:50%;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    background:#0f2a5f;
+
+    color:white;
+
+    font-weight:bold;
+
+}
+
+
+
+
+
+
+
+
+
+/* ===========================
+   Checkbox
+=========================== */
+
+
+.checkbox {
+
+    width:18px;
+
+    height:18px;
+
+}
+
+
+
+
+
+
+
+
+
+/* ===========================
+   Buttons
+=========================== */
+
+
+.actions {
+
+    margin-top:25px;
+
+    display:flex;
+
+    justify-content:flex-end;
+
+}
+
+
+
+.markBtn {
+
+
+    background:#0f2a5f;
+
+    color:white;
+
+    border:none;
+
+    padding:12px 25px;
+
+    border-radius:8px;
+
+    cursor:pointer;
+
+    font-size:15px;
+
+}
+
+
+
+.markBtn:hover {
+
+    opacity:0.9;
+
+}
+
+
+
+
+
+
+
+
+
+/* ===========================
+   Status
+=========================== */
+
+
+.present {
+
+    color:#15803d;
+
+    font-weight:bold;
+
+}
+
+
+
+.absent {
+
+    color:#dc2626;
+
+    font-weight:bold;
+
+}
+
+
+
+
+
+
+
+
+
+/* ===========================
+   Scrollbar Styling
+=========================== */
+
+
+.attendance::-webkit-scrollbar {
+
+    width:8px;
+
+}
+
+
+.attendance::-webkit-scrollbar-track {
+
+    background:#f1f1f1;
+
+}
+
+
+.attendance::-webkit-scrollbar-thumb {
+
+    border-radius:10px;
+
+    background:#888;
+
+}
+
+
+.attendance::-webkit-scrollbar-thumb:hover {
+
+    background:#555;
+
+}
+
+
+
+
+
+
+
+
+
+/* ===========================
+   Responsive
+=========================== */
+
+
+@media(max-width:900px){
+
+
+.attendance {
+
+    padding:20px;
+
+}
+
+
+
+.memberContainer {
+
+    overflow-x:auto;
+
+}
+
+
+
+table {
+
+    min-width:700px;
+
+}
+
+
+
+.header {
+
+    flex-direction:column;
+
+    align-items:flex-start;
+
+    gap:15px;
+
+}
+
+
+}

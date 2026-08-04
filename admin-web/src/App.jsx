@@ -19,6 +19,7 @@ import EditMember from "./pages/Members/EditMember";
 import Services from "./pages/Services/Services";
 import AddService from "./pages/Services/AddService";
 import ViewService from "./pages/Services/ViewService";
+import Attendance from "./pages/Attendance/Attendance";
 
 
 
@@ -101,6 +102,11 @@ element={<EditMember />}
 <Route
     path="/services/:id"
     element={<ViewService />}
+/>
+
+<Route
+ path="/attendance"
+ element={<Attendance />}
 />
 
 </Routes>
