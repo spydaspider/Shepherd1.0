@@ -28,6 +28,11 @@ path:"/attendance"
 },
 
 {
+    name:"Attendance History",
+    path:"/attendance/history"
+},
+
+{
 name:"Follow Ups",
 path:"/followups"
 },

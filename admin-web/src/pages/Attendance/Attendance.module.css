@@ -1,87 +1,27 @@
-.attendance {
-
-    padding:30px;
-
-    background:#f4f6fb;
+.attendance{
 
     height:calc(100vh - 70px);
 
     overflow-y:auto;
 
-}
+    padding:30px;
 
-/* ===========================
-   Summary Cards
-=========================== */
-
-.summaryCards {
-
-    display: grid;
-
-    grid-template-columns: repeat(3, 1fr);
-
-    gap: 20px;
-
-    margin-bottom: 25px;
-
-}
-
-.summaryCard {
-
-    background: white;
-
-    border-radius: 12px;
-
-    padding: 20px;
-
-    text-align: center;
-
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-
-}
-
-.summaryCard h3 {
-
-    color: #666;
-
-    font-size: 15px;
-
-    margin-bottom: 10px;
-
-}
-
-.summaryCard h2 {
-
-    font-size: 32px;
-
-    color: #0f2a5f;
-
-    margin: 0;
+    background:#f4f6fb;
 
 }
 
 
 
+/* HEADER */
 
-/* ===========================
-   Header
-=========================== */
-
-
-.header {
-
-    display:flex;
-
-    justify-content:space-between;
-
-    align-items:center;
+.header{
 
     margin-bottom:25px;
 
 }
 
 
-.header h1 {
+.header h1{
 
     margin:0;
 
@@ -90,12 +30,48 @@
 }
 
 
-.header p {
-
-    margin-top:8px;
+.header p{
 
     color:#666;
 
+    margin-top:8px;
+
+}
+
+
+
+
+
+
+/* ALERTS */
+
+.success,
+.error{
+
+    padding:15px;
+
+    border-radius:10px;
+
+    margin-bottom:20px;
+
+}
+
+
+.success{
+
+    background:#dcfce7;
+
+    color:#166534;
+
+}
+
+
+.error{
+
+    background:#fee2e2;
+
+    color:#991b1b;
+
 }
 
 
@@ -104,67 +80,24 @@
 
 
 
-
-/* ===========================
-   Service Selector
-=========================== */
+/* SUMMARY */
 
 
-.serviceBox {
+.summaryCards{
 
-    background:white;
+    display:grid;
 
-    padding:25px;
+    grid-template-columns:repeat(3,1fr);
 
-    border-radius:12px;
+    gap:20px;
 
     margin-bottom:25px;
 
-    box-shadow:
-    0 4px 12px rgba(0,0,0,0.05);
-
 }
 
 
 
-.serviceBox h2 {
-
-    margin-bottom:15px;
-
-}
-
-
-
-.serviceSelect {
-
-    width:100%;
-
-    max-width:400px;
-
-    padding:12px;
-
-    border-radius:8px;
-
-    border:1px solid #ddd;
-
-    font-size:15px;
-
-}
-
-
-
-
-
-
-
-
-
-/* ===========================
-   Member Search
-=========================== */
-
-
-.searchBox {
+.summaryCard{
 
     background:white;
 
@@ -172,49 +105,31 @@
 
     border-radius:12px;
 
-    margin-bottom:20px;
+    text-align:center;
+
+    box-shadow:
+    0 4px 12px rgba(0,0,0,.05);
 
 }
 
 
 
-.searchBox input {
+.summaryCard h3{
 
-    width:100%;
-
-    padding:12px 15px;
-
-    border-radius:8px;
-
-    border:1px solid #ddd;
+    color:#666;
 
     font-size:15px;
 
 }
 
 
+.summaryCard h2{
 
+    margin:0;
 
+    color:#0f2a5f;
 
-
-
-
-
-/* ===========================
-   Member List
-=========================== */
-
-
-.memberContainer {
-
-    background:white;
-
-    border-radius:12px;
-
-    overflow:hidden;
-
-    box-shadow:
-    0 4px 12px rgba(0,0,0,0.05);
+    font-size:32px;
 
 }
 
@@ -222,7 +137,84 @@
 
 
 
-table {
+
+
+/* SERVICE */
+
+
+.serviceBox,
+.searchBox,
+.memberContainer{
+
+    background:white;
+
+    border-radius:12px;
+
+    margin-bottom:20px;
+
+    box-shadow:
+    0 4px 12px rgba(0,0,0,.05);
+
+}
+
+
+
+.serviceBox{
+
+    padding:25px;
+
+}
+
+
+
+
+
+
+
+
+/* SEARCH */
+
+
+.searchBox{
+
+    padding:20px;
+
+}
+
+
+.searchBox input{
+
+    width:100%;
+
+    padding:13px;
+
+    border-radius:8px;
+
+    border:1px solid #ddd;
+
+}
+
+
+
+
+
+
+
+
+/* TABLE */
+
+
+.memberContainer{
+
+    overflow:auto;
+
+    max-height:500px;
+
+}
+
+
+
+table{
 
     width:100%;
 
@@ -232,7 +224,11 @@ table {
 
 
 
-thead {
+thead{
+
+    position:sticky;
+
+    top:0;
 
     background:#f1f3f8;
 
@@ -240,33 +236,22 @@ thead {
 
 
 
-th {
-
-    padding:15px;
-
-    text-align:left;
-
-    font-size:14px;
-
-}
-
-
-
-td {
+th,
+td{
 
     padding:15px;
 
     border-bottom:1px solid #eee;
 
+    text-align:left;
+
 }
 
 
 
 
 
-
-
-.memberInfo {
+.memberInfo{
 
     display:flex;
 
@@ -280,7 +265,7 @@ td {
 
 
 
-.avatar {
+.avatar{
 
     width:40px;
 
@@ -288,15 +273,15 @@ td {
 
     border-radius:50%;
 
+    background:#0f2a5f;
+
+    color:white;
+
     display:flex;
 
     justify-content:center;
 
     align-items:center;
-
-    background:#0f2a5f;
-
-    color:white;
 
     font-weight:bold;
 
@@ -308,14 +293,7 @@ td {
 
 
 
-
-
-/* ===========================
-   Checkbox
-=========================== */
-
-
-.checkbox {
+input[type="checkbox"]{
 
     width:18px;
 
@@ -325,53 +303,9 @@ td {
 
 
 
+input[type="checkbox"]:disabled{
 
-
-
-
-
-
-/* ===========================
-   Buttons
-=========================== */
-
-
-.actions {
-
-    margin-top:25px;
-
-    display:flex;
-
-    justify-content:flex-end;
-
-}
-
-
-
-.markBtn {
-
-
-    background:#0f2a5f;
-
-    color:white;
-
-    border:none;
-
-    padding:12px 25px;
-
-    border-radius:8px;
-
-    cursor:pointer;
-
-    font-size:15px;
-
-}
-
-
-
-.markBtn:hover {
-
-    opacity:0.9;
+    cursor:not-allowed;
 
 }
 
@@ -381,14 +315,10 @@ td {
 
 
 
+/* STATUS */
 
 
-/* ===========================
-   Status
-=========================== */
-
-
-.present {
+.present{
 
     color:#15803d;
 
@@ -398,7 +328,7 @@ td {
 
 
 
-.absent {
+.absent{
 
     color:#dc2626;
 
@@ -412,39 +342,65 @@ td {
 
 
 
+/* BUTTON */
 
 
-/* ===========================
-   Scrollbar Styling
-=========================== */
+.actions{
+
+    display:flex;
+
+    justify-content:flex-end;
+
+    margin-top:25px;
+
+}
 
 
-.attendance::-webkit-scrollbar {
+
+.markBtn{
+
+    background:#0f2a5f;
+
+    color:white;
+
+    border:none;
+
+    padding:12px 25px;
+
+    border-radius:8px;
+
+    cursor:pointer;
+
+}
+
+
+
+.markBtn:hover{
+
+    opacity:.9;
+
+}
+
+
+
+
+
+
+/* PAGE SCROLLBAR */
+
+
+.attendance::-webkit-scrollbar{
 
     width:8px;
 
 }
 
 
-.attendance::-webkit-scrollbar-track {
-
-    background:#f1f1f1;
-
-}
-
-
-.attendance::-webkit-scrollbar-thumb {
-
-    border-radius:10px;
+.attendance::-webkit-scrollbar-thumb{
 
     background:#888;
 
-}
-
-
-.attendance::-webkit-scrollbar-thumb:hover {
-
-    background:#555;
+    border-radius:10px;
 
 }
 
@@ -452,19 +408,12 @@ td {
 
 
 
-
-
-
-
-/* ===========================
-   Responsive
-=========================== */
 
 
 @media(max-width:900px){
 
 
-.attendance {
+.attendance{
 
     padding:20px;
 
@@ -472,31 +421,20 @@ td {
 
 
 
-.memberContainer {
+.summaryCards{
 
-    overflow-x:auto;
+    grid-template-columns:1fr;
 
 }
 
 
 
-table {
+table{
 
     min-width:700px;
 
 }
 
-
-
-.header {
-
-    flex-direction:column;
-
-    align-items:flex-start;
-
-    gap:15px;
-
-}
 
 
 }

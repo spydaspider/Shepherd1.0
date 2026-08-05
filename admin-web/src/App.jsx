@@ -20,6 +20,8 @@ import Services from "./pages/Services/Services";
 import AddService from "./pages/Services/AddService";
 import ViewService from "./pages/Services/ViewService";
 import Attendance from "./pages/Attendance/Attendance";
+import AttendanceHistory from "./pages/Attendance/AttendanceHistory";
+import ViewAttendance from "./pages/Attendance/ViewAttendance";
 
 
 
@@ -107,6 +109,18 @@ element={<EditMember />}
 <Route
  path="/attendance"
  element={<Attendance />}
+/>
+
+<Route
+path="/attendance/history"
+element={
+<AttendanceHistory/>
+}
+/>
+
+<Route
+    path="/attendance/:serviceId"
+    element={<ViewAttendance />}
 />
 
 </Routes>
