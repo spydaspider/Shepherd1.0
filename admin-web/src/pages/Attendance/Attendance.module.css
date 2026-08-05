@@ -10,7 +10,55 @@
 
 }
 
+/* ===========================
+   Summary Cards
+=========================== */
 
+.summaryCards {
+
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 20px;
+
+    margin-bottom: 25px;
+
+}
+
+.summaryCard {
+
+    background: white;
+
+    border-radius: 12px;
+
+    padding: 20px;
+
+    text-align: center;
+
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+
+}
+
+.summaryCard h3 {
+
+    color: #666;
+
+    font-size: 15px;
+
+    margin-bottom: 10px;
+
+}
+
+.summaryCard h2 {
+
+    font-size: 32px;
+
+    color: #0f2a5f;
+
+    margin: 0;
+
+}
 
 
 
