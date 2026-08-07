@@ -11,6 +11,8 @@ const {
 
     getServiceAttendance,
 
+    getAttendanceDashboard,
+
     updateAttendanceStatus
 
 } = require("../controllers/attendanceController");
@@ -79,7 +81,24 @@ router.post(
 
 );
 
+// =================================================
+// Attendance Dashboard
+// GET /api/attendance/dashboard
+// =================================================
 
+router.get(
+
+    "/dashboard",
+
+    protect,
+
+    checkPermission(
+        "VIEW_ATTENDANCE"
+    ),
+
+    getAttendanceDashboard
+
+);
 
 
 

@@ -11,6 +11,7 @@
 }
 
 
+/* Main area beside sidebar */
 
 .main{
 
@@ -30,6 +31,8 @@
 
 
 
+/* Page content area */
+
 .content{
 
     flex:1;
@@ -39,5 +42,67 @@
     min-height:0;
 
     padding:30px;
+
+    box-sizing:border-box;
+
+}
+
+
+
+/* Optional: smooth scrollbar for main content */
+
+.content::-webkit-scrollbar{
+
+    width:8px;
+
+}
+
+
+.content::-webkit-scrollbar-thumb{
+
+    background:rgba(0,0,0,0.2);
+
+    border-radius:10px;
+
+}
+
+
+.content::-webkit-scrollbar-track{
+
+    background:transparent;
+
+}
+
+
+
+/* Mobile layout */
+
+@media(max-width:768px){
+
+
+    .layout{
+
+        flex-direction:column;
+
+    }
+
+
+
+    .main{
+
+        height:auto;
+
+        min-height:100vh;
+
+    }
+
+
+
+    .content{
+
+        padding:20px;
+
+    }
+
 
 }

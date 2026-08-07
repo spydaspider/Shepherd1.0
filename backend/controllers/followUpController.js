@@ -1,14 +1,12 @@
 const FollowUp = require("../models/FollowUp");
-const User = require("../models/User");
 
 
 
 
 
 // =====================================================
-// Helper: Role Access Filter
+// Permission Filter
 // =====================================================
-
 
 const getFollowUpAccessQuery = (user)=>{
 
@@ -38,13 +36,9 @@ const getFollowUpAccessQuery = (user)=>{
 
 
 
-
-
 // =====================================================
-// Get All Follow Ups
-// GET /api/followups
+// GET ALL FOLLOW UPS
 // =====================================================
-
 
 const getFollowUps = async(req,res)=>{
 
@@ -52,70 +46,56 @@ const getFollowUps = async(req,res)=>{
 try{
 
 
-const query =
-getFollowUpAccessQuery(
-    req.user
-);
-
-
-
 const followUps =
-
-await FollowUp.find(query)
-
-.populate(
-"member",
-"firstName lastName phone email gender"
+await FollowUp.find(
+    getFollowUpAccessQuery(req.user)
 )
 
 .populate(
-"assignedTo",
-"firstName lastName role"
+    "member",
+    "firstName lastName phone email gender"
 )
 
 .populate(
-"service",
-"name serviceDate"
+    "assignedTo",
+    "firstName lastName role"
+)
+
+.populate(
+    "service",
+    "name serviceDate"
 )
 
 .sort({
-
-createdAt:-1
-
+    createdAt:-1
 });
-
 
 
 
 
 res.json({
 
-success:true,
+    success:true,
 
-count:followUps.length,
+    count:followUps.length,
 
-followUps
+    followUps
 
 });
-
-
 
 
 }
 catch(error){
 
-
 res.status(500).json({
 
-success:false,
+    success:false,
 
-message:error.message
+    message:error.message
 
 });
 
-
 }
-
 
 
 };
@@ -127,12 +107,9 @@ message:error.message
 
 
 
-
 // =====================================================
-// Get Single Follow Up
-// GET /api/followups/:id
+// GET SINGLE FOLLOW UP
 // =====================================================
-
 
 const getFollowUp = async(req,res)=>{
 
@@ -141,22 +118,22 @@ try{
 
 
 const followUp =
-
 await FollowUp.findById(
-req.params.id
+    req.params.id
 )
 
-.populate(
-"member"
-)
+.populate("member")
 
 .populate(
-"assignedTo",
-"firstName lastName role"
+    "assignedTo",
+    "firstName lastName role"
 )
 
+.populate("service")
+
 .populate(
-"service"
+    "createdBy",
+    "firstName lastName"
 );
 
 
@@ -164,7 +141,6 @@ req.params.id
 
 
 if(!followUp){
-
 
 return res.status(404).json({
 
@@ -174,11 +150,7 @@ message:"Follow up not found"
 
 });
 
-
 }
-
-
-
 
 
 
@@ -191,10 +163,8 @@ followUp
 });
 
 
-
 }
 catch(error){
-
 
 res.status(500).json({
 
@@ -204,9 +174,7 @@ message:error.message
 
 });
 
-
 }
-
 
 
 };
@@ -220,292 +188,8 @@ message:error.message
 
 
 // =====================================================
-// Get Pending Follow Ups
-// GET /api/followups/pending
+// CREATE FOLLOW UP
 // =====================================================
-
-
-const getPendingFollowUps = async(req,res)=>{
-
-
-try{
-
-
-const query = {
-
-status:"Pending",
-
-...getFollowUpAccessQuery(req.user)
-
-};
-
-
-
-
-const followUps =
-
-await FollowUp.find(query)
-
-.populate(
-"member",
-"firstName lastName phone"
-)
-
-.populate(
-"assignedTo",
-"firstName lastName"
-)
-
-.populate(
-"service",
-"name serviceDate"
-)
-
-.sort({
-
-createdAt:-1
-
-});
-
-
-
-
-
-res.json({
-
-success:true,
-
-count:followUps.length,
-
-followUps
-
-});
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
-
-
-};
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Get Completed Follow Ups
-// GET /api/followups/completed
-// =====================================================
-
-
-const getCompletedFollowUps = async(req,res)=>{
-
-
-try{
-
-
-const query = {
-
-
-status:"Completed",
-
-...getFollowUpAccessQuery(req.user)
-
-
-};
-
-
-
-
-
-const followUps =
-
-await FollowUp.find(query)
-
-.populate(
-"member",
-"firstName lastName phone"
-)
-
-.populate(
-"assignedTo",
-"firstName lastName"
-)
-
-.populate(
-"service",
-"name serviceDate"
-)
-
-.sort({
-
-completedDate:-1
-
-});
-
-
-
-
-
-res.json({
-
-success:true,
-
-count:followUps.length,
-
-followUps
-
-});
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
-
-
-};
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Get Overdue Follow Ups
-// GET /api/followups/overdue
-// =====================================================
-
-
-const getOverdueFollowUps = async(req,res)=>{
-
-
-try{
-
-
-const query = {
-
-
-status:"Pending",
-
-
-followUpDate:{
-    $lt:new Date()
-},
-
-
-...getFollowUpAccessQuery(req.user)
-
-
-
-};
-
-
-
-
-
-const followUps =
-
-await FollowUp.find(query)
-
-.populate(
-"member",
-"firstName lastName phone"
-)
-
-.populate(
-"assignedTo",
-"firstName lastName"
-)
-
-.sort({
-
-followUpDate:1
-
-});
-
-
-
-
-
-
-res.json({
-
-success:true,
-
-count:followUps.length,
-
-followUps
-
-});
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
-
-
-};
-
-
-
-
-
-
-
-
-
-// =====================================================
-// Create Follow Up
-// POST /api/followups
-// =====================================================
-
 
 const createFollowUp = async(req,res)=>{
 
@@ -515,7 +199,6 @@ try{
 
 const {
 
-
 member,
 
 assignedTo,
@@ -526,7 +209,9 @@ type,
 
 notes,
 
-followUpDate
+followUpDate,
+
+priority
 
 
 }=req.body;
@@ -535,37 +220,28 @@ followUpDate
 
 
 
-
-
 const followUp =
-
 await FollowUp.create({
-
 
 member,
 
-
 assignedTo,
-
 
 service,
 
-
 type,
-
 
 notes,
 
-
 followUpDate,
 
+priority,
+
+createdBy:req.user._id,
 
 status:"Pending"
 
-
-
 });
-
 
 
 
@@ -579,14 +255,11 @@ message:"Follow up created successfully",
 
 followUp
 
-
 });
-
 
 
 }
 catch(error){
-
 
 res.status(500).json({
 
@@ -596,9 +269,7 @@ message:error.message
 
 });
 
-
 }
-
 
 
 };
@@ -612,10 +283,8 @@ message:error.message
 
 
 // =====================================================
-// Update Follow Up
-// PATCH /api/followups/:id
+// UPDATE FOLLOW UP
 // =====================================================
-
 
 const updateFollowUp = async(req,res)=>{
 
@@ -624,9 +293,8 @@ try{
 
 
 const followUp =
-
 await FollowUp.findById(
-req.params.id
+    req.params.id
 );
 
 
@@ -634,7 +302,6 @@ req.params.id
 
 
 if(!followUp){
-
 
 return res.status(404).json({
 
@@ -644,59 +311,25 @@ message:"Follow up not found"
 
 });
 
-
 }
 
 
 
 
+Object.keys(req.body).forEach(key=>{
 
+    followUp[key] = req.body[key];
 
-
-if(req.body.status){
-
-followUp.status =
-req.body.status;
-
-
-}
-
-
-
-
-
-
-if(req.body.notes){
-
-followUp.notes =
-req.body.notes;
-
-
-}
-
-
-
-
-
-
-if(req.body.assignedTo){
-
-followUp.assignedTo =
-req.body.assignedTo;
-
-
-}
-
+});
 
 
 
 
 
 if(
-req.body.status==="Contacted"
+req.body.status === "Contacted"
 &&
 !followUp.contactedDate
-
 ){
 
 followUp.contactedDate =
@@ -707,10 +340,8 @@ new Date();
 
 
 
-
-
 if(
-req.body.status==="Completed"
+req.body.status === "Completed"
 ){
 
 followUp.completedDate =
@@ -722,10 +353,13 @@ new Date();
 
 
 
+followUp.updatedBy =
+req.user._id;
+
+
 
 
 await followUp.save();
-
 
 
 
@@ -739,15 +373,11 @@ message:"Follow up updated successfully",
 
 followUp
 
-
 });
-
-
 
 
 }
 catch(error){
-
 
 res.status(500).json({
 
@@ -757,9 +387,7 @@ message:error.message
 
 });
 
-
 }
-
 
 
 };
@@ -773,10 +401,8 @@ message:error.message
 
 
 // =====================================================
-// Dashboard Statistics
-// GET /api/followups/stats
+// FOLLOW UP STATS
 // =====================================================
-
 
 const getFollowUpStats = async(req,res)=>{
 
@@ -784,9 +410,16 @@ const getFollowUpStats = async(req,res)=>{
 try{
 
 
-const pending =
+const query =
+getFollowUpAccessQuery(req.user);
 
+
+
+
+const pending =
 await FollowUp.countDocuments({
+
+...query,
 
 status:"Pending"
 
@@ -795,9 +428,11 @@ status:"Pending"
 
 
 
-const completed =
 
+const completed =
 await FollowUp.countDocuments({
+
+...query,
 
 status:"Completed"
 
@@ -808,8 +443,9 @@ status:"Completed"
 
 
 const overdue =
-
 await FollowUp.countDocuments({
+
+...query,
 
 status:"Pending",
 
@@ -823,36 +459,25 @@ followUpDate:{
 
 
 
-
-
 res.json({
 
 success:true,
 
-
 stats:{
-
 
 pending,
 
-
 completed,
-
 
 overdue
 
-
 }
-
-
 
 });
 
 
-
 }
 catch(error){
-
 
 res.status(500).json({
 
@@ -862,9 +487,7 @@ message:error.message
 
 });
 
-
 }
-
 
 
 };
@@ -875,26 +498,17 @@ message:error.message
 
 
 
-
-
-module.exports={
+module.exports = {
 
 
 getFollowUps,
 
 getFollowUp,
 
-getPendingFollowUps,
-
-getCompletedFollowUps,
-
-getOverdueFollowUps,
-
 createFollowUp,
 
 updateFollowUp,
 
 getFollowUpStats
-
 
 };

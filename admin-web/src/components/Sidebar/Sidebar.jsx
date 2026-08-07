@@ -22,15 +22,29 @@ name:"Services",
 path:"/services"
 },
 
+
 {
 name:"Attendance",
-path:"/attendance"
+children:[
+
+{
+name:"Dashboard",
+path:"/attendance-dashboard"
 },
 
 {
-    name:"Attendance History",
-    path:"/attendance/history"
+name:"Mark Attendance",
+path:"/attendance/mark"
 },
+
+{
+name:"History",
+path:"/attendance/history"
+}
+
+]
+},
+
 
 {
 name:"Follow Ups",
@@ -50,6 +64,7 @@ path:"/notifications"
 ];
 
 
+
 return (
 
 <aside className={styles.sidebar}>
@@ -62,8 +77,58 @@ Shepherd
 
 <nav>
 
+
 {
 menu.map(item=>(
+
+
+item.children ?
+
+
+<div 
+key={item.name}
+className={styles.dropdown}
+>
+
+
+<div className={styles.sectionTitle}>
+{item.name}
+</div>
+
+
+
+{
+item.children.map(child=>(
+
+<NavLink
+
+key={child.path}
+
+to={child.path}
+
+className={({isActive})=>
+isActive
+?
+styles.active
+:
+""
+}
+
+>
+
+{child.name}
+
+</NavLink>
+
+))
+}
+
+
+</div>
+
+
+:
+
 
 <NavLink
 
@@ -84,6 +149,7 @@ styles.active
 {item.name}
 
 </NavLink>
+
 
 ))
 }

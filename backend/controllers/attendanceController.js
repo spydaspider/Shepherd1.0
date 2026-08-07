@@ -929,12 +929,246 @@ message:error.message
 
 };
 
+// =====================================================
+// Attendance Dashboard
+// GET /api/attendance/dashboard
+// =====================================================
+
+// =====================================================
+// Attendance Dashboard
+// GET /api/attendance/dashboard
+// =====================================================
+
+const getAttendanceDashboard = async (req, res) => {
+
+    try {
+
+        // =================================================
+        // TOTAL ACTIVE MEMBERS
+        // =================================================
+
+        const totalMembers = await User.countDocuments({
+            isActive: true
+        });
 
 
+        // =================================================
+        // ACTIVE SERVICE
+        // =================================================
+
+        const activeService = await Service.findOne({
+            status: "Active"
+        });
 
 
+        let overview = {
+
+            totalMembers,
+
+            presentToday: 0,
+
+            absentToday: totalMembers,
+
+            attendanceRate: 0,
+
+            men: 0,
+
+            women: 0,
+
+            children: 0
+
+        };
 
 
+        // =================================================
+        // TODAY'S ATTENDANCE
+        // =================================================
+
+        if (activeService) {
+
+            const attendance =
+                await Attendance.find({
+
+                    service: activeService._id,
+
+                    status: "Present"
+
+                }).populate(
+                    "user",
+                    "gender isChild"
+                );
+
+
+            const presentToday =
+                attendance.length;
+
+
+            overview = {
+
+                totalMembers,
+
+                presentToday,
+
+                absentToday: Math.max(
+                    totalMembers - presentToday,
+                    0
+                ),
+
+                attendanceRate:
+
+                    totalMembers > 0
+
+                        ? Number(
+                            (
+                                presentToday /
+                                totalMembers *
+                                100
+                            ).toFixed(2)
+                        )
+
+                        : 0,
+
+
+                men: attendance.filter(
+                    item =>
+                    item.user?.gender === "Male"
+                    &&
+                    !item.user?.isChild
+                ).length,
+
+
+                women: attendance.filter(
+                    item =>
+                    item.user?.gender === "Female"
+                    &&
+                    !item.user?.isChild
+                ).length,
+
+
+                children: attendance.filter(
+                    item =>
+                    item.user?.isChild
+                ).length
+
+            };
+
+        }
+
+
+        // =================================================
+        // RECENT SERVICES
+        // =================================================
+
+        const recentServices =
+            await Service.find()
+
+            .sort({
+                serviceDate: -1
+            })
+
+            .limit(10);
+
+
+        const services =
+            recentServices.map(service => ({
+
+                _id: service._id,
+
+                name: service.name,
+
+                date: service.serviceDate,
+
+                type: service.serviceType,
+
+                status: service.status,
+
+                summary:
+                    service.attendanceSummary || {}
+
+            }));
+
+
+        // =================================================
+        // ATTENDANCE TREND
+        // =================================================
+
+        const attendanceTrend =
+            recentServices
+            .slice()
+            .reverse()
+            .map(service => ({
+
+                name: service.name,
+
+                date: service.serviceDate,
+
+                attendance:
+                    service.attendanceSummary
+                    ?.totalPresent || 0
+
+            }));
+
+
+        // =================================================
+        // RECENT ATTENDANCE
+        // =================================================
+
+        const recentAttendance =
+            await Attendance.find()
+
+            .populate(
+                "user",
+                "firstName lastName"
+            )
+
+            .sort({
+                checkedInAt: -1
+            })
+
+            .limit(10);
+
+
+        // =================================================
+        // RESPONSE
+        // =================================================
+
+        res.json({
+
+            success: true,
+
+            overview,
+
+            activeService,
+
+            recentServices: services,
+
+            recentAttendance,
+
+            attendanceTrend
+
+        });
+
+
+    }
+    catch (error) {
+
+        console.error(
+            "Attendance dashboard error:",
+            error
+        );
+
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
 
 
 module.exports = {
@@ -945,6 +1179,8 @@ markAttendance,
 adminMarkAttendance,
 
 getServiceAttendance,
+
+getAttendanceDashboard,
 
 updateAttendanceStatus
 
