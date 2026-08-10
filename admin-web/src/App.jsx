@@ -33,6 +33,9 @@ import AttendanceDashboard from "./pages/AttendanceDashboard/AttendanceDashboard
 import FollowUps from "./pages/Followups/FollowUps";
 import FollowUpDetails from "./pages/Followups/FollowUpDetails";
 
+import Reports from "./pages/Reports/Reports";
+import AttendanceReport from "./pages/Reports/AttendanceReport";
+
 
 function App(){
 
@@ -298,6 +301,34 @@ element={
 }
 />
 
+<Route
+    path="/reports"
+    element={
+        <ProtectedRoute>
+
+            <AdminLayout>
+
+                <Reports />
+
+            </AdminLayout>
+
+        </ProtectedRoute>
+    }
+/>
+<Route
+    path="/reports/attendance/:serviceId"
+    element={
+        <ProtectedRoute>
+
+            <AdminLayout>
+
+                <AttendanceReport />
+
+            </AdminLayout>
+
+        </ProtectedRoute>
+    }
+/>
 </Routes>
 
 
