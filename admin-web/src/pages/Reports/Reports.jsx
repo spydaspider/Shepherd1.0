@@ -1,16 +1,10 @@
 import { useEffect, useState } from "react";
-
 import { Link } from "react-router-dom";
 
 import api from "../../api/axios";
-
 import styles from "./Reports.module.css";
 
-
 const Reports = () => {
-
-    console.log("REPORTS PAGE LOADED");
-
 
     const [reportData, setReportData] = useState({
         summary: {
@@ -22,11 +16,18 @@ const Reports = () => {
         services: []
     });
 
+    const [followUpData, setFollowUpData] = useState({
+        summary: {
+            pending: 0,
+            contacted: 0,
+            completed: 0,
+            unable: 0
+        },
+        recentFollowUps: []
+    });
 
     const [loading, setLoading] = useState(true);
-
     const [error, setError] = useState("");
-
 
     useEffect(() => {
 
@@ -34,50 +35,60 @@ const Reports = () => {
 
             try {
 
-                console.log("FETCHING SERVICE REPORTS...");
+                console.log("FETCHING REPORTS...");
 
-
-                const response = await api.get(
+                const serviceResponse = await api.get(
                     "/reports/services"
                 );
 
-
                 console.log(
                     "SERVICE REPORT RESPONSE:",
-                    response.data
+                    serviceResponse.data
                 );
 
+                const followUpResponse = await api.get(
+                    "/reports/followups"
+                );
+
+                console.log(
+                    "FOLLOW-UP REPORT RESPONSE:",
+                    followUpResponse.data
+                );
 
                 setReportData({
-
-                    summary: response.data.summary || {
+                    summary: serviceResponse.data.summary || {
                         totalServices: 0,
                         averageAttendanceRate: 0,
                         highestAttendance: null,
                         lowestAttendance: null
                     },
-
-                    services: response.data.services || []
-
+                    services: serviceResponse.data.services || []
                 });
 
-            }
-            catch (error) {
+                setFollowUpData({
+                    summary: followUpResponse.data.summary || {
+                        pending: 0,
+                        contacted: 0,
+                        completed: 0,
+                        unable: 0
+                    },
+                    recentFollowUps:
+                        followUpResponse.data.recentFollowUps || []
+                });
+
+            } catch (error) {
 
                 console.log(
                     "REPORTS ERROR:",
-                    error.response?.data ||
-                    error.message
+                    error.response?.data || error.message
                 );
-
 
                 setError(
                     error.response?.data?.message ||
                     "Unable to load reports"
                 );
 
-            }
-            finally {
+            } finally {
 
                 setLoading(false);
 
@@ -85,11 +96,9 @@ const Reports = () => {
 
         };
 
-
         fetchReports();
 
     }, []);
-
 
     if (loading) {
 
@@ -100,7 +109,6 @@ const Reports = () => {
         );
 
     }
-
 
     if (error) {
 
@@ -119,7 +127,6 @@ const Reports = () => {
 
                 </div>
 
-
                 <div className={styles.error}>
                     {error}
                 </div>
@@ -129,9 +136,7 @@ const Reports = () => {
 
     }
 
-
     return (
-
         <div className={styles.container}>
 
             <div className={styles.header}>
@@ -145,7 +150,6 @@ const Reports = () => {
                 </p>
 
             </div>
-
 
             <div className={styles.cards}>
 
@@ -165,7 +169,6 @@ const Reports = () => {
 
                 </div>
 
-
                 <div className={styles.card}>
 
                     <h3>
@@ -181,7 +184,6 @@ const Reports = () => {
                     </span>
 
                 </div>
-
 
                 <div className={styles.card}>
 
@@ -204,7 +206,6 @@ const Reports = () => {
                     </span>
 
                 </div>
-
 
                 <div className={styles.card}>
 
@@ -230,7 +231,6 @@ const Reports = () => {
 
             </div>
 
-
             <section className={styles.panel}>
 
                 <h2>
@@ -240,7 +240,6 @@ const Reports = () => {
                 <p>
                     Attendance performance across church services
                 </p>
-
 
                 {
                     reportData.services.length === 0 ? (
@@ -291,7 +290,6 @@ const Reports = () => {
 
                                 </thead>
 
-
                                 <tbody>
 
                                     {
@@ -306,11 +304,9 @@ const Reports = () => {
                                                         {service.name}
                                                     </td>
 
-
                                                     <td>
                                                         {service.serviceType}
                                                     </td>
-
 
                                                     <td>
 
@@ -318,12 +314,18 @@ const Reports = () => {
                                                             service.date
                                                                 ? new Date(
                                                                     service.date
-                                                                ).toLocaleDateString()
+                                                                ).toLocaleDateString(
+                                                                    "en-GB",
+                                                                    {
+                                                                        day: "2-digit",
+                                                                        month: "short",
+                                                                        year: "numeric"
+                                                                    }
+                                                                )
                                                                 : "-"
                                                         }
 
                                                     </td>
-
 
                                                     <td>
                                                         {
@@ -332,14 +334,12 @@ const Reports = () => {
                                                         }
                                                     </td>
 
-
                                                     <td>
                                                         {
                                                             service.attendance
                                                                 ?.absent || 0
                                                         }
                                                     </td>
-
 
                                                     <td>
 
@@ -348,16 +348,13 @@ const Reports = () => {
                                                                 styles.rate
                                                             }
                                                         >
-
                                                             {
                                                                 service.attendance
                                                                     ?.rate || 0
                                                             }%
-
                                                         </span>
 
                                                     </td>
-
 
                                                     <td>
 
@@ -391,11 +388,221 @@ const Reports = () => {
 
             </section>
 
-        </div>
+            <section className={styles.panel}>
 
+                <h2>
+                    Follow-Up Reports
+                </h2>
+
+                <p>
+                    Overview of member follow-up activity
+                </p>
+
+                <div className={styles.cards}>
+
+                    <div className={styles.card}>
+
+                        <h3>
+                            Pending
+                        </h3>
+
+                        <strong>
+                            {followUpData.summary.pending}
+                        </strong>
+
+                        <span>
+                            Awaiting follow-up
+                        </span>
+
+                    </div>
+
+                    <div className={styles.card}>
+
+                        <h3>
+                            Contacted
+                        </h3>
+
+                        <strong>
+                            {followUpData.summary.contacted}
+                        </strong>
+
+                        <span>
+                            Members contacted
+                        </span>
+
+                    </div>
+
+                    <div className={styles.card}>
+
+                        <h3>
+                            Completed
+                        </h3>
+
+                        <strong>
+                            {followUpData.summary.completed}
+                        </strong>
+
+                        <span>
+                            Follow-ups completed
+                        </span>
+
+                    </div>
+
+                    <div className={styles.card}>
+
+                        <h3>
+                            Unable To Reach
+                        </h3>
+
+                        <strong>
+                            {followUpData.summary.unable}
+                        </strong>
+
+                        <span>
+                            Contact unsuccessful
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <h2>
+                    Recent Follow-Ups
+                </h2>
+
+                {
+                    followUpData.recentFollowUps.length === 0 ? (
+
+                        <div className={styles.empty}>
+                            No follow-up records available.
+                        </div>
+
+                    ) : (
+
+                        <div className={styles.tableWrapper}>
+
+                            <table>
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>
+                                            Member
+                                        </th>
+
+                                        <th>
+                                            Phone
+                                        </th>
+
+                                        <th>
+                                            Status
+                                        </th>
+
+                                        <th>
+                                            Assigned To
+                                        </th>
+
+                                        <th>
+                                            Date
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+                                <tbody>
+
+                                    {
+                                        followUpData.recentFollowUps.map(
+                                            followUp => (
+
+                                                <tr
+                                                    key={followUp._id}
+                                                >
+
+                                                    <td>
+
+                                                        {
+                                                            followUp.member
+                                                                ? `${followUp.member.firstName} ${followUp.member.lastName}`
+                                                                : "Unknown Member"
+                                                        }
+
+                                                    </td>
+
+                                                    <td>
+
+                                                        {
+                                                            followUp.member
+                                                                ?.phone || "-"
+                                                        }
+
+                                                    </td>
+
+                                                    <td>
+
+                                                        <span
+                                                            className={
+                                                                styles.status
+                                                            }
+                                                        >
+                                                            {
+                                                                followUp.status || "-"
+                                                            }
+                                                        </span>
+
+                                                    </td>
+
+                                                    <td>
+
+                                                        {
+                                                            followUp.assignedTo
+                                                                ? `${followUp.assignedTo.firstName} ${followUp.assignedTo.lastName}`
+                                                                : "Unassigned"
+                                                        }
+
+                                                    </td>
+
+                                                    <td>
+
+                                                        {
+                                                            followUp.createdAt
+                                                                ? new Date(
+                                                                    followUp.createdAt
+                                                                ).toLocaleDateString(
+                                                                    "en-GB",
+                                                                    {
+                                                                        day: "2-digit",
+                                                                        month: "short",
+                                                                        year: "numeric"
+                                                                    }
+                                                                )
+                                                                : "-"
+                                                        }
+
+                                                    </td>
+
+                                                </tr>
+
+                                            )
+                                        )
+                                    }
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    )
+                }
+
+            </section>
+
+        </div>
     );
 
 };
-
 
 export default Reports;

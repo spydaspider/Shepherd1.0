@@ -35,6 +35,7 @@ import FollowUpDetails from "./pages/Followups/FollowUpDetails";
 
 import Reports from "./pages/Reports/Reports";
 import AttendanceReport from "./pages/Reports/AttendanceReport";
+import MemberAttendanceReport from "./pages/Reports/MemberAttendanceReport";
 
 
 function App(){
@@ -326,6 +327,17 @@ element={
 
             </AdminLayout>
 
+        </ProtectedRoute>
+    }
+/>
+
+<Route
+    path="/reports/member/:memberId"
+    element={
+        <ProtectedRoute>
+            <AdminLayout>
+                <MemberAttendanceReport />
+            </AdminLayout>
         </ProtectedRoute>
     }
 />

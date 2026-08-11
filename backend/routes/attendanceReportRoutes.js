@@ -2,32 +2,10 @@ const express = require("express");
 
 const router = express.Router();
 
+const { getAttendanceReport } = require("../controllers/attendanceReportController");
 
-const {
-    getAttendanceReport
-}
-=
-require("../controllers/attendanceReportController");
+const { protect } = require("../middleware/authMiddleware");
 
-
-const {
-    protect
-}
-=
-require("../middleware/authMiddleware");
-
-
-
-router.get(
-
-    "/:serviceId",
-
-    protect,
-
-    getAttendanceReport
-
-);
-
-
+router.get("/:serviceId", protect, getAttendanceReport);
 
 module.exports = router;
