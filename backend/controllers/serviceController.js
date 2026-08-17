@@ -7,7 +7,6 @@ const generateFollowUps = require("../utils/generateFollowUps");
 
 
 
-
 // ==========================================
 // Generate Attendance Code
 // ==========================================
@@ -22,44 +21,32 @@ const generateAttendanceCode = () => {
 
 
 
-
-
 // ==========================================
 // Generate Unique Code
 // ==========================================
 
-const generateUniqueCode = async()=>{
-
+const generateUniqueCode = async () => {
 
     let code;
 
     let exists = true;
 
-
-
-    while(exists){
-
+    while (exists) {
 
         code = generateAttendanceCode();
 
-
-
         const service =
-        await Service.findOne({
-            attendanceCode:code
-        });
+            await Service.findOne({
+                attendanceCode: code
+            });
 
+        if (!service) {
 
-
-        if(!service){
-
-            exists=false;
+            exists = false;
 
         }
 
     }
-
-
 
     return code;
 
@@ -67,147 +54,97 @@ const generateUniqueCode = async()=>{
 
 
 
-
-
-
-
 // ==========================================
 // Update Attendance Summary
 // ==========================================
 
-const updateAttendanceSummary = async(serviceId)=>{
+const updateAttendanceSummary = async (serviceId) => {
+
+    const service =
+        await Service.findById(serviceId);
+
+    if (!service) {
+
+        return;
+
+    }
 
 
-const service =
-await Service.findById(serviceId);
+    const totalMembers =
+        await User.countDocuments({
+
+            isActive: true
+
+        });
 
 
+    const attendance =
+        await Attendance.find({
 
-if(!service){
+            service: serviceId,
 
-return;
+            status: "Present"
 
-}
-
-
-
-
-const totalMembers =
-await User.countDocuments({
-
-isActive:true
-
-});
+        })
+            .populate("user");
 
 
+    const users =
+        attendance.map(
+            item => item.user
+        );
 
 
+    service.attendanceSummary = {
 
-const attendance =
-await Attendance.find({
+        totalPresent:
+            users.length,
 
-service:serviceId,
+        totalAbsent:
+            Math.max(
+                totalMembers - users.length,
+                0
+            ),
 
-status:"Present"
+        adultsPresent:
+            users.filter(
+                user => !user.isChild
+            ).length,
 
-})
-.populate("user");
+        childrenPresent:
+            users.filter(
+                user => user.isChild
+            ).length,
 
+        malePresent:
+            users.filter(
+                user => user.gender === "Male"
+            ).length,
 
+        femalePresent:
+            users.filter(
+                user => user.gender === "Female"
+            ).length,
 
+        attendanceRate:
+            totalMembers > 0
+                ?
+                Number(
+                    (
+                        users.length /
+                        totalMembers *
+                        100
+                    ).toFixed(2)
+                )
+                :
+                0
 
-
-const users =
-attendance.map(
-item=>item.user
-);
-
-
-
-
-
-service.attendanceSummary = {
-
-
-totalPresent:
-users.length,
-
-
-totalAbsent:
-Math.max(
-totalMembers - users.length,
-0
-),
-
-
-
-adultsPresent:
-
-users.filter(
-user=>!user.isChild
-).length,
-
-
-
-childrenPresent:
-
-users.filter(
-user=>user.isChild
-).length,
+    };
 
 
-
-malePresent:
-
-users.filter(
-user=>user.gender==="Male"
-).length,
-
-
-
-femalePresent:
-
-users.filter(
-user=>user.gender==="Female"
-).length,
-
-
-
-attendanceRate:
-
-totalMembers > 0
-
-?
-
-Number(
-(
-users.length /
-totalMembers *
-100
-)
-.toFixed(2)
-)
-
-:
-
-0
-
+    await service.save();
 
 };
-
-
-
-await service.save();
-
-
-
-};
-
-
-
-
-
-
 
 
 
@@ -216,289 +153,270 @@ await service.save();
 // POST /api/services
 // ==========================================
 
+const createService = async (req, res) => {
 
-const createService = async(req,res)=>{
+    try {
 
+        const {
+            name,
+            serviceType,
+            serviceDate,
+            startTime,
+            endTime,
+            description
+        } = req.body;
 
-try{
 
+        // ------------------------------------------
+        // Validate
+        // ------------------------------------------
 
-const {
+        if (
+            !name ||
+            !serviceType ||
+            !serviceDate
+        ) {
 
-name,
+            return res.status(400).json({
 
-serviceType,
+                success: false,
 
-serviceDate,
+                message:
+                    "Name, service type and date are required"
 
-startTime,
+            });
 
-endTime,
+        }
 
-description
 
+        // ------------------------------------------
+        // Check Duplicate Service
+        // ------------------------------------------
 
-}=req.body;
+        const start =
+            new Date(serviceDate);
 
+        start.setHours(
+            0,
+            0,
+            0,
+            0
+        );
 
 
+        const end =
+            new Date(serviceDate);
 
+        end.setHours(
+            23,
+            59,
+            59,
+            999
+        );
 
-if(
-!name ||
-!serviceType ||
-!serviceDate
-){
 
+        const existing =
+            await Service.findOne({
 
-return res.status(400).json({
+                serviceType,
 
-success:false,
+                serviceDate: {
+                    $gte: start,
+                    $lte: end
+                }
 
-message:
-"Name, service type and date are required"
+            });
 
-});
 
-}
+        if (existing) {
 
+            return res.status(400).json({
 
+                success: false,
 
+                message:
+                    "Service already exists for this date"
 
+            });
 
-// Check duplicate service
+        }
 
 
-const start =
-new Date(serviceDate);
+        // ------------------------------------------
+        // Close Previous Active Service
+        // ------------------------------------------
 
-start.setHours(
-0,0,0,0
-);
+        await Service.updateMany(
 
+            {
 
+                status: "Active",
 
-const end =
-new Date(serviceDate);
+                attendanceOpen: true
 
-end.setHours(
-23,59,59,999
-);
+            },
 
+            {
 
+                status: "Completed",
 
+                attendanceOpen: false,
 
+                closedAt: new Date()
 
-const existing =
-await Service.findOne({
+            }
 
-serviceType,
+        );
 
-serviceDate:{
-$gte:start,
-$lte:end
-}
 
-});
+        // ------------------------------------------
+        // Generate Attendance Code
+        // ------------------------------------------
 
+        const attendanceCode =
+            await generateUniqueCode();
 
 
+        const expiry =
+            new Date(serviceDate);
 
+        expiry.setHours(
+            23,
+            59,
+            59,
+            999
+        );
 
-if(existing){
 
+        // ------------------------------------------
+        // Create Service
+        // ------------------------------------------
 
-return res.status(400).json({
+        const service =
+            await Service.create({
 
-success:false,
+                name,
 
-message:
-"Service already exists for this date"
+                serviceType,
 
-});
+                serviceDate,
 
-}
+                startTime,
 
+                endTime,
 
+                description:
+                    description || "",
 
+                attendanceCode,
 
+                codeExpiresAt:
+                    expiry,
 
-// Close previous active service
+                status: "Active",
 
+                attendanceOpen: true,
 
-await Service.updateMany({
+                generatedBy:
+                    req.user._id
 
-status:"Active",
+            });
 
-attendanceOpen:true
 
-},{
+        // ==========================================
+        // Notify Admin and Pastors
+        // ==========================================
 
-status:"Completed",
+        const managers =
+            await User.find({
 
-attendanceOpen:false,
+                role: {
+                    $in: [
+                        "Admin",
+                        "Pastor"
+                    ]
+                },
 
-closedAt:new Date()
+                isActive: true
 
-});
+            });
 
 
+        if (managers.length) {
 
+            await Notification.insertMany(
 
+                managers.map(manager => ({
 
+                    recipient:
+                        manager._id,
 
+                    sender:
+                        req.user?._id || null,
 
-const attendanceCode =
-await generateUniqueCode();
+                    title:
+                        "New Service Created",
 
+                    message:
+                        `${name} scheduled for ${new Date(serviceDate).toDateString()}`,
 
+                    type:
+                        "Service",
 
+                    priority:
+                        "Normal",
 
+                    relatedId:
+                        service._id,
 
-const expiry =
-new Date(serviceDate);
+                    relatedModel:
+                        "Service",
 
+                    actionUrl:
+                        `/services/${service._id}`
 
-expiry.setHours(
-23,
-59,
-59,
-999
-);
+                }))
 
+            );
 
+        }
 
 
+        // ------------------------------------------
+        // Response
+        // ------------------------------------------
 
+        return res.status(201).json({
 
-const service =
-await Service.create({
+            success: true,
 
-name,
+            message:
+                "Service created successfully",
 
-serviceType,
+            service
 
-serviceDate,
+        });
 
-startTime,
+    }
+    catch (error) {
 
-endTime,
+        console.log(
+            "CREATE SERVICE ERROR:",
+            error
+        );
 
-description:description || "",
+        return res.status(500).json({
 
+            success: false,
 
-attendanceCode,
+            message:
+                error.message
 
+        });
 
-codeExpiresAt:expiry,
-
-
-status:"Active",
-
-
-attendanceOpen:true,
-
-
-generatedBy:req.user._id
-
-
-});
-
-
-
-
-
-
-
-
-// Notify Admin and Pastors
-
-
-const managers =
-await User.find({
-
-role:{
-$in:[
-"Admin",
-"Pastor"
-]
-},
-
-isActive:true
-
-});
-
-
-
-
-
-if(managers.length){
-
-
-await Notification.insertMany(
-
-managers.map(manager=>({
-
-recipient:manager._id,
-
-title:"New Service Created",
-
-message:
-`${name} scheduled for ${new Date(serviceDate).toDateString()}`,
-
-type:"Service",
-
-relatedId:service._id
-
-}))
-
-);
-
-
-}
-
-
-
-
-
-
-
-res.status(201).json({
-
-success:true,
-
-message:
-"Service created successfully",
-
-service
-
-});
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
+    }
 
 };
-
-
-
-
-
-
 
 
 
@@ -507,117 +425,91 @@ message:error.message
 // GET /api/services/active
 // ==========================================
 
+const getActiveService = async (req, res) => {
 
-const getActiveService = async(req,res)=>{
+    try {
 
+        const service =
+            await Service.findOne({
 
-try{
+                status: "Active",
 
+                attendanceOpen: true
 
-const service =
-await Service.findOne({
-
-status:"Active",
-
-attendanceOpen:true
-
-});
+            });
 
 
+        if (!service) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "No active service found"
+
+            });
+
+        }
 
 
+        // ------------------------------------------
+        // Expire Attendance Code
+        // ------------------------------------------
 
-if(!service){
+        if (
+            service.codeExpiresAt &&
+            new Date() > service.codeExpiresAt
+        ) {
 
+            service.status =
+                "Completed";
 
-return res.status(404).json({
+            service.attendanceOpen =
+                false;
 
-success:false,
-
-message:
-"No active service found"
-
-});
-
-}
-
-
-
-
-
-// Expire attendance code
+            service.closedAt =
+                new Date();
 
 
-if(
-
-service.codeExpiresAt &&
-new Date() > service.codeExpiresAt
-
-){
+            await service.save();
 
 
-service.status="Completed";
+            return res.status(400).json({
 
-service.attendanceOpen=false;
+                success: false,
 
-service.closedAt=new Date();
+                message:
+                    "Attendance code expired"
 
+            });
 
-await service.save();
-
-
-
-
-
-return res.status(400).json({
-
-success:false,
-
-message:
-"Attendance code expired"
-
-});
+        }
 
 
-}
+        return res.json({
 
+            success: true,
 
+            service
 
+        });
 
+    }
+    catch (error) {
 
-res.json({
+        return res.status(500).json({
 
-success:true,
+            success: false,
 
-service
+            message:
+                error.message
 
-});
+        });
 
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
+    }
 
 };
-
-
-
-
-
-
 
 
 
@@ -626,191 +518,180 @@ message:error.message
 // PATCH /api/services/:id/end
 // ==========================================
 
+const endService = async (req, res) => {
 
-const endService = async(req,res)=>{
+    try {
 
+        const service =
+            await Service.findById(
+                req.params.id
+            );
 
-try{
 
+        if (!service) {
 
-const service =
-await Service.findById(
-req.params.id
-);
+            return res.status(404).json({
 
+                success: false,
 
+                message:
+                    "Service not found"
 
+            });
 
+        }
 
-if(!service){
 
+        if (
+            service.status === "Completed"
+        ) {
 
-return res.status(404).json({
+            return res.status(400).json({
 
-success:false,
+                success: false,
 
-message:
-"Service not found"
+                message:
+                    "Service already completed"
 
-});
+            });
 
-}
+        }
 
 
+        // ------------------------------------------
+        // Update Attendance
+        // ------------------------------------------
 
+        await updateAttendanceSummary(
+            service._id
+        );
 
-if(service.status==="Completed"){
 
+        // ------------------------------------------
+        // Generate Follow Ups
+        // ------------------------------------------
 
-return res.status(400).json({
+        const followUps =
+            await generateFollowUps(
+                service._id
+            );
 
-success:false,
 
-message:
-"Service already completed"
+        // ------------------------------------------
+        // Complete Service
+        // ------------------------------------------
 
-});
+        service.status =
+            "Completed";
 
-}
+        service.attendanceOpen =
+            false;
 
+        service.closedAt =
+            new Date();
 
 
+        await service.save();
 
 
-// Update attendance first
+        // ==========================================
+        // Notify Leaders
+        // ==========================================
 
-await updateAttendanceSummary(
-service._id
-);
+        const leaders =
+            await User.find({
 
+                role: {
+                    $in: [
+                        "Admin",
+                        "Pastor",
+                        "Leader"
+                    ]
+                },
 
+                isActive: true
 
+            });
 
 
-// Generate follow ups
+        if (leaders.length) {
 
-const followUps =
-await generateFollowUps(
-service._id
-);
+            await Notification.insertMany(
 
+                leaders.map(user => ({
 
+                    recipient:
+                        user._id,
 
+                    sender:
+                        req.user?._id || null,
 
+                    title:
+                        "Service Completed",
 
+                    message:
+                        `${service.name} completed. ${followUps.length} follow ups created.`,
 
-service.status="Completed";
+                    type:
+                        "Service",
 
-service.attendanceOpen=false;
+                    priority:
+                        "Normal",
 
-service.closedAt=new Date();
+                    relatedId:
+                        service._id,
 
+                    relatedModel:
+                        "Service",
 
-await service.save();
+                    actionUrl:
+                        `/services/${service._id}`
 
+                }))
 
+            );
 
+        }
 
 
+        // ------------------------------------------
+        // Response
+        // ------------------------------------------
 
+        return res.json({
 
+            success: true,
 
-// Notify leaders
+            message:
+                "Service completed successfully",
 
+            followUpsCreated:
+                followUps.length,
 
-const leaders =
-await User.find({
+            service
 
-role:{
-$in:[
-"Admin",
-"Pastor",
-"Leader"
-]
-},
+        });
 
-isActive:true
+    }
+    catch (error) {
 
-});
+        console.log(
+            "END SERVICE ERROR:",
+            error
+        );
 
+        return res.status(500).json({
 
+            success: false,
 
+            message:
+                error.message
 
+        });
 
-if(leaders.length){
-
-
-await Notification.insertMany(
-
-leaders.map(user=>({
-
-
-recipient:user._id,
-
-title:"Service Completed",
-
-message:
-`${service.name} completed. ${followUps.length} follow ups created.`,
-
-type:"Service",
-
-relatedId:service._id
-
-
-}))
-
-);
-
-
-}
-
-
-
-
-
-
-
-
-res.json({
-
-success:true,
-
-message:
-"Service completed successfully",
-
-followUpsCreated:
-followUps.length,
-
-service
-
-
-});
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
+    }
 
 };
-
-
-
-
-
-
 
 
 
@@ -819,76 +700,52 @@ message:error.message
 // GET /api/services
 // ==========================================
 
+const getServices = async (req, res) => {
 
-const getServices = async(req,res)=>{
+    try {
 
+        const services =
+            await Service.find()
 
-try{
+                .populate(
+                    "generatedBy",
+                    "firstName lastName"
+                )
 
+                .sort({
 
-const services =
-await Service.find()
+                    serviceDate: -1
 
-.populate(
-
-"generatedBy",
-
-"firstName lastName"
-
-)
-
-.sort({
-
-serviceDate:-1
-
-});
+                });
 
 
+        return res.json({
 
+            success: true,
 
+            count:
+                services.length,
 
-res.json({
+            services
 
-success:true,
+        });
 
-count:services.length,
+    }
+    catch (error) {
 
-services
+        return res.status(500).json({
 
-});
+            success: false,
 
+            message:
+                error.message
 
+        });
 
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
+    }
 
 };
 
-
-
-
-
-
-
-
-
-// ==========================================
-// Get Service By ID
-// GET /api/services/:id
-// ==========================================
 
 
 // ==========================================
@@ -900,117 +757,119 @@ const getServiceById = async (req, res) => {
 
     try {
 
-
-        let service = await Service.findById(
-            req.params.id
-        )
-        .populate(
-            "generatedBy",
-            "firstName lastName"
-        );
-
+        let service =
+            await Service.findById(
+                req.params.id
+            )
+                .populate(
+                    "generatedBy",
+                    "firstName lastName"
+                );
 
 
         if (!service) {
 
             return res.status(404).json({
 
-                success:false,
+                success: false,
 
-                message:"Service not found"
+                message:
+                    "Service not found"
 
             });
 
         }
 
 
+        // ------------------------------------------
+        // Update Summary For Active Service
+        // ------------------------------------------
 
-
-
-        // Update summary for active services
-        if(service.status === "Active"){
+        if (
+            service.status === "Active"
+        ) {
 
             await updateAttendanceSummary(
                 service._id
             );
 
 
-            // fetch fresh updated service
-            service = await Service.findById(
-                req.params.id
-            )
-            .populate(
-                "generatedBy",
-                "firstName lastName"
-            );
+            // Fetch fresh service
+
+            service =
+                await Service.findById(
+                    req.params.id
+                )
+                    .populate(
+                        "generatedBy",
+                        "firstName lastName"
+                    );
 
         }
 
 
+        // ------------------------------------------
+        // Get Attendance
+        // ------------------------------------------
+
+        const attendance =
+            await Attendance.find({
+
+                service:
+                    service._id
+
+            })
+                .populate(
+
+                    "user",
+
+                    "firstName lastName gender isChild membershipNumber"
+
+                )
+                .sort({
+
+                    createdAt: -1
+
+                });
 
 
+        // ------------------------------------------
+        // Response
+        // ------------------------------------------
 
+        return res.json({
 
-
-        const attendance = await Attendance.find({
-
-            service: service._id
-
-        })
-        .populate(
-
-            "user",
-
-            "firstName lastName gender isChild membershipNumber"
-
-        )
-        .sort({
-
-            createdAt:-1
-
-        });
-
-
-
-
-
-
-        res.json({
-
-            success:true,
+            success: true,
 
             service,
 
             attendanceSummary:
-            service.attendanceSummary,
-
+                service.attendanceSummary,
 
             attendanceCount:
-            attendance.length,
-
+                attendance.length,
 
             attendance
 
-
         });
-
-
 
     }
-    catch(error){
+    catch (error) {
+
+        console.log(
+            "GET SERVICE ERROR:",
+            error
+        );
 
 
-        console.log(error);
+        return res.status(500).json({
 
+            success: false,
 
-        res.status(500).json({
-
-            success:false,
-
-            message:error.message
+            message:
+                error.message
 
         });
-
 
     }
 
@@ -1018,20 +877,20 @@ const getServiceById = async (req, res) => {
 
 
 
-
+// ==========================================
+// Export
+// ==========================================
 
 module.exports = {
 
+    createService,
 
-createService,
+    getActiveService,
 
-getActiveService,
+    endService,
 
-endService,
+    getServices,
 
-getServices,
-
-getServiceById
-
+    getServiceById
 
 };

@@ -36,6 +36,7 @@ import FollowUpDetails from "./pages/Followups/FollowUpDetails";
 import Reports from "./pages/Reports/Reports";
 import AttendanceReport from "./pages/Reports/AttendanceReport";
 import MemberAttendanceReport from "./pages/Reports/MemberAttendanceReport";
+import Notifications from './pages/Notifications/Notifications';
 
 
 function App(){
@@ -338,6 +339,20 @@ element={
             <AdminLayout>
                 <MemberAttendanceReport />
             </AdminLayout>
+        </ProtectedRoute>
+    }
+/>
+<Route
+    path="/notifications"
+    element={
+        <ProtectedRoute>
+
+            <AdminLayout>
+
+                <Notifications />
+
+            </AdminLayout>
+
         </ProtectedRoute>
     }
 />

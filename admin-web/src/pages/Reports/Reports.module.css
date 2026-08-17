@@ -3,6 +3,58 @@
     background: #f4f6fb;
     min-height: 100%;
 }
+/* =========================
+   REPORT ACTION
+========================= */
+
+.reportAction {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px;
+    background: #f8f9fc;
+    border: 1px solid #e7ebf2;
+    border-radius: 10px;
+}
+
+.reportAction h3 {
+    margin: 0 0 6px 0;
+    color: #172033;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.reportAction span {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.viewButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    background: #0f2a5f;
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+}
+
+.viewButton:hover {
+    background: #163b82;
+}
+
+@media (max-width: 700px) {
+    .reportAction {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
 .viewButton {
     display: inline-flex;
     align-items: center;

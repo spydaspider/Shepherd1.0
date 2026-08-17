@@ -1,0 +1,265 @@
+.container {
+    padding: 30px;
+    background: #f4f6fb;
+    min-height: 100%;
+}
+
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: 25px;
+}
+
+
+.header h1 {
+    margin: 0 0 6px 0;
+
+    color: #172033;
+
+    font-size: 28px;
+    font-weight: 700;
+}
+
+
+.header p {
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 14px;
+}
+
+
+.markAllButton {
+    border: none;
+
+    background: #0f2a5f;
+    color: white;
+
+    padding: 10px 16px;
+
+    border-radius: 7px;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+
+.markAllButton:hover {
+    opacity: 0.92;
+}
+
+
+.panel {
+    background: white;
+
+    border-radius: 12px;
+
+    border: 1px solid #e7ebf2;
+
+    overflow: hidden;
+}
+
+
+.notificationList {
+    width: 100%;
+}
+
+
+.notification {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 15px;
+
+    padding: 20px 22px;
+
+    border-bottom: 1px solid #edf0f5;
+
+    cursor: pointer;
+
+    transition: background 0.2s ease;
+}
+
+
+.notification:last-child {
+    border-bottom: none;
+}
+
+
+.notification:hover {
+    background: #f8f9fc;
+}
+
+
+.unread {
+    background: #f7f9fd;
+}
+
+
+.indicator {
+    width: 8px;
+    min-width: 8px;
+
+    margin-top: 6px;
+
+    color: #0f2a5f;
+
+    font-size: 9px;
+}
+
+
+.content {
+    flex: 1;
+}
+
+
+.titleRow {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    margin-bottom: 5px;
+}
+
+
+.titleRow h3 {
+    margin: 0;
+
+    color: #172033;
+
+    font-size: 15px;
+    font-weight: 600;
+}
+
+
+.content p {
+    margin: 0 0 9px 0;
+
+    color: #64748b;
+
+    font-size: 14px;
+
+    line-height: 1.5;
+}
+
+
+.meta {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    color: #94a3b8;
+
+    font-size: 12px;
+}
+
+
+.highPriority {
+    display: inline-flex;
+
+    align-items: center;
+
+    padding: 3px 7px;
+
+    border-radius: 5px;
+
+    background: #fff1f2;
+
+    color: #dc2626;
+
+    font-size: 10px;
+
+    font-weight: 700;
+}
+
+
+.deleteButton {
+    border: none;
+
+    background: transparent;
+
+    color: #94a3b8;
+
+    font-size: 22px;
+
+    line-height: 1;
+
+    cursor: pointer;
+
+    padding: 2px 5px;
+
+    border-radius: 5px;
+}
+
+
+.deleteButton:hover {
+    background: #f1f5f9;
+
+    color: #dc2626;
+}
+
+
+.empty {
+    padding: 80px 20px;
+
+    text-align: center;
+}
+
+
+.emptyIcon {
+    font-size: 42px;
+
+    margin-bottom: 15px;
+}
+
+
+.empty h2 {
+    margin: 0 0 8px 0;
+
+    color: #172033;
+
+    font-size: 20px;
+}
+
+
+.empty p {
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 14px;
+}
+
+
+.loading {
+    padding: 50px;
+
+    text-align: center;
+
+    color: #64748b;
+
+    font-size: 15px;
+}
+
+
+.error {
+    padding: 20px;
+
+    background: #fff1f2;
+
+    border: 1px solid #fecdd3;
+
+    border-radius: 10px;
+
+    color: #be123c;
+
+    font-size: 14px;
+}

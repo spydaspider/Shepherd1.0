@@ -1,34 +1,456 @@
-.navbar{
+.navbar {
 
-height:80px;
+    height: 80px;
 
-background:white;
+    background: white;
 
-display:flex;
+    display: flex;
 
-justify-content:space-between;
+    justify-content: space-between;
 
-align-items:center;
+    align-items: center;
 
-padding:0 30px;
+    padding: 0 30px;
 
-box-shadow:0 2px 5px rgba(0,0,0,0.1);
+    box-shadow:
+        0 2px 5px rgba(0,0,0,0.1);
 
 }
 
 
-.navbar button{
+.userInfo {
 
-background:#0f2a5f;
+    display: flex;
 
-color:white;
+    flex-direction: column;
 
-border:none;
+}
 
-padding:10px 20px;
 
-border-radius:6px;
+.userInfo h3 {
 
-cursor:pointer;
+    margin: 0;
+
+}
+
+
+.userInfo p {
+
+    margin: 4px 0 0;
+
+    color: #666;
+
+    font-size: 13px;
+
+}
+
+
+.actions {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 18px;
+
+}
+
+
+/* ==========================================
+   Notification Wrapper
+========================================== */
+
+.notificationWrapper {
+
+    position: relative;
+
+}
+
+
+/* ==========================================
+   Notification Button
+========================================== */
+
+.notificationButton {
+
+    position: relative;
+
+    width: 42px;
+
+    height: 42px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border: none;
+
+    background: transparent;
+
+    border-radius: 50%;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease;
+
+}
+
+
+.notificationButton:hover {
+
+    background: #f1f4f9;
+
+}
+
+
+.bell {
+
+    font-size: 21px;
+
+    line-height: 1;
+
+}
+
+
+/* ==========================================
+   Notification Badge
+========================================== */
+
+.notificationBadge {
+
+    position: absolute;
+
+    top: -2px;
+
+    right: -2px;
+
+    min-width: 19px;
+
+    height: 19px;
+
+    padding: 0 5px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #e53935;
+
+    color: white;
+
+    border-radius: 10px;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    border: 2px solid white;
+
+}
+
+
+/* ==========================================
+   Notification Dropdown
+========================================== */
+
+.notificationDropdown {
+
+    position: absolute;
+
+    top: 52px;
+
+    right: 0;
+
+    width: 380px;
+
+    background: white;
+
+    border-radius: 10px;
+
+    box-shadow:
+        0 8px 30px rgba(0,0,0,0.15);
+
+    border: 1px solid #e7ebf2;
+
+    overflow: hidden;
+
+    z-index: 1000;
+
+}
+
+
+/* ==========================================
+   Dropdown Header
+========================================== */
+
+.dropdownHeader {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 16px 18px;
+
+    border-bottom: 1px solid #edf0f5;
+
+}
+
+
+.dropdownHeader h3 {
+
+    margin: 0;
+
+    font-size: 16px;
+
+    color: #172033;
+
+}
+
+
+.dropdownHeader span {
+
+    display: block;
+
+    margin-top: 3px;
+
+    color: #64748b;
+
+    font-size: 12px;
+
+}
+
+
+.viewAllButton {
+
+    border: none;
+
+    background: transparent;
+
+    color: #0f2a5f;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+}
+
+
+.viewAllButton:hover {
+
+    text-decoration: underline;
+
+}
+
+
+/* ==========================================
+   Dropdown List
+========================================== */
+
+.dropdownList {
+
+    max-height: 360px;
+
+    overflow-y: auto;
+
+}
+
+
+/* ==========================================
+   Dropdown Notification
+========================================== */
+
+.dropdownNotification {
+
+    display: flex;
+
+    gap: 10px;
+
+    padding: 14px 16px;
+
+    cursor: pointer;
+
+    border-bottom: 1px solid #f0f2f6;
+
+    transition:
+        background 0.2s ease;
+
+}
+
+
+.dropdownNotification:hover {
+
+    background: #f8f9fc;
+
+}
+
+
+.dropdownUnread {
+
+    background: #f5f8ff;
+
+}
+
+
+.dropdownIndicator {
+
+    width: 12px;
+
+    flex-shrink: 0;
+
+    color: #0f2a5f;
+
+    font-size: 9px;
+
+    padding-top: 5px;
+
+}
+
+
+.dropdownContent {
+
+    min-width: 0;
+
+    flex: 1;
+
+}
+
+
+.dropdownContent h4 {
+
+    margin: 0 0 5px;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    color: #172033;
+
+}
+
+
+.dropdownContent p {
+
+    margin: 0 0 7px;
+
+    color: #64748b;
+
+    font-size: 12px;
+
+    line-height: 1.4;
+
+}
+
+
+.dropdownContent span {
+
+    color: #94a3b8;
+
+    font-size: 11px;
+
+}
+
+
+/* ==========================================
+   Empty State
+========================================== */
+
+.dropdownEmpty {
+
+    padding: 35px 20px;
+
+    text-align: center;
+
+    color: #64748b;
+
+}
+
+
+.dropdownEmpty div {
+
+    font-size: 25px;
+
+    margin-bottom: 8px;
+
+}
+
+
+.dropdownEmpty p {
+
+    margin: 0;
+
+    font-size: 13px;
+
+}
+
+
+/* ==========================================
+   Dropdown Footer
+========================================== */
+
+.dropdownFooter {
+
+    width: 100%;
+
+    border: none;
+
+    border-top: 1px solid #edf0f5;
+
+    background: white;
+
+    padding: 13px;
+
+    color: #0f2a5f;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+}
+
+
+.dropdownFooter:hover {
+
+    background: #f8f9fc;
+
+}
+
+
+/* ==========================================
+   Logout
+========================================== */
+
+.logoutButton {
+
+    background: #0f2a5f;
+
+    color: white;
+
+    border: none;
+
+    padding: 10px 20px;
+
+    border-radius: 6px;
+
+    cursor: pointer;
+
+    font-size: 14px;
+
+}
+
+
+.logoutButton:hover {
+
+    opacity: 0.92;
 
 }

@@ -1,219 +1,249 @@
 const Notification = require("../models/Notification");
 
 
-
-
-
 // ==========================================
 // Create Notification
 // POST /api/notifications
 // ==========================================
 
+const createNotification = async (req, res) => {
 
-const createNotification = async(req,res)=>{
+    try {
 
-
-try{
-
-
-const {
-
-recipient,
-
-title,
-
-message,
-
-type,
-
-relatedId
-
-}=req.body;
+        const {
+            recipient,
+            title,
+            message,
+            type,
+            priority,
+            relatedId,
+            relatedModel,
+            actionUrl
+        } = req.body;
 
 
+        // ------------------------------------------
+        // Validate Required Fields
+        // ------------------------------------------
+
+        if (
+            !recipient ||
+            !title ||
+            !message
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Recipient, title and message are required"
+
+            });
+
+        }
 
 
+        // ------------------------------------------
+        // Create Notification
+        // ------------------------------------------
 
-if(
-!recipient ||
-!title ||
-!message
-){
+        const notification =
+            await Notification.create({
 
+                recipient,
 
-return res.status(400).json({
+                // Always use the logged-in user
+                // as the sender
+                sender:
+                    req.user?._id || null,
 
-success:false,
+                title,
 
-message:
-"Recipient, title and message are required"
+                message,
 
-});
+                type:
+                    type || "System",
 
+                priority:
+                    priority || "Normal",
 
-}
+                relatedId:
+                    relatedId || null,
 
+                relatedModel:
+                    relatedModel || null,
 
+                actionUrl:
+                    actionUrl || ""
 
-
-
-
-const notification =
-
-await Notification.create({
-
-recipient,
-
-title,
-
-message,
-
-type:type || "General",
-
-relatedId:relatedId || null
-
-});
+            });
 
 
+        return res.status(201).json({
+
+            success: true,
+
+            message:
+                "Notification created successfully",
+
+            notification
+
+        });
+
+    }
+    catch (error) {
+
+        console.log(
+            "CREATE NOTIFICATION ERROR:",
+            error
+        );
 
 
+        return res.status(500).json({
 
+            success: false,
 
-res.status(201).json({
+            message:
+                error.message
 
-success:true,
+        });
 
-message:
-"Notification created successfully",
-
-notification
-
-});
-
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
+    }
 
 };
-
-
-
-
-
-
 
 
 
 // ==========================================
 // Create Multiple Notifications
-// Used for Service / FollowUp alerts
 // POST /api/notifications/bulk
+//
+// Used for:
+// - Service announcements
+// - Follow-up assignments
+// - Church alerts
 // ==========================================
 
+const createBulkNotifications = async (req, res) => {
 
-const createBulkNotifications = async(req,res)=>{
+    try {
 
-
-try{
-
-
-const notifications =
-req.body.notifications;
+        const notifications =
+            req.body.notifications;
 
 
+        // ------------------------------------------
+        // Validate Notifications
+        // ------------------------------------------
+
+        if (
+            !Array.isArray(notifications) ||
+            notifications.length === 0
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Notifications array required"
+
+            });
+
+        }
 
 
+        // ------------------------------------------
+        // Add Defaults
+        // ------------------------------------------
 
-if(
-!Array.isArray(notifications) ||
-notifications.length===0
-){
+        const notificationsWithDefaults =
+            notifications.map(notification => ({
 
+                recipient:
+                    notification.recipient,
 
-return res.status(400).json({
+                title:
+                    notification.title,
 
-success:false,
+                message:
+                    notification.message,
 
-message:
-"Notifications array required"
+                type:
+                    notification.type ||
+                    "System",
 
-});
+                priority:
+                    notification.priority ||
+                    "Normal",
 
+                relatedId:
+                    notification.relatedId ||
+                    null,
 
-}
+                relatedModel:
+                    notification.relatedModel ||
+                    null,
 
+                actionUrl:
+                    notification.actionUrl ||
+                    "",
 
+                // Always use the logged-in user
+                // as sender
+                sender:
+                    req.user?._id || null
 
-
-
-
-
-const created =
-
-await Notification.insertMany(
-notifications
-);
-
-
-
-
-
-
-res.status(201).json({
-
-success:true,
-
-message:
-"Notifications created successfully",
-
-count:
-created.length,
-
-notifications:
-created
-
-});
+            }));
 
 
+        // ------------------------------------------
+        // Create Notifications
+        // ------------------------------------------
 
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
+        const created =
+            await Notification.insertMany(
+                notificationsWithDefaults
+            );
 
 
-}
+        return res.status(201).json({
 
+            success: true,
+
+            message:
+                "Notifications created successfully",
+
+            count:
+                created.length,
+
+            notifications:
+                created
+
+        });
+
+    }
+    catch (error) {
+
+        console.log(
+            "CREATE BULK NOTIFICATION ERROR:",
+            error
+        );
+
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                error.message
+
+        });
+
+    }
 
 };
-
-
-
-
-
-
 
 
 
@@ -222,137 +252,125 @@ message:error.message
 // GET /api/notifications
 // ==========================================
 
+const getNotifications = async (req, res) => {
 
-const getNotifications = async(req,res)=>{
+    try {
 
+        // ------------------------------------------
+        // Pagination
+        // ------------------------------------------
 
-try{
+        const page =
+            Math.max(
+                Number(req.query.page) || 1,
+                1
+            );
 
 
-const page =
-Number(req.query.page) || 1;
+        const limit =
+            Math.min(
+                Math.max(
+                    Number(req.query.limit) || 20,
+                    1
+                ),
+                100
+            );
 
 
-const limit =
-Number(req.query.limit) || 20;
+        const skip =
+            (page - 1) * limit;
 
 
-const skip =
-(page-1)*limit;
+        // ------------------------------------------
+        // Fetch Notifications
+        // ------------------------------------------
 
+        const [
+            notifications,
+            total,
+            unreadCount
+        ] = await Promise.all([
 
+            Notification.find({
 
+                recipient:
+                    req.user._id
 
+            })
+                .populate(
+                    "sender",
+                    "firstName lastName"
+                )
+                .sort({
 
+                    createdAt: -1
 
+                })
+                .skip(skip)
+                .limit(limit),
 
-const [
 
-notifications,
+            // Total notifications
 
-total,
+            Notification.countDocuments({
 
-unreadCount
+                recipient:
+                    req.user._id
 
+            }),
 
-]=await Promise.all([
 
+            // Unread notifications
 
+            Notification.countDocuments({
 
-Notification.find({
+                recipient:
+                    req.user._id,
 
-recipient:req.user._id
+                isRead: false
 
-})
+            })
 
-.sort({
+        ]);
 
-createdAt:-1
 
-})
+        return res.json({
 
-.skip(skip)
+            success: true,
 
-.limit(limit),
+            page,
 
+            limit,
 
+            total,
 
+            unreadCount,
 
+            notifications
 
-Notification.countDocuments({
+        });
 
-recipient:req.user._id
+    }
+    catch (error) {
 
-}),
+        console.log(
+            "GET NOTIFICATIONS ERROR:",
+            error
+        );
 
 
+        return res.status(500).json({
 
+            success: false,
 
+            message:
+                error.message
 
-Notification.countDocuments({
+        });
 
-recipient:req.user._id,
-
-isRead:false
-
-})
-
-
-]);
-
-
-
-
-
-
-
-
-res.json({
-
-success:true,
-
-
-page,
-
-limit,
-
-
-total,
-
-
-unreadCount,
-
-
-notifications
-
-
-});
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
+    }
 
 };
-
-
-
-
-
-
 
 
 
@@ -361,71 +379,62 @@ message:error.message
 // GET /api/notifications/unread
 // ==========================================
 
+const getUnreadNotifications = async (req, res) => {
 
-const getUnreadNotifications = async(req,res)=>{
+    try {
 
+        const notifications =
+            await Notification.find({
 
-try{
+                recipient:
+                    req.user._id,
 
+                isRead: false
 
-const notifications =
+            })
+                .populate(
+                    "sender",
+                    "firstName lastName"
+                )
+                .sort({
 
-await Notification.find({
+                    createdAt: -1
 
-recipient:req.user._id,
-
-isRead:false
-
-})
-
-.sort({
-
-createdAt:-1
-
-});
-
-
+                });
 
 
+        return res.json({
+
+            success: true,
+
+            count:
+                notifications.length,
+
+            notifications
+
+        });
+
+    }
+    catch (error) {
+
+        console.log(
+            "GET UNREAD NOTIFICATIONS ERROR:",
+            error
+        );
 
 
+        return res.status(500).json({
 
-res.json({
+            success: false,
 
-success:true,
+            message:
+                error.message
 
-count:
-notifications.length,
+        });
 
-notifications
-
-});
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
+    }
 
 };
-
-
-
-
-
-
 
 
 
@@ -434,124 +443,105 @@ message:error.message
 // PATCH /api/notifications/:id/read
 // ==========================================
 
+const markAsRead = async (req, res) => {
 
-const markAsRead = async(req,res)=>{
+    try {
 
+        const notification =
+            await Notification.findOne({
 
-try{
+                _id:
+                    req.params.id,
 
+                recipient:
+                    req.user._id
 
-const notification =
+            });
 
-await Notification.findOne({
 
-_id:req.params.id,
+        // ------------------------------------------
+        // Notification Not Found
+        // ------------------------------------------
 
-recipient:req.user._id
+        if (!notification) {
 
-});
+            return res.status(404).json({
 
+                success: false,
 
+                message:
+                    "Notification not found"
 
+            });
 
+        }
 
 
-if(!notification){
+        // ------------------------------------------
+        // Already Read
+        // ------------------------------------------
 
+        if (notification.isRead) {
 
-return res.status(404).json({
+            return res.json({
 
-success:false,
+                success: true,
 
-message:
-"Notification not found"
+                message:
+                    "Already marked as read",
 
-});
+                notification
 
+            });
 
-}
+        }
 
 
+        // ------------------------------------------
+        // Mark As Read
+        // ------------------------------------------
 
+        notification.isRead = true;
 
+        notification.readAt =
+            new Date();
 
 
+        await notification.save();
 
 
-if(notification.isRead){
+        return res.json({
 
+            success: true,
 
-return res.json({
+            message:
+                "Notification marked as read",
 
-success:true,
+            notification
 
-message:
-"Already marked as read",
+        });
 
-notification
+    }
+    catch (error) {
 
-});
+        console.log(
+            "MARK NOTIFICATION READ ERROR:",
+            error
+        );
 
 
-}
+        return res.status(500).json({
 
+            success: false,
 
+            message:
+                error.message
 
+        });
 
-
-
-
-notification.isRead=true;
-
-notification.readAt=new Date();
-
-
-await notification.save();
-
-
-
-
-
-
-
-
-res.json({
-
-success:true,
-
-message:
-"Notification marked as read",
-
-notification
-
-});
-
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
+    }
 
 };
-
-
-
-
-
-
 
 
 
@@ -560,72 +550,63 @@ message:error.message
 // PATCH /api/notifications/read-all
 // ==========================================
 
+const markAllAsRead = async (req, res) => {
 
-const markAllAsRead = async(req,res)=>{
+    try {
 
+        await Notification.updateMany(
 
-try{
+            {
 
+                recipient:
+                    req.user._id,
 
-await Notification.updateMany(
+                isRead: false
 
-{
+            },
 
-recipient:req.user._id,
+            {
 
-isRead:false
+                isRead: true,
 
-},
+                readAt:
+                    new Date()
 
-{
+            }
 
-isRead:true,
-
-readAt:new Date()
-
-}
-
-);
-
+        );
 
 
+        return res.json({
+
+            success: true,
+
+            message:
+                "All notifications marked as read"
+
+        });
+
+    }
+    catch (error) {
+
+        console.log(
+            "MARK ALL NOTIFICATIONS READ ERROR:",
+            error
+        );
 
 
-res.json({
+        return res.status(500).json({
 
-success:true,
+            success: false,
 
-message:
-"All notifications marked as read"
+            message:
+                error.message
 
-});
+        });
 
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
+    }
 
 };
-
-
-
-
-
-
 
 
 
@@ -634,108 +615,98 @@ message:error.message
 // DELETE /api/notifications/:id
 // ==========================================
 
+const deleteNotification = async (req, res) => {
 
-const deleteNotification = async(req,res)=>{
+    try {
 
+        const notification =
+            await Notification.findOne({
 
-try{
+                _id:
+                    req.params.id,
 
+                recipient:
+                    req.user._id
 
-const notification =
-
-await Notification.findOne({
-
-_id:req.params.id,
-
-recipient:req.user._id
-
-});
+            });
 
 
+        // ------------------------------------------
+        // Notification Not Found
+        // ------------------------------------------
+
+        if (!notification) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Notification not found"
+
+            });
+
+        }
 
 
+        // ------------------------------------------
+        // Delete
+        // ------------------------------------------
+
+        await notification.deleteOne();
 
 
-if(!notification){
+        return res.json({
+
+            success: true,
+
+            message:
+                "Notification deleted successfully"
+
+        });
+
+    }
+    catch (error) {
+
+        console.log(
+            "DELETE NOTIFICATION ERROR:",
+            error
+        );
 
 
-return res.status(404).json({
+        return res.status(500).json({
 
-success:false,
+            success: false,
 
-message:
-"Notification not found"
+            message:
+                error.message
 
-});
+        });
 
-
-}
-
-
-
-
-
-
-await notification.deleteOne();
-
-
-
-
-
-
-res.json({
-
-success:true,
-
-message:
-"Notification deleted successfully"
-
-});
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
+    }
 
 };
 
 
 
+// ==========================================
+// Export Controllers
+// ==========================================
 
+module.exports = {
 
+    createNotification,
 
+    createBulkNotifications,
 
+    getNotifications,
 
+    getUnreadNotifications,
 
-module.exports={
+    markAsRead,
 
+    markAllAsRead,
 
-createNotification,
-
-createBulkNotifications,
-
-getNotifications,
-
-getUnreadNotifications,
-
-markAsRead,
-
-markAllAsRead,
-
-deleteNotification
-
+    deleteNotification
 
 };
