@@ -573,7 +573,8 @@ const endService = async (req, res) => {
 
         const followUps =
             await generateFollowUps(
-                service._id
+                service._id,
+                req.user._id
             );
 
 

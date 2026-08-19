@@ -232,8 +232,7 @@ const generateFollowUps = async (serviceId, createdBy) => {
 
 
             // ------------------------------------------
-            // Keep Notification Data Together
-            // With The Follow-Up
+            // Prepare Notification Data
             // ------------------------------------------
 
             notificationData.push({
@@ -245,7 +244,7 @@ const generateFollowUps = async (serviceId, createdBy) => {
                     "New Follow Up Assigned",
 
                 message:
-                    `${memberToFollow.firstName} ${memberToFollow.lastName} missed the service and requires follow up`,
+                    `${memberToFollow.firstName || ""} ${memberToFollow.lastName || ""} missed the service and requires follow up`.trim(),
 
                 type:
                     "FollowUp",
@@ -306,12 +305,14 @@ const generateFollowUps = async (serviceId, createdBy) => {
                     priority:
                         notificationData[index].priority,
 
+                    // Connect notification to Follow Up
                     relatedId:
                         followUp._id,
 
                     relatedModel:
                         "FollowUp",
 
+                    // Frontend navigation
                     actionUrl:
                         `/followups/${followUp._id}`
 
