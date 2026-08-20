@@ -8,7 +8,6 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    Alert,
     ActivityIndicator,
 } from "react-native";
 
@@ -41,7 +40,7 @@ export default function LoginScreen() {
 
 
     // =================================================
-    // State
+    // Form State
     // =================================================
 
     const [email, setEmail] = useState("");
@@ -50,6 +49,8 @@ export default function LoginScreen() {
 
     const [loading, setLoading] = useState(false);
 
+    const [error, setError] = useState("");
+
 
     // =================================================
     // Handle Login
@@ -57,15 +58,33 @@ export default function LoginScreen() {
 
     const handleLogin = async () => {
 
+        // Clear previous error
+        setError("");
+
+
         // ---------------------------------------------
-        // Validate Input
+        // Validate Email
         // ---------------------------------------------
 
-        if (!email.trim() || !password) {
+        if (!email.trim()) {
 
-            Alert.alert(
-                "Missing Information",
-                "Please enter your email and password."
+            setError(
+                "Please enter your email address."
+            );
+
+            return;
+
+        }
+
+
+        // ---------------------------------------------
+        // Validate Password
+        // ---------------------------------------------
+
+        if (!password) {
+
+            setError(
+                "Please enter your password."
             );
 
             return;
@@ -85,14 +104,18 @@ export default function LoginScreen() {
             const response = await api.post(
                 "/auth/login",
                 {
-                    email: email.trim().toLowerCase(),
+                    email:
+                        email
+                            .trim()
+                            .toLowerCase(),
+
                     password,
                 }
             );
 
 
             // -----------------------------------------
-            // Get Response Data
+            // Get Response
             // -----------------------------------------
 
             const {
@@ -102,14 +125,16 @@ export default function LoginScreen() {
 
 
             // -----------------------------------------
-            // Make Sure Login Returned Required Data
+            // Validate Response
             // -----------------------------------------
 
             if (!token || !user) {
 
-                throw new Error(
-                    "Invalid login response from server."
+                setError(
+                    "Login failed. The server returned an invalid response."
                 );
+
+                return;
 
             }
 
@@ -157,15 +182,52 @@ export default function LoginScreen() {
 
             console.log(
                 "MOBILE LOGIN ERROR:",
-                error.response?.data || error.message
+                error.response?.data ||
+                error.message
             );
 
 
-            Alert.alert(
-                "Login Failed",
-                error.response?.data?.message ||
-                "Unable to login. Please check your email and password."
-            );
+            // -----------------------------------------
+            // Backend Error
+            // -----------------------------------------
+
+            if (
+                error.response &&
+                error.response.data
+            ) {
+
+                setError(
+                    error.response.data.message ||
+                    "Unable to login. Please check your details."
+                );
+
+            }
+
+            // -----------------------------------------
+            // Server Unreachable
+            // -----------------------------------------
+
+            else if (
+                error.request
+            ) {
+
+                setError(
+                    "Unable to connect to Shepherd. Please check your internet connection and try again."
+                );
+
+            }
+
+            // -----------------------------------------
+            // Other Error
+            // -----------------------------------------
+
+            else {
+
+                setError(
+                    "Something went wrong. Please try again."
+                );
+
+            }
 
         }
         finally {
@@ -178,7 +240,7 @@ export default function LoginScreen() {
 
 
     // =================================================
-    // UI
+    // Render
     // =================================================
 
     return (
@@ -203,7 +265,7 @@ export default function LoginScreen() {
 
 
             {/* =========================================
-                Login Form
+                Form
             ========================================== */}
 
             <View style={styles.form}>
@@ -219,7 +281,15 @@ export default function LoginScreen() {
                     style={styles.input}
                     placeholder="Enter your email"
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(value) => {
+
+                        setEmail(value);
+
+                        if (error) {
+                            setError("");
+                        }
+
+                    }}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -238,14 +308,45 @@ export default function LoginScreen() {
                     style={styles.input}
                     placeholder="Enter your password"
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={(value) => {
+
+                        setPassword(value);
+
+                        if (error) {
+                            setError("");
+                        }
+
+                    }}
                     secureTextEntry
                     autoCapitalize="none"
                     editable={!loading}
                 />
 
 
-                {/* Login Button */}
+                {/* =====================================
+                    Error Message
+                ====================================== */}
+
+                {error ? (
+
+                    <View style={styles.errorContainer}>
+
+                        <Text style={styles.errorIcon}>
+                            !
+                        </Text>
+
+                        <Text style={styles.errorText}>
+                            {error}
+                        </Text>
+
+                    </View>
+
+                ) : null}
+
+
+                {/* =====================================
+                    Login Button
+                ====================================== */}
 
                 <TouchableOpacity
                     style={[
@@ -373,6 +474,73 @@ const styles = StyleSheet.create({
     },
 
 
+    // =================================================
+    // Error
+    // =================================================
+
+    errorContainer: {
+
+        flexDirection: "row",
+
+        alignItems: "center",
+
+        backgroundColor: "#fff1f1",
+
+        borderWidth: 1,
+
+        borderColor: "#f3b5b5",
+
+        borderRadius: 10,
+
+        paddingHorizontal: 12,
+
+        paddingVertical: 11,
+
+        marginTop: 15,
+
+    },
+
+
+    errorIcon: {
+
+        width: 22,
+
+        height: 22,
+
+        borderRadius: 11,
+
+        backgroundColor: "#d32f2f",
+
+        color: "#fff",
+
+        textAlign: "center",
+
+        lineHeight: 22,
+
+        fontWeight: "800",
+
+        marginRight: 10,
+
+    },
+
+
+    errorText: {
+
+        flex: 1,
+
+        color: "#b42318",
+
+        fontSize: 14,
+
+        lineHeight: 20,
+
+    },
+
+
+    // =================================================
+    // Button
+    // =================================================
+
     button: {
 
         backgroundColor: "#0f2a5f",
@@ -381,7 +549,7 @@ const styles = StyleSheet.create({
 
         borderRadius: 12,
 
-        marginTop: 30,
+        marginTop: 25,
 
         alignItems: "center",
 
