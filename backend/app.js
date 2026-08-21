@@ -45,16 +45,52 @@ app.use(
 
 
 
+// =====================================================
+// CORS
+// =====================================================
+
+const allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8081"
+];
+
 app.use(
     cors({
-        origin: [
-            "http://localhost:3000",
-            "http://localhost:8081"
+        origin: function (origin, callback) {
+
+            // Allow requests with no origin
+            // such as Postman or server-to-server requests
+            if (!origin) {
+                return callback(null, true);
+            }
+
+            if (allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+
+            return callback(
+                new Error("Not allowed by CORS")
+            );
+        },
+
+        credentials: true,
+
+        methods: [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "OPTIONS"
         ],
-        credentials: true
+
+        allowedHeaders: [
+            "Content-Type",
+            "Authorization"
+        ]
     })
 );
-
 
 
 

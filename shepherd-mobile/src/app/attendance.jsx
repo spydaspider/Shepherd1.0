@@ -2,44 +2,111 @@ import {
     View,
     Text,
     StyleSheet,
+    TouchableOpacity,
 } from "react-native";
+
+import {
+    useRouter,
+} from "expo-router";
 
 
 export default function AttendanceScreen() {
+
+    const router = useRouter();
+
 
     return (
 
         <View style={styles.container}>
 
-            <Text style={styles.title}>
-                Attendance
-            </Text>
+            {/* =====================================================
+                Back Button
+            ===================================================== */}
 
-            <Text style={styles.subtitle}>
-                Your attendance will appear here.
-            </Text>
+            <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
+            >
+
+                <Text style={styles.backText}>
+                    ← Back
+                </Text>
+
+            </TouchableOpacity>
+
+
+            {/* =====================================================
+                Attendance Content
+            ===================================================== */}
+
+            <View style={styles.content}>
+
+                <Text style={styles.title}>
+                    Attendance
+                </Text>
+
+
+                <Text style={styles.subtitle}>
+                    Your attendance will appear here.
+                </Text>
+
+            </View>
 
         </View>
 
     );
+
 }
 
+
+// =====================================================
+// Styles
+// =====================================================
 
 const styles = StyleSheet.create({
 
     container: {
         flex: 1,
         backgroundColor: "#f4f6fb",
-        justifyContent: "center",
-        alignItems: "center",
         padding: 20,
     },
+
+
+    // =====================================================
+    // Back Button
+    // =====================================================
+
+    backButton: {
+        alignSelf: "flex-start",
+        paddingVertical: 10,
+        paddingHorizontal: 4,
+    },
+
+
+    backText: {
+        color: "#0f2a5f",
+        fontSize: 16,
+        fontWeight: "700",
+    },
+
+
+    // =====================================================
+    // Content
+    // =====================================================
+
+    content: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
 
     title: {
         fontSize: 28,
         fontWeight: "800",
         color: "#0f2a5f",
     },
+
 
     subtitle: {
         color: "#666",

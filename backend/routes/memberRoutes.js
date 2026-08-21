@@ -13,6 +13,8 @@ const {
 
     getMemberById,
 
+    getMyDashboard,
+
     createMember,
 
     updateMember,
@@ -122,7 +124,20 @@ router.post(
 
 
 
+// =====================================================
+// GET CURRENT MEMBER DASHBOARD
+// GET /api/members/me/dashboard
+// =====================================================
 
+router.get(
+
+    "/me/dashboard",
+
+    protect,
+
+    getMyDashboard
+
+);
 
 
 
