@@ -18,23 +18,18 @@ import {
 
 import {
     useSelector,
-    useDispatch,
 } from "react-redux";
-
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import api from "../api/axios";
 
-import {
-    logout,
-} from "../store/authSlice";
 
+// =====================================================
+// HOME SCREEN
+// =====================================================
 
 export default function HomeScreen() {
 
     const router = useRouter();
-
-    const dispatch = useDispatch();
 
 
     // =====================================================
@@ -61,7 +56,7 @@ export default function HomeScreen() {
 
 
     // =====================================================
-    // Fetch Member Dashboard
+    // Fetch Dashboard
     // =====================================================
 
     useEffect(() => {
@@ -128,40 +123,55 @@ export default function HomeScreen() {
 
 
     // =====================================================
-    // Logout
+    // Format Attendance Date
     // =====================================================
 
-    const handleLogout = async () => {
+    const formatAttendanceDate = (
+        attendanceRecord
+    ) => {
 
-        try {
+        if (!attendanceRecord) {
 
-            await AsyncStorage.removeItem(
-                "token"
-            );
-
-            await AsyncStorage.removeItem(
-                "user"
-            );
-
-
-            dispatch(
-                logout()
-            );
-
-
-            router.replace(
-                "/login"
-            );
+            return "No attendance recorded yet.";
 
         }
-        catch (error) {
 
-            console.log(
-                "LOGOUT ERROR:",
-                error
-            );
+
+        const date =
+            attendanceRecord?.service?.serviceDate ||
+            attendanceRecord?.attendanceDate;
+
+
+        if (!date) {
+
+            return "No attendance date available.";
 
         }
+
+
+        const parsedDate =
+            new Date(date);
+
+
+        if (
+            Number.isNaN(
+                parsedDate.getTime()
+            )
+        ) {
+
+            return "No attendance date available.";
+
+        }
+
+
+        return parsedDate.toLocaleDateString(
+            "en-GB",
+            {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+            }
+        );
 
     };
 
@@ -202,6 +212,11 @@ export default function HomeScreen() {
 
             <View style={styles.errorContainer}>
 
+                <Text style={styles.errorIcon}>
+                    !
+                </Text>
+
+
                 <Text style={styles.errorTitle}>
                     Something went wrong
                 </Text>
@@ -219,18 +234,6 @@ export default function HomeScreen() {
 
                     <Text style={styles.retryText}>
                         Try Again
-                    </Text>
-
-                </TouchableOpacity>
-
-
-                <TouchableOpacity
-                    style={styles.logoutButton}
-                    onPress={handleLogout}
-                >
-
-                    <Text style={styles.logoutText}>
-                        Logout
                     </Text>
 
                 </TouchableOpacity>
@@ -259,11 +262,19 @@ export default function HomeScreen() {
         dashboard?.attendance;
 
 
+    // =====================================================
+    // Member Name
+    // =====================================================
+
     const firstName =
         member?.firstName ||
         user?.firstName ||
         "Member";
 
+
+    // =====================================================
+    // Attendance Statistics
+    // =====================================================
 
     const attendedThisMonth =
         attendance?.thisMonth || 0;
@@ -294,6 +305,7 @@ export default function HomeScreen() {
         <ScrollView
             style={styles.container}
             contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
         >
 
             {/* =================================================
@@ -311,6 +323,11 @@ export default function HomeScreen() {
                     {firstName}
                 </Text>
 
+
+                <Text style={styles.headerSubtitle}>
+                    Here's your attendance overview.
+                </Text>
+
             </View>
 
 
@@ -326,10 +343,8 @@ export default function HomeScreen() {
 
 
                 <Text style={styles.serviceTitle}>
-
                     {activeService?.name ||
                         "No Active Service"}
-
                 </Text>
 
 
@@ -338,7 +353,9 @@ export default function HomeScreen() {
                     <Text style={styles.serviceTime}>
 
                         {activeService.startTime}
+
                         {" - "}
+
                         {activeService.endTime}
 
                     </Text>
@@ -353,7 +370,7 @@ export default function HomeScreen() {
 
 
                 {/* =============================================
-                    Attendance Status
+                    Attendance Already Marked
                 ============================================= */}
 
                 {today?.attended ? (
@@ -372,9 +389,10 @@ export default function HomeScreen() {
                         style={styles.attendanceButton}
                         onPress={() =>
                             router.push(
-                                "/attendance"
+                                "/mark-attendance"
                             )
                         }
+                        activeOpacity={0.8}
                     >
 
                         <Text
@@ -406,9 +424,28 @@ export default function HomeScreen() {
                 Overview
             ================================================= */}
 
-            <Text style={styles.sectionTitle}>
-                Your Overview
-            </Text>
+            <View style={styles.sectionHeader}>
+
+                <Text style={styles.sectionTitle}>
+                    Your Overview
+                </Text>
+
+
+                <TouchableOpacity
+                    onPress={() =>
+                        router.push(
+                            "/attendance"
+                        )
+                    }
+                >
+
+                    <Text style={styles.viewAllText}>
+                        View History
+                    </Text>
+
+                </TouchableOpacity>
+
+            </View>
 
 
             <View style={styles.statsRow}>
@@ -418,6 +455,15 @@ export default function HomeScreen() {
                 ============================================= */}
 
                 <View style={styles.statCard}>
+
+                    <View style={styles.statIconCircle}>
+
+                        <Text style={styles.statIcon}>
+                            ✓
+                        </Text>
+
+                    </View>
+
 
                     <Text style={styles.statNumber}>
                         {attendedThisMonth}
@@ -437,6 +483,15 @@ export default function HomeScreen() {
 
                 <View style={styles.statCard}>
 
+                    <View style={styles.statIconCircle}>
+
+                        <Text style={styles.statIcon}>
+                            ×
+                        </Text>
+
+                    </View>
+
+
                     <Text style={styles.statNumber}>
                         {missedThisMonth}
                     </Text>
@@ -452,47 +507,72 @@ export default function HomeScreen() {
 
 
             {/* =================================================
-                Monthly Attendance
+                Attendance Rate
             ================================================= */}
 
-            <View style={styles.infoCard}>
+            <View style={styles.rateCard}>
 
-                <Text style={styles.infoTitle}>
-                    Attendance this month
-                </Text>
+                <View style={styles.rateHeader}>
 
+                    <View>
 
-                <Text style={styles.infoText}>
+                        <Text style={styles.rateTitle}>
+                            Attendance this month
+                        </Text>
 
-                    You have attended{" "}
+                        <Text style={styles.rateDescription}>
+                            You attended{" "}
+                            <Text style={styles.boldText}>
+                                {attendedThisMonth}
+                            </Text>
+                            {" "}of{" "}
+                            <Text style={styles.boldText}>
+                                {totalServices}
+                            </Text>
+                            {" "}services.
+                        </Text>
 
-                    <Text style={styles.boldText}>
-                        {attendedThisMonth}
-                    </Text>
-
-                    {" "}of{" "}
-
-                    <Text style={styles.boldText}>
-                        {totalServices}
-                    </Text>
-
-                    {" "}services this month.
-
-                </Text>
-
-
-                <View style={styles.rateContainer}>
-
-                    <Text style={styles.rateNumber}>
-                        {attendanceRate}%
-                    </Text>
+                    </View>
 
 
-                    <Text style={styles.rateLabel}>
-                        Attendance Rate
-                    </Text>
+                    <View style={styles.rateCircle}>
+
+                        <Text style={styles.rateNumber}>
+                            {attendanceRate}%
+                        </Text>
+
+                    </View>
 
                 </View>
+
+
+                {/* =============================================
+                    Progress Bar
+                ============================================= */}
+
+                <View style={styles.progressBackground}>
+
+                    <View
+                        style={[
+                            styles.progressFill,
+                            {
+                                width: `${Math.min(
+                                    Math.max(
+                                        attendanceRate,
+                                        0
+                                    ),
+                                    100
+                                )}%`,
+                            },
+                        ]}
+                    />
+
+                </View>
+
+
+                <Text style={styles.rateLabel}>
+                    Attendance Rate
+                </Text>
 
             </View>
 
@@ -511,11 +591,9 @@ export default function HomeScreen() {
                 {attendance?.lastAttendance ? (
 
                     <Text style={styles.infoText}>
-
-                        {new Date(
+                        {formatAttendanceDate(
                             attendance.lastAttendance
-                        ).toLocaleDateString()}
-
+                        )}
                     </Text>
 
                 ) : (
@@ -530,20 +608,44 @@ export default function HomeScreen() {
 
 
             {/* =================================================
-                Logout
+                Quick Action
             ================================================= */}
 
             <TouchableOpacity
-                style={styles.logoutButton}
-                onPress={handleLogout}
+                style={styles.historyButton}
+                onPress={() =>
+                    router.push(
+                        "/attendance"
+                    )
+                }
+                activeOpacity={0.8}
             >
 
-                <Text style={styles.logoutText}>
-                    Logout
+                <View>
+
+                    <Text style={styles.historyTitle}>
+                        Attendance History
+                    </Text>
+
+                    <Text style={styles.historySubtitle}>
+                        View your previous attendance
+                    </Text>
+
+                </View>
+
+
+                <Text style={styles.arrow}>
+                    →
                 </Text>
 
             </TouchableOpacity>
 
+
+            {/* =================================================
+                Bottom Spacing
+            ================================================= */}
+
+            <View style={styles.bottomSpacing} />
 
         </ScrollView>
 
@@ -566,7 +668,7 @@ const styles = StyleSheet.create({
 
     content: {
         padding: 20,
-        paddingBottom: 50,
+        paddingBottom: 40,
     },
 
 
@@ -575,7 +677,7 @@ const styles = StyleSheet.create({
     // =====================================================
 
     header: {
-        marginBottom: 25,
+        marginBottom: 24,
     },
 
 
@@ -593,8 +695,15 @@ const styles = StyleSheet.create({
     },
 
 
+    headerSubtitle: {
+        color: "#777",
+        fontSize: 14,
+        marginTop: 6,
+    },
+
+
     // =====================================================
-    // Service Card
+    // Today's Service
     // =====================================================
 
     serviceCard: {
@@ -629,13 +738,13 @@ const styles = StyleSheet.create({
 
 
     // =====================================================
-    // Attendance Button
+    // Mark Attendance
     // =====================================================
 
     attendanceButton: {
         backgroundColor: "#fff",
-        paddingVertical: 13,
-        borderRadius: 10,
+        paddingVertical: 14,
+        borderRadius: 11,
         marginTop: 20,
         alignItems: "center",
     },
@@ -643,7 +752,7 @@ const styles = StyleSheet.create({
 
     attendanceButtonText: {
         color: "#0f2a5f",
-        fontWeight: "700",
+        fontWeight: "800",
         fontSize: 15,
     },
 
@@ -654,8 +763,8 @@ const styles = StyleSheet.create({
 
     attendedBadge: {
         backgroundColor: "#dcfce7",
-        paddingVertical: 13,
-        borderRadius: 10,
+        paddingVertical: 14,
+        borderRadius: 11,
         marginTop: 20,
         alignItems: "center",
     },
@@ -674,8 +783,8 @@ const styles = StyleSheet.create({
 
     closedBadge: {
         backgroundColor: "#e5e7eb",
-        paddingVertical: 13,
-        borderRadius: 10,
+        paddingVertical: 14,
+        borderRadius: 11,
         marginTop: 20,
         alignItems: "center",
     },
@@ -689,16 +798,34 @@ const styles = StyleSheet.create({
 
 
     // =====================================================
-    // Overview
+    // Section Header
     // =====================================================
+
+    sectionHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 12,
+    },
+
 
     sectionTitle: {
         fontSize: 20,
         fontWeight: "800",
         color: "#222",
-        marginBottom: 12,
     },
 
+
+    viewAllText: {
+        color: "#0f2a5f",
+        fontSize: 13,
+        fontWeight: "700",
+    },
+
+
+    // =====================================================
+    // Statistics
+    // =====================================================
 
     statsRow: {
         flexDirection: "row",
@@ -710,7 +837,25 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#fff",
         borderRadius: 15,
-        padding: 20,
+        padding: 18,
+    },
+
+
+    statIconCircle: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: "#eef2ff",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 10,
+    },
+
+
+    statIcon: {
+        color: "#0f2a5f",
+        fontSize: 18,
+        fontWeight: "800",
     },
 
 
@@ -723,12 +868,93 @@ const styles = StyleSheet.create({
 
     statLabel: {
         color: "#666",
-        marginTop: 5,
+        marginTop: 4,
+        fontSize: 14,
     },
 
 
     // =====================================================
-    // Information Cards
+    // Attendance Rate
+    // =====================================================
+
+    rateCard: {
+        backgroundColor: "#fff",
+        borderRadius: 15,
+        padding: 20,
+        marginTop: 15,
+    },
+
+
+    rateHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+
+
+    rateTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: "#222",
+    },
+
+
+    rateDescription: {
+        color: "#666",
+        marginTop: 7,
+        lineHeight: 21,
+        maxWidth: 230,
+    },
+
+
+    boldText: {
+        fontWeight: "800",
+        color: "#222",
+    },
+
+
+    rateCircle: {
+        width: 65,
+        height: 65,
+        borderRadius: 33,
+        backgroundColor: "#eef2ff",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
+
+    rateNumber: {
+        fontSize: 17,
+        fontWeight: "800",
+        color: "#0f2a5f",
+    },
+
+
+    progressBackground: {
+        height: 8,
+        backgroundColor: "#e5e7eb",
+        borderRadius: 4,
+        overflow: "hidden",
+        marginTop: 20,
+    },
+
+
+    progressFill: {
+        height: "100%",
+        backgroundColor: "#0f2a5f",
+        borderRadius: 4,
+    },
+
+
+    rateLabel: {
+        color: "#777",
+        fontSize: 12,
+        marginTop: 8,
+    },
+
+
+    // =====================================================
+    // Last Attendance
     // =====================================================
 
     infoCard: {
@@ -753,56 +979,44 @@ const styles = StyleSheet.create({
     },
 
 
-    boldText: {
-        fontWeight: "800",
-        color: "#222",
-    },
-
-
     // =====================================================
-    // Attendance Rate
+    // Attendance History Quick Action
     // =====================================================
 
-    rateContainer: {
-        marginTop: 18,
-        paddingTop: 15,
-        borderTopWidth: 1,
-        borderTopColor: "#eee",
-    },
-
-
-    rateNumber: {
-        fontSize: 28,
-        fontWeight: "800",
-        color: "#0f2a5f",
-    },
-
-
-    rateLabel: {
-        color: "#666",
-        marginTop: 3,
-    },
-
-
-    // =====================================================
-    // Logout
-    // =====================================================
-
-    logoutButton: {
+    historyButton: {
         backgroundColor: "#fff",
-        borderWidth: 1,
-        borderColor: "#ddd",
-        paddingVertical: 14,
-        borderRadius: 12,
-        marginTop: 25,
+        borderRadius: 15,
+        padding: 20,
+        marginTop: 15,
+        flexDirection: "row",
+        justifyContent: "space-between",
         alignItems: "center",
     },
 
 
-    logoutText: {
-        color: "#d32f2f",
-        fontSize: 15,
+    historyTitle: {
+        color: "#222",
+        fontSize: 16,
         fontWeight: "700",
+    },
+
+
+    historySubtitle: {
+        color: "#777",
+        fontSize: 13,
+        marginTop: 5,
+    },
+
+
+    arrow: {
+        color: "#0f2a5f",
+        fontSize: 25,
+        fontWeight: "600",
+    },
+
+
+    bottomSpacing: {
+        height: 20,
     },
 
 
@@ -836,6 +1050,20 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         padding: 30,
+    },
+
+
+    errorIcon: {
+        width: 45,
+        height: 45,
+        borderRadius: 23,
+        backgroundColor: "#fee2e2",
+        color: "#dc2626",
+        fontSize: 26,
+        fontWeight: "800",
+        textAlign: "center",
+        lineHeight: 45,
+        marginBottom: 15,
     },
 
 

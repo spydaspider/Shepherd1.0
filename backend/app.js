@@ -49,10 +49,15 @@ app.use(
 // CORS
 // =====================================================
 
+// =====================================================
+// CORS
+// =====================================================
+
 const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:5173",
-    "http://localhost:8081"
+    "http://localhost:8081",
+    "http://localhost:8082",
 ];
 
 app.use(
@@ -60,7 +65,8 @@ app.use(
         origin: function (origin, callback) {
 
             // Allow requests with no origin
-            // such as Postman or server-to-server requests
+            // This includes tools such as Postman
+            // and some native app requests.
             if (!origin) {
                 return callback(null, true);
             }
@@ -69,8 +75,10 @@ app.use(
                 return callback(null, true);
             }
 
+            console.log("CORS blocked origin:", origin);
+
             return callback(
-                new Error("Not allowed by CORS")
+                new Error(`Not allowed by CORS: ${origin}`)
             );
         },
 
@@ -91,7 +99,6 @@ app.use(
         ]
     })
 );
-
 
 
 
