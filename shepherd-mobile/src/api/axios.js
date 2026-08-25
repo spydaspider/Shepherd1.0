@@ -3,6 +3,10 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
+// =====================================================
+// API CONFIGURATION
+// =====================================================
+
 const api = axios.create({
 
     baseURL: "http://192.168.0.160:5000/api",
@@ -16,15 +20,51 @@ const api = axios.create({
 });
 
 
+// =====================================================
+// ATTACH AUTH TOKEN
+// =====================================================
+
 api.interceptors.request.use(
 
     async (config) => {
 
         try {
 
-            const token =
+            // -------------------------------------------------
+            // Get saved authentication token
+            // -------------------------------------------------
+
+            let token =
                 await AsyncStorage.getItem("token");
 
+
+            // -------------------------------------------------
+            // Fallback keys
+            // -------------------------------------------------
+
+            if (!token) {
+
+                token =
+                    await AsyncStorage.getItem(
+                        "authToken"
+                    );
+
+            }
+
+
+            if (!token) {
+
+                token =
+                    await AsyncStorage.getItem(
+                        "accessToken"
+                    );
+
+            }
+
+
+            // -------------------------------------------------
+            // Attach token to request
+            // -------------------------------------------------
 
             if (token) {
 
@@ -34,6 +74,17 @@ api.interceptors.request.use(
                 config.headers.Authorization =
                     `Bearer ${token}`;
 
+
+                console.log(
+                    "API AUTH TOKEN FOUND"
+                );
+
+            } else {
+
+                console.log(
+                    "API AUTH TOKEN NOT FOUND"
+                );
+
             }
 
 
@@ -42,6 +93,11 @@ api.interceptors.request.use(
         }
 
         catch (error) {
+
+            console.log(
+                "API TOKEN ERROR:",
+                error.message
+            );
 
             return Promise.reject(error);
 

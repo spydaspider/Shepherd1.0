@@ -1,8 +1,4 @@
-import {
-    useCallback,
-    useEffect,
-    useState,
-} from "react";
+import React, { useCallback, useState } from "react";
 
 import {
     View,
@@ -18,114 +14,82 @@ import {
     useFocusEffect,
 } from "expo-router";
 
-import {
-    useSelector,
-} from "react-redux";
+import { useSelector } from "react-redux";
 
 import api from "../api/axios";
 
 
 // =====================================================
-// HOME SCREEN
+// MEMBER HOME DASHBOARD
 // =====================================================
 
 export default function HomeScreen() {
 
     const router = useRouter();
 
-
-    // =====================================================
-    // Redux User
-    // =====================================================
-
     const user = useSelector(
-        state => state.auth.user
+        (state) => state.auth.user
     );
 
+    const [dashboard, setDashboard] = useState(null);
 
-    // =====================================================
-    // Dashboard State
-    // =====================================================
+    const [loading, setLoading] = useState(true);
 
-    const [dashboard, setDashboard] =
-        useState(null);
-
-    const [loading, setLoading] =
-        useState(true);
-
-    const [error, setError] =
-        useState("");
+    const [error, setError] = useState("");
 
 
-    // =====================================================
-    // Fetch Dashboard
-    // =====================================================
+    // =================================================
+    // FETCH DASHBOARD
+    // =================================================
 
-    const fetchDashboard = useCallback(
-        async () => {
+    const fetchDashboard = useCallback(async () => {
 
-            try {
+        try {
 
-                setLoading(true);
+            setLoading(true);
 
-                setError("");
+            setError("");
 
-                // Clear previous user's dashboard data
-                setDashboard(null);
+            const response = await api.get(
+                "/members/me/dashboard"
+            );
 
+            if (response.data?.success) {
 
-                const response = await api.get(
-                    "/members/me/dashboard"
-                );
+                setDashboard(response.data);
 
-
-                if (
-                    response.data?.success
-                ) {
-
-                    setDashboard(
-                        response.data
-                    );
-
-                }
-                else {
-
-                    setError(
-                        "Unable to load your dashboard."
-                    );
-
-                }
-
-            }
-            catch (error) {
-
-                console.log(
-                    "MOBILE DASHBOARD ERROR:",
-                    error.response?.data ||
-                    error.message
-                );
-
+            } else {
 
                 setError(
-                    error.response?.data?.message ||
                     "Unable to load your dashboard."
                 );
 
             }
-            finally {
 
-                setLoading(false);
+        } catch (err) {
 
-            }
+            console.log(
+                "MEMBER DASHBOARD ERROR:",
+                err.response?.data || err.message
+            );
 
-        },
-        []
-    );
+            setError(
+                err.response?.data?.message ||
+                "Unable to load your dashboard."
+            );
+
+        } finally {
+
+            setLoading(false);
+
+        }
+
+    }, []);
 
 
-    // =====================================================
-    // Refresh Dashboard When Screen Gets Focus
-    // =====================================================
+    // =================================================
+    // REFRESH WHEN SCREEN GETS FOCUS
+    // =================================================
 
     useFocusEffect(
         useCallback(() => {
@@ -136,44 +100,52 @@ export default function HomeScreen() {
     );
 
 
-    // =====================================================
-    // Format Attendance Date
-    // =====================================================
+    // =================================================
+    // FORMAT DATE
+    // =================================================
 
-    const formatAttendanceDate = (
-        attendanceRecord
-    ) => {
+    const formatDate = (value) => {
 
-        if (!attendanceRecord) {
+        if (!value) {
 
-            return "No attendance recorded yet.";
+            return "No attendance recorded";
 
         }
 
-
-        const date =
-            attendanceRecord?.service?.serviceDate ||
-            attendanceRecord?.attendanceDate;
+        let dateValue = value;
 
 
-        if (!date) {
-
-            return "No attendance date available.";
-
-        }
-
-
-        const parsedDate =
-            new Date(date);
-
+        // If the backend returns an attendance object,
+        // get the actual date from it.
 
         if (
-            Number.isNaN(
-                parsedDate.getTime()
-            )
+            typeof value === "object" &&
+            value !== null
         ) {
 
-            return "No attendance date available.";
+            dateValue =
+                value.serviceDate ||
+                value.attendanceDate ||
+                value.date ||
+                value.createdAt ||
+                value.updatedAt;
+
+        }
+
+
+        if (!dateValue) {
+
+            return "No attendance recorded";
+
+        }
+
+
+        const parsedDate = new Date(dateValue);
+
+
+        if (Number.isNaN(parsedDate.getTime())) {
+
+            return "Date unavailable";
 
         }
 
@@ -190,14 +162,13 @@ export default function HomeScreen() {
     };
 
 
-    // =====================================================
-    // Loading
-    // =====================================================
+    // =================================================
+    // LOADING
+    // =================================================
 
     if (loading) {
 
         return (
-
             <View style={styles.loadingContainer}>
 
                 <ActivityIndicator
@@ -210,40 +181,40 @@ export default function HomeScreen() {
                 </Text>
 
             </View>
-
         );
 
     }
 
 
-    // =====================================================
-    // Error
-    // =====================================================
+    // =================================================
+    // ERROR
+    // =================================================
 
     if (error) {
 
         return (
-
             <View style={styles.errorContainer}>
 
-                <Text style={styles.errorIcon}>
-                    !
-                </Text>
+                <View style={styles.errorCircle}>
 
+                    <Text style={styles.errorIcon}>
+                        !
+                    </Text>
+
+                </View>
 
                 <Text style={styles.errorTitle}>
                     Something went wrong
                 </Text>
 
-
                 <Text style={styles.errorMessage}>
                     {error}
                 </Text>
 
-
                 <TouchableOpacity
                     style={styles.retryButton}
                     onPress={fetchDashboard}
+                    activeOpacity={0.8}
                 >
 
                     <Text style={styles.retryText}>
@@ -253,18 +224,16 @@ export default function HomeScreen() {
                 </TouchableOpacity>
 
             </View>
-
         );
 
     }
 
 
-    // =====================================================
-    // Dashboard Data
-    // =====================================================
+    // =================================================
+    // DASHBOARD DATA
+    // =================================================
 
-    const member =
-        dashboard?.member;
+    const member = dashboard?.member;
 
     const activeService =
         dashboard?.activeService;
@@ -276,155 +245,216 @@ export default function HomeScreen() {
         dashboard?.attendance;
 
 
-    // =====================================================
-    // Member Name
-    // =====================================================
+    // =================================================
+    // MEMBER NAME
+    // =================================================
 
     const firstName =
         member?.firstName ||
         user?.firstName ||
         "Member";
 
+    const lastName =
+        member?.lastName ||
+        user?.lastName ||
+        "";
 
-    // =====================================================
-    // Attendance Statistics
-    // =====================================================
-
-    const attendedThisMonth =
-        attendance?.thisMonth || 0;
-
-
-    const totalServices =
-        attendance?.thisMonthServices || 0;
+    const fullName =
+        `${firstName} ${lastName}`.trim();
 
 
-    const missedThisMonth =
+    // =================================================
+    // ATTENDANCE DATA
+    // =================================================
+
+    const attended =
+        Number(attendance?.thisMonth || 0);
+
+    const services =
+        Number(
+            attendance?.thisMonthServices || 0
+        );
+
+    const missed =
         Math.max(
-            totalServices -
-            attendedThisMonth,
+            services - attended,
             0
         );
 
-
     const attendanceRate =
-        attendance?.thisMonthRate || 0;
+        Number(
+            attendance?.thisMonthRate || 0
+        );
+
+    const safeAttendanceRate =
+        Math.min(
+            Math.max(
+                attendanceRate,
+                0
+            ),
+            100
+        );
 
 
-    // =====================================================
-    // Home Screen
-    // =====================================================
+    // =================================================
+    // LAST ATTENDANCE
+    // =================================================
+
+    const lastAttendance =
+        attendance?.lastAttendance;
+
+
+    // =================================================
+    // RENDER
+    // =================================================
 
     return (
-
         <ScrollView
             style={styles.container}
             contentContainerStyle={styles.content}
             showsVerticalScrollIndicator={false}
         >
 
-            {/* =================================================
-                Header
-            ================================================= */}
+            {/* HEADER */}
 
             <View style={styles.header}>
 
-                <Text style={styles.welcome}>
-                    Welcome back 👋
-                </Text>
+                <View style={styles.headerText}>
 
+                    <Text style={styles.greeting}>
+                        Welcome back
+                    </Text>
 
-                <Text style={styles.name}>
-                    {firstName}
-                </Text>
+                    <Text style={styles.memberName}>
+                        {fullName}
+                    </Text>
 
+                </View>
 
-                <Text style={styles.headerSubtitle}>
-                    Here's your attendance overview.
-                </Text>
+                <View style={styles.profileCircle}>
+
+                    <Text style={styles.profileLetter}>
+                        {firstName
+                            .charAt(0)
+                            .toUpperCase()}
+                    </Text>
+
+                </View>
 
             </View>
 
 
-            {/* =================================================
-                Today's Service
-            ================================================= */}
+            {/* TODAY'S SERVICE */}
 
             <View style={styles.serviceCard}>
 
-                <Text style={styles.smallText}>
-                    TODAY'S SERVICE
-                </Text>
+                <View style={styles.serviceTopRow}>
 
+                    <View style={styles.serviceInformation}>
 
-                <Text style={styles.serviceTitle}>
-                    {activeService?.name ||
-                        "No Active Service"}
-                </Text>
+                        <Text style={styles.serviceLabel}>
+                            TODAY'S SERVICE
+                        </Text>
+
+                        <Text style={styles.serviceName}>
+                            {activeService?.name ||
+                                "No Active Service"}
+                        </Text>
+
+                    </View>
+
+                    <View style={styles.serviceIcon}>
+
+                        <Text style={styles.serviceIconText}>
+                            Church
+                        </Text>
+
+                    </View>
+
+                </View>
 
 
                 {activeService ? (
 
-                    <Text style={styles.serviceTime}>
+                    <View style={styles.timeContainer}>
 
-                        {activeService.startTime}
+                        <Text style={styles.clockIcon}>
+                            Time
+                        </Text>
 
-                        {" - "}
+                        <Text style={styles.serviceTime}>
+                            {activeService.startTime}
+                            {" - "}
+                            {activeService.endTime}
+                        </Text>
 
-                        {activeService.endTime}
-
-                    </Text>
+                    </View>
 
                 ) : (
 
-                    <Text style={styles.serviceTime}>
-                        No service currently available
+                    <Text style={styles.noServiceText}>
+                        There is currently no active service.
                     </Text>
 
                 )}
 
 
-                {/* =============================================
-                    Attendance Already Marked
-                ============================================= */}
+                {/* ATTENDANCE STATUS */}
 
                 {today?.attended ? (
 
-                    <View style={styles.attendedBadge}>
+                    <View style={styles.attendanceMarked}>
 
-                        <Text style={styles.attendedText}>
-                            ✓ Attendance Marked
-                        </Text>
+                        <View style={styles.checkCircle}>
+
+                            <Text style={styles.checkText}>
+                                ✓
+                            </Text>
+
+                        </View>
+
+                        <View style={styles.markedInformation}>
+
+                            <Text style={styles.markedTitle}>
+                                Attendance Marked
+                            </Text>
+
+                            <Text style={styles.markedSubtitle}>
+                                You are recorded for today's service
+                            </Text>
+
+                        </View>
 
                     </View>
 
                 ) : activeService?.attendanceOpen ? (
 
                     <TouchableOpacity
-                        style={styles.attendanceButton}
-                        onPress={() =>
+                        style={styles.markButton}
+                        onPress={() => {
                             router.push(
                                 "/mark-attendance"
-                            )
-                        }
-                        activeOpacity={0.8}
+                            );
+                        }}
+                        activeOpacity={0.85}
                     >
 
-                        <Text
-                            style={
-                                styles.attendanceButtonText
-                            }
-                        >
+                        <Text style={styles.markButtonText}>
                             Mark Attendance
+                        </Text>
+
+                        <Text style={styles.markButtonArrow}>
+                            →
                         </Text>
 
                     </TouchableOpacity>
 
                 ) : (
 
-                    <View style={styles.closedBadge}>
+                    <View style={styles.closedContainer}>
 
                         <Text style={styles.closedText}>
-                            Attendance Closed
+                            Attendance is currently closed
                         </Text>
 
                     </View>
@@ -434,27 +464,31 @@ export default function HomeScreen() {
             </View>
 
 
-            {/* =================================================
-                Overview
-            ================================================= */}
+            {/* ATTENDANCE OVERVIEW */}
 
             <View style={styles.sectionHeader}>
 
-                <Text style={styles.sectionTitle}>
-                    Your Overview
-                </Text>
+                <View>
 
+                    <Text style={styles.sectionTitle}>
+                        Attendance Overview
+                    </Text>
+
+                    <Text style={styles.sectionSubtitle}>
+                        Your attendance this month
+                    </Text>
+
+                </View>
 
                 <TouchableOpacity
-                    onPress={() =>
-                        router.push(
-                            "/attendance"
-                        )
-                    }
+                    onPress={() => {
+                        router.push("/attendance");
+                    }}
+                    activeOpacity={0.7}
                 >
 
-                    <Text style={styles.viewAllText}>
-                        View History
+                    <Text style={styles.viewHistory}>
+                        History
                     </Text>
 
                 </TouchableOpacity>
@@ -462,27 +496,90 @@ export default function HomeScreen() {
             </View>
 
 
-            <View style={styles.statsRow}>
+            {/* ATTENDANCE RATE */}
 
-                {/* =============================================
-                    Attended
-                ============================================= */}
+            <View style={styles.overviewCard}>
+
+                <View style={styles.rateSection}>
+
+                    <View style={styles.rateCircle}>
+
+                        <Text style={styles.rateNumber}>
+                            {attendanceRate}%
+                        </Text>
+
+                        <Text style={styles.rateSmallText}>
+                            rate
+                        </Text>
+
+                    </View>
+
+                    <View style={styles.rateInfo}>
+
+                        <Text style={styles.rateTitle}>
+                            Monthly Attendance
+                        </Text>
+
+                        <Text style={styles.rateDescription}>
+                            You attended{" "}
+
+                            <Text style={styles.boldText}>
+                                {attended}
+                            </Text>
+
+                            {" "}out of{" "}
+
+                            <Text style={styles.boldText}>
+                                {services}
+                            </Text>
+
+                            {" "}services this month.
+                        </Text>
+
+                    </View>
+
+                </View>
+
+
+                <View style={styles.progressBackground}>
+
+                    <View
+                        style={[
+                            styles.progressFill,
+                            {
+                                width:
+                                    `${safeAttendanceRate}%`,
+                            },
+                        ]}
+                    />
+
+                </View>
+
+            </View>
+
+
+            {/* STATISTICS */}
+
+            <View style={styles.statsRow}>
 
                 <View style={styles.statCard}>
 
-                    <View style={styles.statIconCircle}>
+                    <View
+                        style={[
+                            styles.statIcon,
+                            styles.presentIcon,
+                        ]}
+                    >
 
-                        <Text style={styles.statIcon}>
+                        <Text style={styles.presentSymbol}>
                             ✓
                         </Text>
 
                     </View>
 
-
                     <Text style={styles.statNumber}>
-                        {attendedThisMonth}
+                        {attended}
                     </Text>
-
 
                     <Text style={styles.statLabel}>
                         Attended
@@ -491,25 +588,24 @@ export default function HomeScreen() {
                 </View>
 
 
-                {/* =============================================
-                    Missed
-                ============================================= */}
-
                 <View style={styles.statCard}>
 
-                    <View style={styles.statIconCircle}>
+                    <View
+                        style={[
+                            styles.statIcon,
+                            styles.missedIcon,
+                        ]}
+                    >
 
-                        <Text style={styles.statIcon}>
+                        <Text style={styles.missedSymbol}>
                             ×
                         </Text>
 
                     </View>
 
-
                     <Text style={styles.statNumber}>
-                        {missedThisMonth}
+                        {missed}
                     </Text>
-
 
                     <Text style={styles.statLabel}>
                         Missed
@@ -517,163 +613,136 @@ export default function HomeScreen() {
 
                 </View>
 
-            </View>
 
-
-            {/* =================================================
-                Attendance Rate
-            ================================================= */}
-
-            <View style={styles.rateCard}>
-
-                <View style={styles.rateHeader}>
-
-                    <View>
-
-                        <Text style={styles.rateTitle}>
-                            Attendance this month
-                        </Text>
-
-                        <Text style={styles.rateDescription}>
-                            You attended{" "}
-
-                            <Text style={styles.boldText}>
-                                {attendedThisMonth}
-                            </Text>
-
-                            {" "}of{" "}
-
-                            <Text style={styles.boldText}>
-                                {totalServices}
-                            </Text>
-
-                            {" "}services.
-                        </Text>
-
-                    </View>
-
-
-                    <View style={styles.rateCircle}>
-
-                        <Text style={styles.rateNumber}>
-                            {attendanceRate}%
-                        </Text>
-
-                    </View>
-
-                </View>
-
-
-                {/* =============================================
-                    Progress Bar
-                ============================================= */}
-
-                <View style={styles.progressBackground}>
+                <View style={styles.statCard}>
 
                     <View
                         style={[
-                            styles.progressFill,
-                            {
-                                width: `${Math.min(
-                                    Math.max(
-                                        attendanceRate,
-                                        0
-                                    ),
-                                    100
-                                )}%`,
-                            },
+                            styles.statIcon,
+                            styles.serviceCountIcon,
                         ]}
-                    />
+                    >
 
-                </View>
+                        <Text style={styles.serviceCountSymbol}>
+                            #
+                        </Text>
 
+                    </View>
 
-                <Text style={styles.rateLabel}>
-                    Attendance Rate
-                </Text>
-
-            </View>
-
-
-            {/* =================================================
-                Last Attendance
-            ================================================= */}
-
-            <View style={styles.infoCard}>
-
-                <Text style={styles.infoTitle}>
-                    Last Attendance
-                </Text>
-
-
-                {attendance?.lastAttendance ? (
-
-                    <Text style={styles.infoText}>
-                        {formatAttendanceDate(
-                            attendance.lastAttendance
-                        )}
+                    <Text style={styles.statNumber}>
+                        {services}
                     </Text>
 
-                ) : (
-
-                    <Text style={styles.infoText}>
-                        No attendance recorded yet.
-                    </Text>
-
-                )}
-
-            </View>
-
-
-            {/* =================================================
-                Quick Action
-            ================================================= */}
-
-            <TouchableOpacity
-                style={styles.historyButton}
-                onPress={() =>
-                    router.push(
-                        "/attendance"
-                    )
-                }
-                activeOpacity={0.8}
-            >
-
-                <View>
-
-                    <Text style={styles.historyTitle}>
-                        Attendance History
-                    </Text>
-
-                    <Text style={styles.historySubtitle}>
-                        View your previous attendance
+                    <Text style={styles.statLabel}>
+                        Services
                     </Text>
 
                 </View>
 
-
-                <Text style={styles.arrow}>
-                    →
-                </Text>
-
-            </TouchableOpacity>
+            </View>
 
 
-            {/* =================================================
-                Bottom Spacing
-            ================================================= */}
+            {/* LAST ATTENDANCE */}
+
+            <View style={styles.lastAttendanceCard}>
+
+                <View style={styles.lastIcon}>
+
+                    <Text style={styles.lastIconText}>
+                        ✓
+                    </Text>
+
+                </View>
+
+                <View style={styles.lastInfo}>
+
+                    <Text style={styles.lastTitle}>
+                        Last Attendance
+                    </Text>
+
+                    <Text style={styles.lastDate}>
+                        {formatDate(lastAttendance)}
+                    </Text>
+
+                </View>
+
+            </View>
+
+
+            {/* QUICK ACTIONS */}
+
+            <Text style={styles.quickTitle}>
+                Quick Actions
+            </Text>
+
+
+            <View style={styles.quickActions}>
+
+                <TouchableOpacity
+                    style={styles.quickCard}
+                    onPress={() => {
+                        router.push("/attendance");
+                    }}
+                    activeOpacity={0.8}
+                >
+
+                    <View style={styles.quickIcon}>
+
+                        <Text style={styles.quickIconText}>
+                            ✓
+                        </Text>
+
+                    </View>
+
+                    <Text style={styles.quickCardTitle}>
+                        Attendance
+                    </Text>
+
+                    <Text style={styles.quickCardText}>
+                        View your history
+                    </Text>
+
+                </TouchableOpacity>
+
+
+                <TouchableOpacity
+                    style={styles.quickCard}
+                    onPress={() => {
+                        router.push("/profile");
+                    }}
+                    activeOpacity={0.8}
+                >
+
+                    <View style={styles.quickIcon}>
+
+                        <Text style={styles.quickIconText}>
+                            P
+                        </Text>
+
+                    </View>
+
+                    <Text style={styles.quickCardTitle}>
+                        My Profile
+                    </Text>
+
+                    <Text style={styles.quickCardText}>
+                        View your profile
+                    </Text>
+
+                </TouchableOpacity>
+
+            </View>
+
 
             <View style={styles.bottomSpacing} />
 
         </ScrollView>
-
     );
-
 }
 
 
 // =====================================================
-// Styles
+// STYLES
 // =====================================================
 
 const styles = StyleSheet.create({
@@ -683,141 +752,216 @@ const styles = StyleSheet.create({
         backgroundColor: "#f4f6fb",
     },
 
-
     content: {
         padding: 20,
         paddingBottom: 40,
     },
 
 
-    // =====================================================
-    // Header
-    // =====================================================
+    // HEADER
 
     header: {
-        marginBottom: 24,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 25,
     },
 
-
-    welcome: {
-        fontSize: 15,
-        color: "#666",
+    headerText: {
+        flex: 1,
     },
 
-
-    name: {
-        fontSize: 30,
-        fontWeight: "800",
-        color: "#0f2a5f",
-        marginTop: 3,
-    },
-
-
-    headerSubtitle: {
+    greeting: {
         color: "#777",
         fontSize: 14,
-        marginTop: 6,
+        marginBottom: 3,
+    },
+
+    memberName: {
+        color: "#0f2a5f",
+        fontSize: 28,
+        fontWeight: "800",
+    },
+
+    profileCircle: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: "#0f2a5f",
+        justifyContent: "center",
+        alignItems: "center",
+        marginLeft: 12,
+    },
+
+    profileLetter: {
+        color: "#fff",
+        fontSize: 20,
+        fontWeight: "800",
     },
 
 
-    // =====================================================
-    // Today's Service
-    // =====================================================
+    // SERVICE CARD
 
     serviceCard: {
         backgroundColor: "#0f2a5f",
-        borderRadius: 18,
+        borderRadius: 20,
         padding: 22,
         marginBottom: 28,
     },
 
-
-    smallText: {
-        color: "#cbd5e1",
-        fontSize: 12,
-        fontWeight: "700",
-        letterSpacing: 1,
+    serviceTopRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
     },
 
+    serviceInformation: {
+        flex: 1,
+        paddingRight: 10,
+    },
 
-    serviceTitle: {
-        color: "#fff",
-        fontSize: 24,
+    serviceLabel: {
+        color: "#aebedb",
+        fontSize: 11,
         fontWeight: "800",
-        marginTop: 8,
+        letterSpacing: 1.2,
     },
 
+    serviceName: {
+        color: "#fff",
+        fontSize: 23,
+        fontWeight: "800",
+        marginTop: 7,
+    },
+
+    serviceIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: "rgba(255, 255, 255, 0.12)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
+    serviceIconText: {
+        color: "#fff",
+        fontSize: 10,
+        fontWeight: "700",
+    },
+
+    timeContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 13,
+    },
+
+    clockIcon: {
+        color: "#dbe4f5",
+        fontSize: 12,
+        marginRight: 8,
+        fontWeight: "700",
+    },
 
     serviceTime: {
         color: "#dbe4f5",
-        fontSize: 15,
-        marginTop: 5,
+        fontSize: 14,
+    },
+
+    noServiceText: {
+        color: "#cbd5e1",
+        fontSize: 14,
+        marginTop: 13,
     },
 
 
-    // =====================================================
-    // Mark Attendance
-    // =====================================================
+    // MARK ATTENDANCE
 
-    attendanceButton: {
+    markButton: {
         backgroundColor: "#fff",
+        borderRadius: 12,
         paddingVertical: 14,
-        borderRadius: 11,
+        paddingHorizontal: 16,
         marginTop: 20,
+        flexDirection: "row",
+        justifyContent: "space-between",
         alignItems: "center",
     },
 
-
-    attendanceButtonText: {
+    markButtonText: {
         color: "#0f2a5f",
+        fontSize: 15,
         fontWeight: "800",
-        fontSize: 15,
     },
 
-
-    // =====================================================
-    // Attendance Marked
-    // =====================================================
-
-    attendedBadge: {
-        backgroundColor: "#dcfce7",
-        paddingVertical: 14,
-        borderRadius: 11,
-        marginTop: 20,
-        alignItems: "center",
-    },
-
-
-    attendedText: {
-        color: "#166534",
-        fontSize: 15,
+    markButtonArrow: {
+        color: "#0f2a5f",
+        fontSize: 21,
         fontWeight: "700",
     },
 
 
-    // =====================================================
-    // Attendance Closed
-    // =====================================================
+    // ATTENDANCE MARKED
 
-    closedBadge: {
-        backgroundColor: "#e5e7eb",
-        paddingVertical: 14,
-        borderRadius: 11,
+    attendanceMarked: {
+        backgroundColor: "#dcfce7",
+        borderRadius: 12,
+        padding: 13,
         marginTop: 20,
+        flexDirection: "row",
         alignItems: "center",
     },
 
+    checkCircle: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: "#22c55e",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 10,
+    },
+
+    checkText: {
+        color: "#fff",
+        fontSize: 17,
+        fontWeight: "800",
+    },
+
+    markedInformation: {
+        flex: 1,
+    },
+
+    markedTitle: {
+        color: "#166534",
+        fontSize: 14,
+        fontWeight: "800",
+    },
+
+    markedSubtitle: {
+        color: "#15803d",
+        fontSize: 11,
+        marginTop: 2,
+    },
+
+
+    // CLOSED
+
+    closedContainer: {
+        backgroundColor: "#e5e7eb",
+        borderRadius: 12,
+        paddingVertical: 14,
+        marginTop: 20,
+        alignItems: "center",
+    },
 
     closedText: {
         color: "#4b5563",
-        fontSize: 15,
+        fontSize: 13,
         fontWeight: "700",
     },
 
 
-    // =====================================================
-    // Section Header
-    // =====================================================
+    // SECTION HEADER
 
     sectionHeader: {
         flexDirection: "row",
@@ -826,136 +970,90 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
 
-
     sectionTitle: {
+        color: "#222",
         fontSize: 20,
         fontWeight: "800",
-        color: "#222",
     },
 
+    sectionSubtitle: {
+        color: "#888",
+        fontSize: 12,
+        marginTop: 3,
+    },
 
-    viewAllText: {
+    viewHistory: {
         color: "#0f2a5f",
         fontSize: 13,
-        fontWeight: "700",
-    },
-
-
-    // =====================================================
-    // Statistics
-    // =====================================================
-
-    statsRow: {
-        flexDirection: "row",
-        gap: 12,
-    },
-
-
-    statCard: {
-        flex: 1,
-        backgroundColor: "#fff",
-        borderRadius: 15,
-        padding: 18,
-    },
-
-
-    statIconCircle: {
-        width: 34,
-        height: 34,
-        borderRadius: 17,
-        backgroundColor: "#eef2ff",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 10,
-    },
-
-
-    statIcon: {
-        color: "#0f2a5f",
-        fontSize: 18,
         fontWeight: "800",
     },
 
 
-    statNumber: {
-        fontSize: 30,
-        fontWeight: "800",
-        color: "#0f2a5f",
-    },
+    // OVERVIEW CARD
 
-
-    statLabel: {
-        color: "#666",
-        marginTop: 4,
-        fontSize: 14,
-    },
-
-
-    // =====================================================
-    // Attendance Rate
-    // =====================================================
-
-    rateCard: {
+    overviewCard: {
         backgroundColor: "#fff",
-        borderRadius: 15,
+        borderRadius: 18,
         padding: 20,
-        marginTop: 15,
+        marginBottom: 12,
     },
 
-
-    rateHeader: {
+    rateSection: {
         flexDirection: "row",
-        justifyContent: "space-between",
         alignItems: "center",
     },
-
-
-    rateTitle: {
-        fontSize: 16,
-        fontWeight: "700",
-        color: "#222",
-    },
-
-
-    rateDescription: {
-        color: "#666",
-        marginTop: 7,
-        lineHeight: 21,
-        maxWidth: 230,
-    },
-
-
-    boldText: {
-        fontWeight: "800",
-        color: "#222",
-    },
-
 
     rateCircle: {
-        width: 65,
-        height: 65,
-        borderRadius: 33,
+        width: 78,
+        height: 78,
+        borderRadius: 39,
         backgroundColor: "#eef2ff",
         justifyContent: "center",
         alignItems: "center",
+        marginRight: 15,
     },
-
 
     rateNumber: {
-        fontSize: 17,
-        fontWeight: "800",
         color: "#0f2a5f",
+        fontSize: 20,
+        fontWeight: "800",
     },
 
+    rateSmallText: {
+        color: "#777",
+        fontSize: 10,
+        marginTop: 1,
+    },
+
+    rateInfo: {
+        flex: 1,
+    },
+
+    rateTitle: {
+        color: "#222",
+        fontSize: 16,
+        fontWeight: "800",
+    },
+
+    rateDescription: {
+        color: "#777",
+        fontSize: 13,
+        lineHeight: 19,
+        marginTop: 5,
+    },
+
+    boldText: {
+        color: "#222",
+        fontWeight: "800",
+    },
 
     progressBackground: {
         height: 8,
         backgroundColor: "#e5e7eb",
         borderRadius: 4,
         overflow: "hidden",
-        marginTop: 20,
+        marginTop: 18,
     },
-
 
     progressFill: {
         height: "100%",
@@ -964,103 +1062,184 @@ const styles = StyleSheet.create({
     },
 
 
-    rateLabel: {
-        color: "#777",
-        fontSize: 12,
-        marginTop: 8,
-    },
+    // STATISTICS
 
-
-    // =====================================================
-    // Last Attendance
-    // =====================================================
-
-    infoCard: {
-        backgroundColor: "#fff",
-        borderRadius: 15,
-        padding: 20,
-        marginTop: 15,
-    },
-
-
-    infoTitle: {
-        fontSize: 16,
-        fontWeight: "700",
-        color: "#222",
-    },
-
-
-    infoText: {
-        color: "#666",
-        marginTop: 7,
-        lineHeight: 21,
-    },
-
-
-    // =====================================================
-    // Attendance History Quick Action
-    // =====================================================
-
-    historyButton: {
-        backgroundColor: "#fff",
-        borderRadius: 15,
-        padding: 20,
-        marginTop: 15,
+    statsRow: {
         flexDirection: "row",
-        justifyContent: "space-between",
+        marginBottom: 15,
+    },
+
+    statCard: {
+        flex: 1,
+        backgroundColor: "#fff",
+        borderRadius: 15,
+        padding: 15,
+        marginHorizontal: 4,
+    },
+
+    statIcon: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        justifyContent: "center",
         alignItems: "center",
+        marginBottom: 9,
     },
 
-
-    historyTitle: {
-        color: "#222",
-        fontSize: 16,
-        fontWeight: "700",
+    presentIcon: {
+        backgroundColor: "#dcfce7",
     },
 
-
-    historySubtitle: {
-        color: "#777",
-        fontSize: 13,
-        marginTop: 5,
+    missedIcon: {
+        backgroundColor: "#fee2e2",
     },
 
+    serviceCountIcon: {
+        backgroundColor: "#eef2ff",
+    },
 
-    arrow: {
+    presentSymbol: {
+        color: "#15803d",
+        fontSize: 17,
+        fontWeight: "800",
+    },
+
+    missedSymbol: {
+        color: "#dc2626",
+        fontSize: 20,
+        fontWeight: "800",
+    },
+
+    serviceCountSymbol: {
+        color: "#0f2a5f",
+        fontSize: 17,
+        fontWeight: "800",
+    },
+
+    statNumber: {
         color: "#0f2a5f",
         fontSize: 25,
-        fontWeight: "600",
+        fontWeight: "800",
+    },
+
+    statLabel: {
+        color: "#777",
+        fontSize: 12,
+        marginTop: 2,
     },
 
 
-    bottomSpacing: {
-        height: 20,
+    // LAST ATTENDANCE
+
+    lastAttendanceCard: {
+        backgroundColor: "#fff",
+        borderRadius: 15,
+        padding: 17,
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 24,
+    },
+
+    lastIcon: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: "#eef2ff",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 12,
+    },
+
+    lastIconText: {
+        color: "#0f2a5f",
+        fontSize: 18,
+        fontWeight: "800",
+    },
+
+    lastInfo: {
+        flex: 1,
+    },
+
+    lastTitle: {
+        color: "#222",
+        fontSize: 14,
+        fontWeight: "800",
+    },
+
+    lastDate: {
+        color: "#777",
+        fontSize: 13,
+        marginTop: 3,
     },
 
 
-    // =====================================================
-    // Loading
-    // =====================================================
+    // QUICK ACTIONS
+
+    quickTitle: {
+        color: "#222",
+        fontSize: 18,
+        fontWeight: "800",
+        marginBottom: 12,
+    },
+
+    quickActions: {
+        flexDirection: "row",
+    },
+
+    quickCard: {
+        flex: 1,
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: 17,
+        marginHorizontal: 5,
+    },
+
+    quickIcon: {
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        backgroundColor: "#eef2ff",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 10,
+    },
+
+    quickIconText: {
+        color: "#0f2a5f",
+        fontSize: 17,
+        fontWeight: "800",
+    },
+
+    quickCardTitle: {
+        color: "#222",
+        fontSize: 14,
+        fontWeight: "800",
+    },
+
+    quickCardText: {
+        color: "#888",
+        fontSize: 11,
+        marginTop: 3,
+    },
+
+
+    // LOADING
 
     loadingContainer: {
         flex: 1,
         backgroundColor: "#f4f6fb",
         justifyContent: "center",
         alignItems: "center",
-        padding: 30,
     },
-
 
     loadingText: {
-        marginTop: 12,
         color: "#666",
-        fontSize: 15,
+        fontSize: 14,
+        marginTop: 12,
     },
 
 
-    // =====================================================
-    // Error
-    // =====================================================
+    // ERROR
 
     errorContainer: {
         flex: 1,
@@ -1070,50 +1249,56 @@ const styles = StyleSheet.create({
         padding: 30,
     },
 
-
-    errorIcon: {
-        width: 45,
-        height: 45,
-        borderRadius: 23,
+    errorCircle: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         backgroundColor: "#fee2e2",
-        color: "#dc2626",
-        fontSize: 26,
-        fontWeight: "800",
-        textAlign: "center",
-        lineHeight: 45,
+        justifyContent: "center",
+        alignItems: "center",
         marginBottom: 15,
     },
 
+    errorIcon: {
+        color: "#dc2626",
+        fontSize: 25,
+        fontWeight: "800",
+    },
 
     errorTitle: {
-        fontSize: 22,
-        fontWeight: "800",
         color: "#222",
+        fontSize: 21,
+        fontWeight: "800",
         textAlign: "center",
     },
- 
 
     errorMessage: {
         color: "#666",
-        textAlign: "center",
-        marginTop: 10,
+        fontSize: 14,
         lineHeight: 21,
+        textAlign: "center",
+        marginTop: 9,
     },
-
 
     retryButton: {
         backgroundColor: "#0f2a5f",
+        borderRadius: 11,
         paddingHorizontal: 30,
         paddingVertical: 13,
-        borderRadius: 10,
-        marginTop: 25,
+        marginTop: 22,
     },
-
 
     retryText: {
         color: "#fff",
-        fontSize: 15,
-        fontWeight: "700",
+        fontSize: 14,
+        fontWeight: "800",
+    },
+
+
+    // BOTTOM
+
+    bottomSpacing: {
+        height: 25,
     },
 
 });
