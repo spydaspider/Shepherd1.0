@@ -1,42 +1,35 @@
-import { Tabs } from "expo-router";
-
-import { Ionicons } from "@expo/vector-icons";
-
 import { Provider } from "react-redux";
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import store from "../store/store";
 
-
 export default function RootLayout() {
-
     return (
-
         <Provider store={store}>
-
             <Tabs
                 screenOptions={{
                     headerShown: false,
 
                     tabBarActiveTintColor: "#0f2a5f",
+                    tabBarInactiveTintColor: "#8a8a8a",
 
-                    tabBarInactiveTintColor: "#888",
+                    tabBarStyle: {
+                        height: 65,
+                        paddingBottom: 8,
+                        paddingTop: 6,
+                    },
 
                     tabBarLabelStyle: {
                         fontSize: 12,
                         fontWeight: "600",
                     },
-
-                    tabBarStyle: {
-                        height: 65,
-                        paddingBottom: 8,
-                        paddingTop: 5,
-                    },
                 }}
             >
 
-                {/* =====================================================
-                    Home
-                ===================================================== */}
+                {/* ==============================
+                    HOME
+                ============================== */}
 
                 <Tabs.Screen
                     name="index"
@@ -44,21 +37,19 @@ export default function RootLayout() {
                         title: "Home",
 
                         tabBarIcon: ({ color, size }) => (
-
                             <Ionicons
                                 name="home-outline"
                                 size={size}
                                 color={color}
                             />
-
                         ),
                     }}
                 />
 
 
-                {/* =====================================================
-                    Attendance
-                ===================================================== */}
+                {/* ==============================
+                    ATTENDANCE
+                ============================== */}
 
                 <Tabs.Screen
                     name="attendance"
@@ -66,21 +57,19 @@ export default function RootLayout() {
                         title: "Attendance",
 
                         tabBarIcon: ({ color, size }) => (
-
                             <Ionicons
                                 name="calendar-outline"
                                 size={size}
                                 color={color}
                             />
-
                         ),
                     }}
                 />
 
 
-                {/* =====================================================
-                    Notifications
-                ===================================================== */}
+                {/* ==============================
+                    NOTIFICATIONS
+                ============================== */}
 
                 <Tabs.Screen
                     name="notifications"
@@ -88,21 +77,19 @@ export default function RootLayout() {
                         title: "Notifications",
 
                         tabBarIcon: ({ color, size }) => (
-
                             <Ionicons
                                 name="notifications-outline"
                                 size={size}
                                 color={color}
                             />
-
                         ),
                     }}
                 />
 
 
-                {/* =====================================================
-                    Profile
-                ===================================================== */}
+                {/* ==============================
+                    PROFILE
+                ============================== */}
 
                 <Tabs.Screen
                     name="profile"
@@ -110,21 +97,26 @@ export default function RootLayout() {
                         title: "Profile",
 
                         tabBarIcon: ({ color, size }) => (
-
                             <Ionicons
                                 name="person-outline"
                                 size={size}
                                 color={color}
                             />
-
                         ),
                     }}
                 />
 
 
-                {/* =====================================================
-                    Hidden Explore Screen
-                ===================================================== */}
+                {/* ==============================
+                    HIDDEN ROUTES
+                ============================== */}
+
+                <Tabs.Screen
+                    name="login"
+                    options={{
+                        href: null,
+                    }}
+                />
 
                 <Tabs.Screen
                     name="explore"
@@ -133,10 +125,14 @@ export default function RootLayout() {
                     }}
                 />
 
+                <Tabs.Screen
+                    name="mark-attendance"
+                    options={{
+                        href: null,
+                    }}
+                />
+
             </Tabs>
-
         </Provider>
-
     );
-
 }

@@ -1,4 +1,5 @@
 import {
+    useCallback,
     useEffect,
     useState,
 } from "react";
@@ -14,6 +15,7 @@ import {
 
 import {
     useRouter,
+    useFocusEffect,
 } from "expo-router";
 
 import {
@@ -59,67 +61,79 @@ export default function HomeScreen() {
     // Fetch Dashboard
     // =====================================================
 
-    useEffect(() => {
+    const fetchDashboard = useCallback(
+        async () => {
 
-        fetchDashboard();
+            try {
 
-    }, []);
+                setLoading(true);
 
+                setError("");
 
-    const fetchDashboard = async () => {
-
-        try {
-
-            setLoading(true);
-
-            setError("");
+                // Clear previous user's dashboard data
+                setDashboard(null);
 
 
-            const response = await api.get(
-                "/members/me/dashboard"
-            );
-
-
-            if (
-                response.data?.success
-            ) {
-
-                setDashboard(
-                    response.data
+                const response = await api.get(
+                    "/members/me/dashboard"
                 );
 
+
+                if (
+                    response.data?.success
+                ) {
+
+                    setDashboard(
+                        response.data
+                    );
+
+                }
+                else {
+
+                    setError(
+                        "Unable to load your dashboard."
+                    );
+
+                }
+
             }
-            else {
+            catch (error) {
+
+                console.log(
+                    "MOBILE DASHBOARD ERROR:",
+                    error.response?.data ||
+                    error.message
+                );
+
 
                 setError(
+                    error.response?.data?.message ||
                     "Unable to load your dashboard."
                 );
 
             }
+            finally {
 
-        }
-        catch (error) {
+                setLoading(false);
 
-            console.log(
-                "MOBILE DASHBOARD ERROR:",
-                error.response?.data ||
-                error.message
-            );
+            }
+
+        },
+        []
+    );
 
 
-            setError(
-                error.response?.data?.message ||
-                "Unable to load your dashboard."
-            );
+    // =====================================================
+    // Refresh Dashboard When Screen Gets Focus
+    // =====================================================
 
-        }
-        finally {
+    useFocusEffect(
+        useCallback(() => {
 
-            setLoading(false);
+            fetchDashboard();
 
-        }
-
-    };
+        }, [fetchDashboard])
+    );
 
 
     // =====================================================
@@ -522,13 +536,17 @@ export default function HomeScreen() {
 
                         <Text style={styles.rateDescription}>
                             You attended{" "}
+
                             <Text style={styles.boldText}>
                                 {attendedThisMonth}
                             </Text>
+
                             {" "}of{" "}
+
                             <Text style={styles.boldText}>
                                 {totalServices}
                             </Text>
+
                             {" "}services.
                         </Text>
 
@@ -1073,7 +1091,7 @@ const styles = StyleSheet.create({
         color: "#222",
         textAlign: "center",
     },
-
+ 
 
     errorMessage: {
         color: "#666",

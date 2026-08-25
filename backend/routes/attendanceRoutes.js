@@ -13,7 +13,9 @@ const {
 
     getAttendanceDashboard,
 
-    updateAttendanceStatus
+    updateAttendanceStatus,
+
+    getMyAttendanceHistory 
 
 } = require("../controllers/attendanceController");
 
@@ -101,7 +103,21 @@ router.get(
 );
 
 
+// =================================================
+// Member Attendance History
+//
+// GET /api/attendance/my-history
+// =================================================
 
+router.get(
+
+    "/my-history",
+
+    protect,
+
+    getMyAttendanceHistory
+
+);
 
 
 

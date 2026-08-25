@@ -3,7 +3,107 @@ const Service = require("../models/Service");
 const User = require("../models/User");
 
 
+// =====================================================
+// Get My Attendance History
+// GET /api/attendance/my-history
+// =====================================================
 
+const getMyAttendanceHistory = async (req, res) => {
+
+    try {
+
+        const attendance = await Attendance.find({
+            user: req.user._id,
+        })
+
+            .populate(
+                "service",
+                "name serviceType serviceDate startTime endTime"
+            )
+
+            .sort({
+                attendanceDate: -1,
+                createdAt: -1,
+            });
+
+
+        // =================================================
+        // Calculate Summary
+        // =================================================
+
+        const total = attendance.length;
+
+        const present = attendance.filter(
+            item => item.status === "Present"
+        ).length;
+
+        const absent = attendance.filter(
+            item => item.status === "Absent"
+        ).length;
+
+        const excused = attendance.filter(
+            item => item.status === "Excused"
+        ).length;
+
+
+        const attendanceRate =
+            total > 0
+                ? Number(
+                    (
+                        present /
+                        total *
+                        100
+                    ).toFixed(2)
+                )
+                : 0;
+
+
+        // =================================================
+        // Response
+        // =================================================
+
+        res.json({
+
+            success: true,
+
+            summary: {
+
+                total,
+
+                present,
+
+                absent,
+
+                excused,
+
+                attendanceRate,
+
+            },
+
+            attendance,
+
+        });
+
+    }
+    catch (error) {
+
+        console.error(
+            "Get member attendance history error:",
+            error
+        );
+
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message,
+
+        });
+
+    }
+
+};
 
 // =====================================================
 // Update Attendance Summary
@@ -1182,7 +1282,9 @@ getServiceAttendance,
 
 getAttendanceDashboard,
 
-updateAttendanceStatus
+updateAttendanceStatus,
+
+ getMyAttendanceHistory
 
 
 };
