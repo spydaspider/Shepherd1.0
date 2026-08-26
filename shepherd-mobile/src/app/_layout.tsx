@@ -14,9 +14,8 @@ import {
 
 import {
     Tabs,
-    Redirect,
-    Slot,
     usePathname,
+    useRouter,
 } from "expo-router";
 
 import {
@@ -41,6 +40,8 @@ function AppTabs() {
 
     const dispatch = useDispatch();
 
+    const router = useRouter();
+
     const pathname = usePathname();
 
 
@@ -54,12 +55,11 @@ function AppTabs() {
 
 
     // =================================================
-    // CHECK IF CURRENT PAGE IS LOGIN
+    // CHECK CURRENT ROUTE
     // =================================================
 
     const isLoginScreen =
-        pathname === "/login" ||
-        pathname?.endsWith("/login");
+        pathname === "/login";
 
 
     // =================================================
@@ -74,10 +74,12 @@ function AppTabs() {
                 "CHECKING SAVED AUTH SESSION..."
             );
 
+
             try {
 
                 const token =
                     await AsyncStorage.getItem("token");
+
 
                 const userString =
                     await AsyncStorage.getItem("user");
@@ -90,7 +92,7 @@ function AppTabs() {
 
 
                 // =========================================
-                // NO SAVED TOKEN
+                // NO TOKEN
                 // =========================================
 
                 if (!token) {
@@ -99,11 +101,14 @@ function AppTabs() {
                         "NO SAVED AUTH TOKEN"
                     );
 
+
                     dispatch(
                         sessionExpired()
                     );
 
+
                     return;
+
                 }
 
 
@@ -140,8 +145,8 @@ function AppTabs() {
 
                 dispatch(
                     restoreSession({
-                        token: token,
-                        user: user,
+                        token,
+                        user,
                     })
                 );
 
@@ -174,13 +179,99 @@ function AppTabs() {
 
 
     // =================================================
+    // HANDLE AUTHENTICATION ROUTING
+    // =================================================
+
+    useEffect(() => {
+
+        // ---------------------------------------------
+        // Wait until AsyncStorage has been checked
+        // ---------------------------------------------
+
+        if (!authChecked) {
+
+            return;
+
+        }
+
+
+        // ---------------------------------------------
+        // USER IS NOT LOGGED IN
+        // ---------------------------------------------
+
+        if (!isAuthenticated) {
+
+            // Already on login.
+            // Do absolutely nothing.
+
+            if (isLoginScreen) {
+
+                return;
+
+            }
+
+
+            console.log(
+                "USER NOT AUTHENTICATED"
+            );
+
+
+            console.log(
+                "NAVIGATING TO LOGIN..."
+            );
+
+
+            router.replace("/login");
+
+
+            return;
+
+        }
+
+
+        // ---------------------------------------------
+        // USER IS LOGGED IN
+        // ---------------------------------------------
+
+        if (
+            isAuthenticated &&
+            isLoginScreen
+        ) {
+
+            console.log(
+                "USER ALREADY AUTHENTICATED"
+            );
+
+
+            console.log(
+                "NAVIGATING TO HOME..."
+            );
+
+
+            router.replace("/");
+
+        }
+
+    }, [
+        authChecked,
+        isAuthenticated,
+        isLoginScreen,
+        router,
+    ]);
+
+
+    // =================================================
     // WAIT FOR AUTH CHECK
     // =================================================
 
     if (!authChecked) {
 
         return (
-            <View style={styles.loadingContainer}>
+            <View
+                style={
+                    styles.loadingContainer
+                }
+            >
 
                 <ActivityIndicator
                     size="large"
@@ -194,35 +285,22 @@ function AppTabs() {
 
 
     // =================================================
-    // NOT AUTHENTICATED
+    // TABS NAVIGATOR
     // =================================================
-
-    if (!isAuthenticated) {
-
-        // =============================================
-        // IMPORTANT:
-        // If we are already on LOGIN, DO NOT REDIRECT.
-        // Otherwise we create an infinite redirect loop.
-        // =============================================
-
-        if (isLoginScreen) {
-
-            return (
-                <Slot />
-            );
-
-        }
-
-
-        return (
-            <Redirect href="/login" />
-        );
-
-    }
-
-
-    // =================================================
-    // AUTHENTICATED
+    //
+    // IMPORTANT:
+    // The Tabs navigator ALWAYS remains mounted.
+    //
+    // This prevents the previous:
+    //
+    // "REPLACE was not handled by any navigator"
+    //
+    // and:
+    //
+    // "Unmatched Route"
+    //
+    // problems.
+    //
     // =================================================
 
     return (
@@ -349,19 +427,25 @@ function AppTabs() {
 
 
             {/* =========================================
-                HIDDEN LOGIN
+                LOGIN
             ========================================== */}
 
             <Tabs.Screen
                 name="login"
                 options={{
                     href: null,
+
+                    // Hide the tab bar on login.
+
+                    tabBarStyle: {
+                        display: "none",
+                    },
                 }}
             />
 
 
             {/* =========================================
-                HIDDEN EXPLORE
+                EXPLORE
             ========================================== */}
 
             <Tabs.Screen
@@ -373,7 +457,7 @@ function AppTabs() {
 
 
             {/* =========================================
-                HIDDEN MARK ATTENDANCE
+                MARK ATTENDANCE
             ========================================== */}
 
             <Tabs.Screen

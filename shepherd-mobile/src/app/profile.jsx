@@ -7,10 +7,6 @@ import {
 } from "react-native";
 
 import {
-    useRouter,
-} from "expo-router";
-
-import {
     useDispatch,
     useSelector,
 } from "react-redux";
@@ -27,8 +23,6 @@ import {
 // =====================================================
 
 export default function ProfileScreen() {
-
-    const router = useRouter();
 
     const dispatch = useDispatch();
 
@@ -99,19 +93,21 @@ export default function ProfileScreen() {
                             // ---------------------------------
                             // Clear Redux authentication
                             // ---------------------------------
+                            //
+                            // IMPORTANT:
+                            // Do NOT call router.replace("/login")
+                            // here.
+                            //
+                            // _layout.tsx watches isAuthenticated.
+                            // Once logout() changes it to false,
+                            // the authentication gate redirects
+                            // to /login automatically.
+                            // ---------------------------------
 
                             dispatch(
                                 logout()
                             );
 
-
-                            // ---------------------------------
-                            // Return to Login
-                            // ---------------------------------
-
-                            router.replace(
-                                "/login"
-                            );
 
                         }
                         catch (error) {
