@@ -1,16 +1,25 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 
+// =====================================================
+// INITIAL AUTH STATE
+// =====================================================
+
 const initialState = {
-
     user: null,
-
     token: null,
-
     isAuthenticated: false,
 
+    // Important:
+    // false means we have not finished checking
+    // AsyncStorage yet.
+    authChecked: false,
 };
 
+
+// =====================================================
+// AUTH SLICE
+// =====================================================
 
 const authSlice = createSlice({
 
@@ -20,6 +29,10 @@ const authSlice = createSlice({
 
     reducers: {
 
+        // =================================================
+        // LOGIN SUCCESS
+        // =================================================
+
         loginSuccess: (state, action) => {
 
             state.user = action.payload.user;
@@ -28,19 +41,13 @@ const authSlice = createSlice({
 
             state.isAuthenticated = true;
 
+            state.authChecked = true;
         },
 
 
-        logout: (state) => {
-
-            state.user = null;
-
-            state.token = null;
-
-            state.isAuthenticated = false;
-
-        },
-
+        // =================================================
+        // RESTORE SAVED SESSION
+        // =================================================
 
         restoreSession: (state, action) => {
 
@@ -50,6 +57,39 @@ const authSlice = createSlice({
 
             state.isAuthenticated = true;
 
+            state.authChecked = true;
+        },
+
+
+        // =================================================
+        // NO SAVED SESSION
+        // =================================================
+
+        sessionExpired: (state) => {
+
+            state.user = null;
+
+            state.token = null;
+
+            state.isAuthenticated = false;
+
+            state.authChecked = true;
+        },
+
+
+        // =================================================
+        // LOGOUT
+        // =================================================
+
+        logout: (state) => {
+
+            state.user = null;
+
+            state.token = null;
+
+            state.isAuthenticated = false;
+
+            state.authChecked = true;
         },
 
     },
@@ -57,15 +97,20 @@ const authSlice = createSlice({
 });
 
 
+// =====================================================
+// EXPORT ACTIONS
+// =====================================================
+
 export const {
-
     loginSuccess,
-
-    logout,
-
     restoreSession,
-
+    sessionExpired,
+    logout,
 } = authSlice.actions;
 
+
+// =====================================================
+// EXPORT REDUCER
+// =====================================================
 
 export default authSlice.reducer;
