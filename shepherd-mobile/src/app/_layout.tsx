@@ -88,6 +88,9 @@ function AppTabs() {
 
     useEffect(() => {
 
+        let intervalId = null;
+
+
         const fetchUnreadNotificationCount =
             async () => {
 
@@ -134,12 +137,31 @@ function AppTabs() {
             };
 
 
+        // =================================================
+        // START POLLING
+        // =================================================
+
         if (
             authChecked &&
             isAuthenticated
         ) {
 
+            // Fetch immediately
+
             fetchUnreadNotificationCount();
+
+
+            // Check every 30 seconds
+
+            intervalId =
+                setInterval(
+                    () => {
+
+                        fetchUnreadNotificationCount();
+
+                    },
+                    30000
+                );
 
         } else {
 
@@ -148,6 +170,23 @@ function AppTabs() {
             );
 
         }
+
+
+        // =================================================
+        // CLEAN UP POLLING
+        // =================================================
+
+        return () => {
+
+            if (intervalId) {
+
+                clearInterval(
+                    intervalId
+                );
+
+            }
+
+        };
 
     }, [
         authChecked,
@@ -191,10 +230,6 @@ function AppTabs() {
                             : "NOT FOUND"
                     );
 
-
-                    // =====================================
-                    // NO TOKEN
-                    // =====================================
 
                     if (!token) {
 
@@ -293,10 +328,6 @@ function AppTabs() {
         }
 
 
-        // =============================================
-        // USER NOT AUTHENTICATED
-        // =============================================
-
         if (!isAuthenticated) {
 
             if (isLoginScreen) {
@@ -316,17 +347,15 @@ function AppTabs() {
             );
 
 
-            router.replace("/login");
+            router.replace(
+                "/login"
+            );
 
 
             return;
 
         }
 
-
-        // =============================================
-        // USER AUTHENTICATED
-        // =============================================
 
         if (
             isAuthenticated &&
@@ -343,7 +372,9 @@ function AppTabs() {
             );
 
 
-            router.replace("/");
+            router.replace(
+                "/"
+            );
 
         }
 
@@ -502,10 +533,6 @@ function AppTabs() {
                                 color={color}
                             />
 
-
-                            {/* =================================
-                                REDUX BADGE
-                            ================================= */}
 
                             {unreadCount > 0 && (
 
