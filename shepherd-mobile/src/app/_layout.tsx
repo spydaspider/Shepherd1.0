@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import {
     View,
@@ -32,11 +32,17 @@ import {
     sessionExpired,
 } from "../store/authSlice";
 
+import {
+    setNotifications,
+    setNotificationLoading,
+    setNotificationError,
+} from "../store/notificationSlice";
+
 import api from "../api/axios";
 
 
 // =====================================================
-// AUTHENTICATION GATE
+// AUTHENTICATION AND APP GATE
 // =====================================================
 
 function AppTabs() {
@@ -65,7 +71,9 @@ function AppTabs() {
     // NOTIFICATION STATE
     // =================================================
 
-    const [unreadCount, setUnreadCount] = useState(0);
+    const unreadCount = useSelector(
+        (state) => state.notifications.unreadCount
+    );
 
 
     // =================================================
@@ -74,75 +82,6 @@ function AppTabs() {
 
     const isLoginScreen =
         pathname === "/login";
-
-
-    // =================================================
-    // FETCH UNREAD NOTIFICATION COUNT
-    // =================================================
-
-    const fetchUnreadNotificationCount = async () => {
-
-        try {
-
-            if (!isAuthenticated) {
-
-                setUnreadCount(0);
-
-                return;
-
-            }
-
-
-            const response =
-                await api.get("/notifications");
-
-
-            const count =
-                response?.data?.unreadCount;
-
-
-            setUnreadCount(
-                Number(count) || 0
-            );
-
-
-        } catch (error) {
-
-            console.log(
-                "FETCH NOTIFICATION COUNT ERROR:",
-                error?.response?.data ||
-                error.message
-            );
-
-        }
-
-    };
-
-
-    // =================================================
-    // REFRESH NOTIFICATION COUNT
-    // =================================================
-
-    useEffect(() => {
-
-        if (
-            authChecked &&
-            isAuthenticated
-        ) {
-
-            fetchUnreadNotificationCount();
-
-        } else {
-
-            setUnreadCount(0);
-
-        }
-
-    }, [
-        authChecked,
-        isAuthenticated,
-        pathname,
-    ]);
 
 
     // =================================================
@@ -265,6 +204,103 @@ function AppTabs() {
 
 
     // =================================================
+    // FETCH NOTIFICATIONS
+    // =================================================
+
+    useEffect(() => {
+
+        const fetchNotifications =
+            async () => {
+
+                // -----------------------------------------
+                // Do not fetch notifications before auth
+                // -----------------------------------------
+
+                if (
+                    !authChecked ||
+                    !isAuthenticated
+                ) {
+
+                    return;
+
+                }
+
+
+                try {
+
+                    dispatch(
+                        setNotificationLoading(true)
+                    );
+
+
+                    const response =
+                        await api.get(
+                            "/notifications"
+                        );
+
+
+                    if (
+                        response.data?.success
+                    ) {
+
+                        dispatch(
+                            setNotifications({
+                                notifications:
+                                    Array.isArray(
+                                        response.data.notifications
+                                    )
+                                        ? response.data.notifications
+                                        : [],
+
+                                unreadCount:
+                                    Number(
+                                        response.data.unreadCount || 0
+                                    ),
+                            })
+                        );
+
+                    } else {
+
+                        dispatch(
+                            setNotificationError(
+                                "Unable to load notifications."
+                            )
+                        );
+
+                    }
+
+                }
+                catch (error) {
+
+                    console.log(
+                        "FETCH NOTIFICATIONS ERROR:",
+                        error?.response?.data ||
+                        error?.message
+                    );
+
+
+                    dispatch(
+                        setNotificationError(
+                            error?.response?.data?.message ||
+                            "Unable to load notifications."
+                        )
+                    );
+
+                }
+
+            };
+
+
+        fetchNotifications();
+
+    }, [
+        authChecked,
+        isAuthenticated,
+        dispatch,
+    ]);
+
+
+    // =================================================
     // HANDLE AUTHENTICATION ROUTING
     // =================================================
 
@@ -304,7 +340,9 @@ function AppTabs() {
             );
 
 
-            router.replace("/login");
+            router.replace(
+                "/login"
+            );
 
 
             return;
@@ -331,7 +369,9 @@ function AppTabs() {
             );
 
 
-            router.replace("/");
+            router.replace(
+                "/"
+            );
 
         }
 
@@ -501,7 +541,7 @@ function AppTabs() {
 
                             {/* =================================
                                 UNREAD COUNT
-                            ================================= */}
+                            ================================== */}
 
                             {unreadCount > 0 && (
 
