@@ -1,96 +1,94 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+
+// =====================================================
+// INITIAL STATE
+// =====================================================
+
 const initialState = {
-    notifications: [],
     unreadCount: 0,
-    loading: false,
-    error: null,
 };
 
+
+// =====================================================
+// NOTIFICATION SLICE
+// =====================================================
+
 const notificationSlice = createSlice({
+
     name: "notifications",
+
     initialState,
 
     reducers: {
-        setNotifications: (state, action) => {
-            state.notifications = action.payload.notifications || [];
-            state.unreadCount = action.payload.unreadCount || 0;
-            state.loading = false;
-            state.error = null;
+
+        // =================================================
+        // SET UNREAD COUNT
+        // =================================================
+
+        setUnreadCount: (state, action) => {
+
+            state.unreadCount =
+                Number(action.payload) || 0;
+
         },
 
-        setNotificationLoading: (state, action) => {
-            state.loading = action.payload;
-        },
 
-        setNotificationError: (state, action) => {
-            state.error = action.payload;
-            state.loading = false;
-        },
+        // =================================================
+        // DECREASE UNREAD COUNT
+        // =================================================
 
-        markNotificationAsRead: (state, action) => {
-            const notificationId = action.payload;
+        decreaseUnreadCount: (state) => {
 
-            const notification = state.notifications.find(
-                (item) => item._id === notificationId
-            );
+            if (state.unreadCount > 0) {
 
-            if (notification && !notification.isRead) {
-                notification.isRead = true;
-                notification.readAt = new Date().toISOString();
+                state.unreadCount -= 1;
 
-                state.unreadCount = Math.max(
-                    state.unreadCount - 1,
-                    0
-                );
             }
+
         },
 
-        markAllNotificationsAsRead: (state) => {
-            state.notifications.forEach((notification) => {
-                notification.isRead = true;
-                notification.readAt = new Date().toISOString();
-            });
+
+        // =================================================
+        // MARK ALL AS READ
+        // =================================================
+
+        clearUnreadCount: (state) => {
 
             state.unreadCount = 0;
+
         },
 
-        removeNotification: (state, action) => {
-            const notificationId = action.payload;
 
-            const notification = state.notifications.find(
-                (item) => item._id === notificationId
-            );
+        // =================================================
+        // RESET NOTIFICATIONS
+        // =================================================
 
-            state.notifications = state.notifications.filter(
-                (item) => item._id !== notificationId
-            );
+        resetNotifications: (state) => {
 
-            if (notification && !notification.isRead) {
-                state.unreadCount = Math.max(
-                    state.unreadCount - 1,
-                    0
-                );
-            }
-        },
-
-        clearNotifications: (state) => {
-            state.notifications = [];
             state.unreadCount = 0;
-            state.loading = false;
-            state.error = null;
+
         },
+
     },
+
 });
 
+
+// =====================================================
+// EXPORT ACTIONS
+// =====================================================
+
 export const {
-    setNotifications,
-    setNotificationLoading,
-    setNotificationError,
-    markNotificationAsRead,
-    markAllNotificationsAsRead,
-    removeNotification,
-    clearNotifications,
+    setUnreadCount,
+    decreaseUnreadCount,
+    clearUnreadCount,
+    resetNotifications,
 } = notificationSlice.actions;
+
+
+// =====================================================
+// EXPORT REDUCER
+// =====================================================
 
 export default notificationSlice.reducer;

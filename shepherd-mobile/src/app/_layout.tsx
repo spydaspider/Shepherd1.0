@@ -33,16 +33,14 @@ import {
 } from "../store/authSlice";
 
 import {
-    setNotifications,
-    setNotificationLoading,
-    setNotificationError,
+    setUnreadCount,
 } from "../store/notificationSlice";
 
 import api from "../api/axios";
 
 
 // =====================================================
-// AUTHENTICATION AND APP GATE
+// AUTHENTICATION GATE
 // =====================================================
 
 function AppTabs() {
@@ -68,7 +66,7 @@ function AppTabs() {
 
 
     // =================================================
-    // NOTIFICATION STATE
+    // NOTIFICATION STATE FROM REDUX
     // =================================================
 
     const unreadCount = useSelector(
@@ -85,152 +83,25 @@ function AppTabs() {
 
 
     // =================================================
-    // RESTORE SAVED SESSION
+    // FETCH UNREAD NOTIFICATION COUNT
     // =================================================
 
     useEffect(() => {
 
-        const restoreSavedSession = async () => {
-
-            console.log(
-                "CHECKING SAVED AUTH SESSION..."
-            );
-
-
-            try {
-
-                const token =
-                    await AsyncStorage.getItem("token");
-
-
-                const userString =
-                    await AsyncStorage.getItem("user");
-
-
-                console.log(
-                    "TOKEN:",
-                    token
-                        ? "FOUND"
-                        : "NOT FOUND"
-                );
-
-
-                // =========================================
-                // NO TOKEN
-                // =========================================
-
-                if (!token) {
-
-                    console.log(
-                        "NO SAVED AUTH TOKEN"
-                    );
-
-
-                    dispatch(
-                        sessionExpired()
-                    );
-
-
-                    return;
-
-                }
-
-
-                // =========================================
-                // RESTORE USER
-                // =========================================
-
-                let user = null;
-
-
-                if (userString) {
-
-                    try {
-
-                        user =
-                            JSON.parse(
-                                userString
-                            );
-
-                    } catch (error) {
-
-                        console.log(
-                            "USER DATA COULD NOT BE PARSED:",
-                            error
-                        );
-
-                    }
-
-                }
-
-
-                // =========================================
-                // RESTORE REDUX SESSION
-                // =========================================
-
-                dispatch(
-                    restoreSession({
-                        token,
-                        user,
-                    })
-                );
-
-
-                console.log(
-                    "AUTH SESSION RESTORED"
-                );
-
-
-            } catch (error) {
-
-                console.log(
-                    "SESSION RESTORATION ERROR:",
-                    error
-                );
-
-
-                dispatch(
-                    sessionExpired()
-                );
-
-            }
-
-        };
-
-
-        restoreSavedSession();
-
-    }, [dispatch]);
-
-
-    // =================================================
-    // FETCH NOTIFICATIONS
-    // =================================================
-
-    useEffect(() => {
-
-        const fetchNotifications =
+        const fetchUnreadNotificationCount =
             async () => {
-
-                // -----------------------------------------
-                // Do not fetch notifications before auth
-                // -----------------------------------------
-
-                if (
-                    !authChecked ||
-                    !isAuthenticated
-                ) {
-
-                    return;
-
-                }
-
 
                 try {
 
-                    dispatch(
-                        setNotificationLoading(true)
-                    );
+                    if (!isAuthenticated) {
+
+                        dispatch(
+                            setUnreadCount(0)
+                        );
+
+                        return;
+
+                    }
 
 
                     const response =
@@ -239,51 +110,23 @@ function AppTabs() {
                         );
 
 
-                    if (
-                        response.data?.success
-                    ) {
-
-                        dispatch(
-                            setNotifications({
-                                notifications:
-                                    Array.isArray(
-                                        response.data.notifications
-                                    )
-                                        ? response.data.notifications
-                                        : [],
-
-                                unreadCount:
-                                    Number(
-                                        response.data.unreadCount || 0
-                                    ),
-                            })
-                        );
-
-                    } else {
-
-                        dispatch(
-                            setNotificationError(
-                                "Unable to load notifications."
-                            )
-                        );
-
-                    }
-
-                }
-                catch (error) {
-
-                    console.log(
-                        "FETCH NOTIFICATIONS ERROR:",
-                        error?.response?.data ||
-                        error?.message
-                    );
+                    const count =
+                        response?.data?.unreadCount;
 
 
                     dispatch(
-                        setNotificationError(
-                            error?.response?.data?.message ||
-                            "Unable to load notifications."
+                        setUnreadCount(
+                            Number(count) || 0
                         )
+                    );
+
+
+                } catch (error) {
+
+                    console.log(
+                        "FETCH NOTIFICATION COUNT ERROR:",
+                        error?.response?.data ||
+                        error?.message
                     );
 
                 }
@@ -291,7 +134,20 @@ function AppTabs() {
             };
 
 
-        fetchNotifications();
+        if (
+            authChecked &&
+            isAuthenticated
+        ) {
+
+            fetchUnreadNotificationCount();
+
+        } else {
+
+            dispatch(
+                setUnreadCount(0)
+            );
+
+        }
 
     }, [
         authChecked,
@@ -301,14 +157,134 @@ function AppTabs() {
 
 
     // =================================================
-    // HANDLE AUTHENTICATION ROUTING
+    // RESTORE SAVED SESSION
     // =================================================
 
     useEffect(() => {
 
-        // ---------------------------------------------
-        // Wait until authentication has been checked
-        // ---------------------------------------------
+        const restoreSavedSession =
+            async () => {
+
+                console.log(
+                    "CHECKING SAVED AUTH SESSION..."
+                );
+
+
+                try {
+
+                    const token =
+                        await AsyncStorage.getItem(
+                            "token"
+                        );
+
+
+                    const userString =
+                        await AsyncStorage.getItem(
+                            "user"
+                        );
+
+
+                    console.log(
+                        "TOKEN:",
+                        token
+                            ? "FOUND"
+                            : "NOT FOUND"
+                    );
+
+
+                    // =====================================
+                    // NO TOKEN
+                    // =====================================
+
+                    if (!token) {
+
+                        console.log(
+                            "NO SAVED AUTH TOKEN"
+                        );
+
+
+                        dispatch(
+                            sessionExpired()
+                        );
+
+
+                        return;
+
+                    }
+
+
+                    // =====================================
+                    // RESTORE USER
+                    // =====================================
+
+                    let user = null;
+
+
+                    if (userString) {
+
+                        try {
+
+                            user =
+                                JSON.parse(
+                                    userString
+                                );
+
+                        } catch (error) {
+
+                            console.log(
+                                "USER DATA COULD NOT BE PARSED:",
+                                error
+                            );
+
+                        }
+
+                    }
+
+
+                    // =====================================
+                    // RESTORE REDUX SESSION
+                    // =====================================
+
+                    dispatch(
+                        restoreSession({
+                            token,
+                            user,
+                        })
+                    );
+
+
+                    console.log(
+                        "AUTH SESSION RESTORED"
+                    );
+
+
+                } catch (error) {
+
+                    console.log(
+                        "SESSION RESTORATION ERROR:",
+                        error
+                    );
+
+
+                    dispatch(
+                        sessionExpired()
+                    );
+
+                }
+
+            };
+
+
+        restoreSavedSession();
+
+    }, [dispatch]);
+
+
+    // =================================================
+    // HANDLE AUTHENTICATION ROUTING
+    // =================================================
+
+    useEffect(() => {
 
         if (!authChecked) {
 
@@ -317,9 +293,9 @@ function AppTabs() {
         }
 
 
-        // ---------------------------------------------
-        // USER IS NOT AUTHENTICATED
-        // ---------------------------------------------
+        // =============================================
+        // USER NOT AUTHENTICATED
+        // =============================================
 
         if (!isAuthenticated) {
 
@@ -340,9 +316,7 @@ function AppTabs() {
             );
 
 
-            router.replace(
-                "/login"
-            );
+            router.replace("/login");
 
 
             return;
@@ -350,9 +324,9 @@ function AppTabs() {
         }
 
 
-        // ---------------------------------------------
-        // USER IS AUTHENTICATED
-        // ---------------------------------------------
+        // =============================================
+        // USER AUTHENTICATED
+        // =============================================
 
         if (
             isAuthenticated &&
@@ -369,9 +343,7 @@ function AppTabs() {
             );
 
 
-            router.replace(
-                "/"
-            );
+            router.replace("/");
 
         }
 
@@ -410,7 +382,7 @@ function AppTabs() {
 
 
     // =================================================
-    // TABS NAVIGATOR
+    // TABS
     // =================================================
 
     return (
@@ -454,9 +426,7 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
-
                 name="index"
-
                 options={{
 
                     title: "Home",
@@ -475,7 +445,6 @@ function AppTabs() {
                     ),
 
                 }}
-
             />
 
 
@@ -484,9 +453,7 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
-
                 name="attendance"
-
                 options={{
 
                     title: "Attendance",
@@ -505,7 +472,6 @@ function AppTabs() {
                     ),
 
                 }}
-
             />
 
 
@@ -514,9 +480,7 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
-
                 name="notifications"
-
                 options={{
 
                     title: "Notifications",
@@ -540,8 +504,8 @@ function AppTabs() {
 
 
                             {/* =================================
-                                UNREAD COUNT
-                            ================================== */}
+                                REDUX BADGE
+                            ================================= */}
 
                             {unreadCount > 0 && (
 
@@ -574,7 +538,6 @@ function AppTabs() {
                     ),
 
                 }}
-
             />
 
 
@@ -583,9 +546,7 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
-
                 name="profile"
-
                 options={{
 
                     title: "Profile",
@@ -604,7 +565,6 @@ function AppTabs() {
                     ),
 
                 }}
-
             />
 
 
@@ -613,21 +573,16 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
-
                 name="login"
-
                 options={{
 
                     href: null,
 
                     tabBarStyle: {
-
                         display: "none",
-
                     },
 
                 }}
-
             />
 
 
@@ -636,15 +591,10 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
-
                 name="explore"
-
                 options={{
-
                     href: null,
-
                 }}
-
             />
 
 
@@ -653,15 +603,10 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
-
                 name="mark-attendance"
-
                 options={{
-
                     href: null,
-
                 }}
-
             />
 
         </Tabs>
@@ -709,10 +654,6 @@ const styles = StyleSheet.create({
     },
 
 
-    // =================================================
-    // NOTIFICATION ICON CONTAINER
-    // =================================================
-
     notificationIconContainer: {
 
         position: "relative",
@@ -723,10 +664,6 @@ const styles = StyleSheet.create({
 
     },
 
-
-    // =================================================
-    // NOTIFICATION BADGE
-    // =================================================
 
     notificationBadge: {
 
@@ -756,10 +693,6 @@ const styles = StyleSheet.create({
 
     },
 
-
-    // =================================================
-    // BADGE TEXT
-    // =================================================
 
     notificationBadgeText: {
 

@@ -18,6 +18,16 @@ import {
     useFocusEffect,
 } from "expo-router";
 
+import {
+    useDispatch,
+} from "react-redux";
+
+import {
+    setUnreadCount,
+    decreaseUnreadCount,
+    clearUnreadCount,
+} from "../store/notificationSlice";
+
 import api from "../api/axios";
 
 
@@ -27,15 +37,17 @@ import api from "../api/axios";
 
 export default function NotificationsScreen() {
 
+    const dispatch = useDispatch();
+
 
     // =================================================
-    // State
+    // STATE
     // =================================================
 
     const [notifications, setNotifications] =
         useState([]);
 
-    const [unreadCount, setUnreadCount] =
+    const [unreadCount, setUnreadCountLocal] =
         useState(0);
 
     const [loading, setLoading] =
@@ -49,7 +61,7 @@ export default function NotificationsScreen() {
 
 
     // =================================================
-    // Fetch Notifications
+    // FETCH NOTIFICATIONS
     // =================================================
 
     const fetchNotifications =
@@ -66,6 +78,7 @@ export default function NotificationsScreen() {
 
                     }
 
+
                     setError("");
 
 
@@ -79,19 +92,38 @@ export default function NotificationsScreen() {
                         response.data?.success
                     ) {
 
-                        setNotifications(
+                        const notificationList =
                             Array.isArray(
                                 response.data.notifications
                             )
                                 ? response.data.notifications
-                                : []
-                        );
+                                : [];
 
 
-                        setUnreadCount(
+                        const count =
                             Number(
                                 response.data.unreadCount ||
                                 0
+                            );
+
+
+                        setNotifications(
+                            notificationList
+                        );
+
+
+                        setUnreadCountLocal(
+                            count
+                        );
+
+
+                        // =================================
+                        // UPDATE REDUX BADGE
+                        // =================================
+
+                        dispatch(
+                            setUnreadCount(
+                                count
                             )
                         );
 
@@ -109,13 +141,13 @@ export default function NotificationsScreen() {
 
                     console.log(
                         "MOBILE NOTIFICATIONS ERROR:",
-                        error.response?.data ||
-                        error.message
+                        error?.response?.data ||
+                        error?.message
                     );
 
 
                     setError(
-                        error.response?.data?.message ||
+                        error?.response?.data?.message ||
                         "Unable to load your notifications."
                     );
 
@@ -129,25 +161,27 @@ export default function NotificationsScreen() {
                 }
 
             },
-            []
+            [dispatch]
         );
 
 
     // =================================================
-    // Refresh When Screen Gets Focus
+    // REFRESH WHEN SCREEN GETS FOCUS
     // =================================================
 
     useFocusEffect(
+
         useCallback(() => {
 
             fetchNotifications();
 
         }, [fetchNotifications])
+
     );
 
 
     // =================================================
-    // Pull To Refresh
+    // PULL TO REFRESH
     // =================================================
 
     const handleRefresh = async () => {
@@ -160,7 +194,7 @@ export default function NotificationsScreen() {
 
 
     // =================================================
-    // Mark Single Notification As Read
+    // MARK SINGLE NOTIFICATION AS READ
     // =================================================
 
     const handleMarkAsRead =
@@ -189,6 +223,10 @@ export default function NotificationsScreen() {
                     response.data?.success
                 ) {
 
+                    // =================================
+                    // UPDATE NOTIFICATION
+                    // =================================
+
                     setNotifications(
                         previous =>
                             previous.map(
@@ -206,12 +244,25 @@ export default function NotificationsScreen() {
                     );
 
 
-                    setUnreadCount(
+                    // =================================
+                    // UPDATE LOCAL COUNT
+                    // =================================
+
+                    setUnreadCountLocal(
                         previous =>
                             Math.max(
                                 previous - 1,
                                 0
                             )
+                    );
+
+
+                    // =================================
+                    // UPDATE REDUX BADGE
+                    // =================================
+
+                    dispatch(
+                        decreaseUnreadCount()
                     );
 
                 }
@@ -221,9 +272,10 @@ export default function NotificationsScreen() {
 
                 console.log(
                     "MARK NOTIFICATION READ ERROR:",
-                    error.response?.data ||
-                    error.message
+                    error?.response?.data ||
+                    error?.message
                 );
+
 
                 Alert.alert(
                     "Unable to update",
@@ -236,7 +288,7 @@ export default function NotificationsScreen() {
 
 
     // =================================================
-    // Mark All As Read
+    // MARK ALL AS READ
     // =================================================
 
     const handleMarkAllAsRead =
@@ -263,20 +315,40 @@ export default function NotificationsScreen() {
                     response.data?.success
                 ) {
 
+                    const now =
+                        new Date().toISOString();
+
+
+                    // =================================
+                    // UPDATE NOTIFICATIONS
+                    // =================================
+
                     setNotifications(
                         previous =>
                             previous.map(
                                 notification => ({
                                     ...notification,
                                     isRead: true,
-                                    readAt:
-                                        new Date().toISOString(),
+                                    readAt: now,
                                 })
                             )
                     );
 
 
-                    setUnreadCount(0);
+                    // =================================
+                    // UPDATE LOCAL COUNT
+                    // =================================
+
+                    setUnreadCountLocal(0);
+
+
+                    // =================================
+                    // UPDATE REDUX BADGE
+                    // =================================
+
+                    dispatch(
+                        clearUnreadCount()
+                    );
 
                 }
 
@@ -285,9 +357,10 @@ export default function NotificationsScreen() {
 
                 console.log(
                     "MARK ALL NOTIFICATIONS READ ERROR:",
-                    error.response?.data ||
-                    error.message
+                    error?.response?.data ||
+                    error?.message
                 );
+
 
                 Alert.alert(
                     "Unable to update",
@@ -300,7 +373,7 @@ export default function NotificationsScreen() {
 
 
     // =================================================
-    // Delete Notification
+    // DELETE NOTIFICATION
     // =================================================
 
     const handleDelete =
@@ -312,10 +385,12 @@ export default function NotificationsScreen() {
                 "Delete Notification",
                 "Are you sure you want to delete this notification?",
                 [
+
                     {
                         text: "Cancel",
                         style: "cancel",
                     },
+
 
                     {
                         text: "Delete",
@@ -350,12 +425,17 @@ export default function NotificationsScreen() {
                                             !notification.isRead
                                         ) {
 
-                                            setUnreadCount(
+                                            setUnreadCountLocal(
                                                 previous =>
                                                     Math.max(
                                                         previous - 1,
                                                         0
                                                     )
+                                            );
+
+
+                                            dispatch(
+                                                decreaseUnreadCount()
                                             );
 
                                         }
@@ -367,9 +447,10 @@ export default function NotificationsScreen() {
 
                                     console.log(
                                         "DELETE NOTIFICATION ERROR:",
-                                        error.response?.data ||
-                                        error.message
+                                        error?.response?.data ||
+                                        error?.message
                                     );
+
 
                                     Alert.alert(
                                         "Delete Failed",
@@ -379,7 +460,9 @@ export default function NotificationsScreen() {
                                 }
 
                             },
+
                     },
+
                 ]
             );
 
@@ -387,7 +470,7 @@ export default function NotificationsScreen() {
 
 
     // =================================================
-    // Format Date
+    // FORMAT DATE
     // =================================================
 
     const formatDate =
@@ -454,6 +537,7 @@ export default function NotificationsScreen() {
                         difference / minute
                     );
 
+
                 return `${minutes} min ago`;
 
             }
@@ -468,6 +552,7 @@ export default function NotificationsScreen() {
                         difference / hour
                     );
 
+
                 return `${hours} hr ago`;
 
             }
@@ -481,6 +566,7 @@ export default function NotificationsScreen() {
                     Math.floor(
                         difference / day
                     );
+
 
                 return `${days} day${
                     days === 1
@@ -504,7 +590,7 @@ export default function NotificationsScreen() {
 
 
     // =================================================
-    // Notification Type
+    // NOTIFICATION TYPE
     // =================================================
 
     const getTypeInfo =
@@ -591,7 +677,7 @@ export default function NotificationsScreen() {
 
 
     // =================================================
-    // Loading
+    // LOADING
     // =================================================
 
     if (loading) {
@@ -599,7 +685,9 @@ export default function NotificationsScreen() {
         return (
 
             <View
-                style={styles.loadingContainer}
+                style={
+                    styles.loadingContainer
+                }
             >
 
                 <ActivityIndicator
@@ -609,7 +697,9 @@ export default function NotificationsScreen() {
 
 
                 <Text
-                    style={styles.loadingText}
+                    style={
+                        styles.loadingText
+                    }
                 >
                     Loading notifications...
                 </Text>
@@ -622,7 +712,7 @@ export default function NotificationsScreen() {
 
 
     // =================================================
-    // Error
+    // ERROR
     // =================================================
 
     if (error) {
@@ -630,15 +720,21 @@ export default function NotificationsScreen() {
         return (
 
             <View
-                style={styles.errorContainer}
+                style={
+                    styles.errorContainer
+                }
             >
 
                 <View
-                    style={styles.errorCircle}
+                    style={
+                        styles.errorCircle
+                    }
                 >
 
                     <Text
-                        style={styles.errorIcon}
+                        style={
+                            styles.errorIcon
+                        }
                     >
                         !
                     </Text>
@@ -647,21 +743,27 @@ export default function NotificationsScreen() {
 
 
                 <Text
-                    style={styles.errorTitle}
+                    style={
+                        styles.errorTitle
+                    }
                 >
                     Something went wrong
                 </Text>
 
 
                 <Text
-                    style={styles.errorMessage}
+                    style={
+                        styles.errorMessage
+                    }
                 >
                     {error}
                 </Text>
 
 
                 <TouchableOpacity
-                    style={styles.retryButton}
+                    style={
+                        styles.retryButton
+                    }
                     onPress={() =>
                         fetchNotifications()
                     }
@@ -669,7 +771,9 @@ export default function NotificationsScreen() {
                 >
 
                     <Text
-                        style={styles.retryText}
+                        style={
+                            styles.retryText
+                        }
                     >
                         Try Again
                     </Text>
@@ -684,23 +788,31 @@ export default function NotificationsScreen() {
 
 
     // =================================================
-    // Render
+    // RENDER
     // =================================================
 
     return (
 
         <ScrollView
-            style={styles.container}
+
+            style={
+                styles.container
+            }
+
             contentContainerStyle={
                 styles.content
             }
+
             showsVerticalScrollIndicator={
                 false
             }
+
             refreshControl={
 
                 <RefreshControl
-                    refreshing={refreshing}
+                    refreshing={
+                        refreshing
+                    }
                     onRefresh={
                         handleRefresh
                     }
@@ -708,29 +820,38 @@ export default function NotificationsScreen() {
                 />
 
             }
+
         >
 
             {/* =========================================
-                Header
+                HEADER
             ========================================== */}
 
             <View
-                style={styles.header}
+                style={
+                    styles.header
+                }
             >
 
                 <View
-                    style={styles.headerText}
+                    style={
+                        styles.headerText
+                    }
                 >
 
                     <Text
-                        style={styles.title}
+                        style={
+                            styles.title
+                        }
                     >
                         Notifications
                     </Text>
 
 
                     <Text
-                        style={styles.subtitle}
+                        style={
+                            styles.subtitle
+                        }
                     >
                         Stay updated with church activities
                     </Text>
@@ -738,33 +859,39 @@ export default function NotificationsScreen() {
                 </View>
 
 
-                {unreadCount > 0 ? (
+                {unreadCount > 0 && (
 
                     <View
-                        style={styles.unreadHeaderBadge}
+                        style={
+                            styles.unreadHeaderBadge
+                        }
                     >
 
                         <Text
-                            style={styles.unreadHeaderText}
+                            style={
+                                styles.unreadHeaderText
+                            }
                         >
                             {unreadCount}
                         </Text>
 
                     </View>
 
-                ) : null}
+                )}
 
             </View>
 
 
             {/* =========================================
-                Mark All As Read
+                MARK ALL AS READ
             ========================================== */}
 
-            {unreadCount > 0 ? (
+            {unreadCount > 0 && (
 
                 <TouchableOpacity
-                    style={styles.markAllButton}
+                    style={
+                        styles.markAllButton
+                    }
                     onPress={
                         handleMarkAllAsRead
                     }
@@ -772,32 +899,40 @@ export default function NotificationsScreen() {
                 >
 
                     <Text
-                        style={styles.markAllText}
+                        style={
+                            styles.markAllText
+                        }
                     >
                         Mark all as read
                     </Text>
 
                 </TouchableOpacity>
 
-            ) : null}
+            )}
 
 
             {/* =========================================
-                Empty State
+                EMPTY STATE
             ========================================== */}
 
             {notifications.length === 0 ? (
 
                 <View
-                    style={styles.emptyCard}
+                    style={
+                        styles.emptyCard
+                    }
                 >
 
                     <View
-                        style={styles.emptyIconCircle}
+                        style={
+                            styles.emptyIconCircle
+                        }
                     >
 
                         <Text
-                            style={styles.emptyIcon}
+                            style={
+                                styles.emptyIcon
+                            }
                         >
                             ✓
                         </Text>
@@ -806,14 +941,18 @@ export default function NotificationsScreen() {
 
 
                     <Text
-                        style={styles.emptyTitle}
+                        style={
+                            styles.emptyTitle
+                        }
                     >
                         No Notifications
                     </Text>
 
 
                     <Text
-                        style={styles.emptyText}
+                        style={
+                            styles.emptyText
+                        }
                     >
                         You don't have any notifications
                         at the moment.
@@ -854,25 +993,28 @@ export default function NotificationsScreen() {
                                     key={
                                         notification._id
                                     }
+
                                     style={[
                                         styles.notificationCard,
 
                                         !notification.isRead &&
                                             styles.unreadCard,
                                     ]}
+
                                     onPress={() =>
                                         handleMarkAsRead(
                                             notification
                                         )
                                     }
+
                                     activeOpacity={0.85}
                                 >
 
                                     {/* =================================
-                                        Unread Indicator
+                                        UNREAD DOT
                                     ================================== */}
 
-                                    {!notification.isRead ? (
+                                    {!notification.isRead && (
 
                                         <View
                                             style={
@@ -880,11 +1022,11 @@ export default function NotificationsScreen() {
                                             }
                                         />
 
-                                    ) : null}
+                                    )}
 
 
                                     {/* =================================
-                                        Notification Icon
+                                        ICON
                                     ================================== */}
 
                                     <View
@@ -909,7 +1051,7 @@ export default function NotificationsScreen() {
 
 
                                     {/* =================================
-                                        Main Content
+                                        CONTENT
                                     ================================== */}
 
                                     <View
@@ -928,9 +1070,7 @@ export default function NotificationsScreen() {
                                                 style={
                                                     styles.notificationTitle
                                                 }
-                                                numberOfLines={
-                                                    2
-                                                }
+                                                numberOfLines={2}
                                             >
                                                 {
                                                     notification.title
@@ -938,7 +1078,7 @@ export default function NotificationsScreen() {
                                             </Text>
 
 
-                                            {!notification.isRead ? (
+                                            {!notification.isRead && (
 
                                                 <View
                                                     style={
@@ -956,7 +1096,7 @@ export default function NotificationsScreen() {
 
                                                 </View>
 
-                                            ) : null}
+                                            )}
 
                                         </View>
 
@@ -1013,7 +1153,7 @@ export default function NotificationsScreen() {
                                         </View>
 
 
-                                        {senderName ? (
+                                        {senderName && (
 
                                             <Text
                                                 style={
@@ -1023,13 +1163,13 @@ export default function NotificationsScreen() {
                                                 From {senderName}
                                             </Text>
 
-                                        ) : null}
+                                        )}
 
                                     </View>
 
 
                                     {/* =================================
-                                        Delete Button
+                                        DELETE
                                     ================================== */}
 
                                     <TouchableOpacity
@@ -1066,12 +1206,10 @@ export default function NotificationsScreen() {
             )}
 
 
-            {/* =========================================
-                Bottom Spacing
-            ========================================== */}
-
             <View
-                style={styles.bottomSpacing}
+                style={
+                    styles.bottomSpacing
+                }
             />
 
         </ScrollView>
@@ -1104,10 +1242,6 @@ const styles = StyleSheet.create({
 
     },
 
-
-    // =================================================
-    // Header
-    // =================================================
 
     header: {
 
@@ -1183,10 +1317,6 @@ const styles = StyleSheet.create({
     },
 
 
-    // =================================================
-    // Mark All
-    // =================================================
-
     markAllButton: {
 
         alignSelf: "flex-end",
@@ -1210,10 +1340,6 @@ const styles = StyleSheet.create({
 
     },
 
-
-    // =================================================
-    // Notification Card
-    // =================================================
 
     notificationCard: {
 
@@ -1287,10 +1413,6 @@ const styles = StyleSheet.create({
 
     },
 
-
-    // =================================================
-    // Notification Content
-    // =================================================
 
     notificationContent: {
 
@@ -1417,10 +1539,6 @@ const styles = StyleSheet.create({
     },
 
 
-    // =================================================
-    // Delete
-    // =================================================
-
     deleteButton: {
 
         width: 28,
@@ -1450,10 +1568,6 @@ const styles = StyleSheet.create({
 
     },
 
-
-    // =================================================
-    // Type Colours
-    // =================================================
 
     attendanceType: {
 
@@ -1539,10 +1653,6 @@ const styles = StyleSheet.create({
     },
 
 
-    // =================================================
-    // Empty State
-    // =================================================
-
     emptyCard: {
 
         backgroundColor: "#fff",
@@ -1616,10 +1726,6 @@ const styles = StyleSheet.create({
     },
 
 
-    // =================================================
-    // Loading
-    // =================================================
-
     loadingContainer: {
 
         flex: 1,
@@ -1645,10 +1751,6 @@ const styles = StyleSheet.create({
 
     },
 
-
-    // =================================================
-    // Error
-    // =================================================
 
     errorContainer: {
 
@@ -1748,10 +1850,6 @@ const styles = StyleSheet.create({
 
     },
 
-
-    // =================================================
-    // Bottom
-    // =================================================
 
     bottomSpacing: {
 
