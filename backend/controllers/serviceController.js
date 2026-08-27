@@ -90,9 +90,9 @@ const updateAttendanceSummary = async (serviceId) => {
 
 
     const users =
-        attendance.map(
-            item => item.user
-        );
+        attendance
+            .map(item => item.user)
+            .filter(Boolean);
 
 
     service.attendanceSummary = {
@@ -149,6 +149,92 @@ const updateAttendanceSummary = async (serviceId) => {
 
 
 // ==========================================
+// Notify All Active Members
+// ==========================================
+
+const notifyAllActiveMembers = async ({
+    title,
+    message,
+    type = "Service",
+    priority = "Normal",
+    relatedId = null,
+    relatedModel = null,
+    actionUrl = "",
+    sender = null
+}) => {
+
+    try {
+
+        const members =
+            await User.find({
+
+                isActive: true
+
+            })
+                .select("_id");
+
+
+        if (!members.length) {
+
+            return 0;
+
+        }
+
+
+        const notifications =
+            members.map(member => ({
+
+                recipient:
+                    member._id,
+
+                sender:
+                    sender || null,
+
+                title,
+
+                message,
+
+                type,
+
+                priority,
+
+                relatedId,
+
+                relatedModel,
+
+                actionUrl
+
+            }));
+
+
+        await Notification.insertMany(
+            notifications
+        );
+
+
+        return notifications.length;
+
+    }
+    catch (error) {
+
+        console.error(
+            "NOTIFICATION ERROR:",
+            error
+        );
+
+
+        // Notification failure should never
+        // prevent the main service operation.
+
+        return 0;
+
+    }
+
+};
+
+
+
+// ==========================================
 // Create Service
 // POST /api/services
 // ==========================================
@@ -168,7 +254,7 @@ const createService = async (req, res) => {
 
 
         // ------------------------------------------
-        // Validate
+        // Validate Required Fields
         // ------------------------------------------
 
         if (
@@ -196,6 +282,7 @@ const createService = async (req, res) => {
         const start =
             new Date(serviceDate);
 
+
         start.setHours(
             0,
             0,
@@ -206,6 +293,7 @@ const createService = async (req, res) => {
 
         const end =
             new Date(serviceDate);
+
 
         end.setHours(
             23,
@@ -277,8 +365,13 @@ const createService = async (req, res) => {
             await generateUniqueCode();
 
 
+        // ------------------------------------------
+        // Attendance Code Expiry
+        // ------------------------------------------
+
         const expiry =
             new Date(serviceDate);
+
 
         expiry.setHours(
             23,
@@ -313,9 +406,11 @@ const createService = async (req, res) => {
                 codeExpiresAt:
                     expiry,
 
-                status: "Active",
+                status:
+                    "Active",
 
-                attendanceOpen: true,
+                attendanceOpen:
+                    true,
 
                 generatedBy:
                     req.user._id
@@ -324,62 +419,37 @@ const createService = async (req, res) => {
 
 
         // ==========================================
-        // Notify Admin and Pastors
+        // Notify All Active Members
         // ==========================================
 
-        const managers =
-            await User.find({
+        const notificationsSent =
+            await notifyAllActiveMembers({
 
-                role: {
-                    $in: [
-                        "Admin",
-                        "Pastor"
-                    ]
-                },
+                title:
+                    "New Service Created",
 
-                isActive: true
+                message:
+                    `${name} has been scheduled for ${new Date(serviceDate).toDateString()}.`,
+
+                type:
+                    "Service",
+
+                priority:
+                    "Normal",
+
+                relatedId:
+                    service._id,
+
+                relatedModel:
+                    "Service",
+
+                actionUrl:
+                    `/services/${service._id}`,
+
+                sender:
+                    req.user?._id || null
 
             });
-
-
-        if (managers.length) {
-
-            await Notification.insertMany(
-
-                managers.map(manager => ({
-
-                    recipient:
-                        manager._id,
-
-                    sender:
-                        req.user?._id || null,
-
-                    title:
-                        "New Service Created",
-
-                    message:
-                        `${name} scheduled for ${new Date(serviceDate).toDateString()}`,
-
-                    type:
-                        "Service",
-
-                    priority:
-                        "Normal",
-
-                    relatedId:
-                        service._id,
-
-                    relatedModel:
-                        "Service",
-
-                    actionUrl:
-                        `/services/${service._id}`
-
-                }))
-
-            );
-
-        }
 
 
         // ------------------------------------------
@@ -393,6 +463,8 @@ const createService = async (req, res) => {
             message:
                 "Service created successfully",
 
+            notificationsSent,
+
             service
 
         });
@@ -404,6 +476,7 @@ const createService = async (req, res) => {
             "CREATE SERVICE ERROR:",
             error
         );
+
 
         return res.status(500).json({
 
@@ -559,7 +632,7 @@ const endService = async (req, res) => {
 
 
         // ------------------------------------------
-        // Update Attendance
+        // Update Attendance Summary
         // ------------------------------------------
 
         await updateAttendanceSummary(
@@ -596,63 +669,37 @@ const endService = async (req, res) => {
 
 
         // ==========================================
-        // Notify Leaders
+        // Notify All Active Members
         // ==========================================
 
-        const leaders =
-            await User.find({
+        const notificationsSent =
+            await notifyAllActiveMembers({
 
-                role: {
-                    $in: [
-                        "Admin",
-                        "Pastor",
-                        "Leader"
-                    ]
-                },
+                title:
+                    "Service Completed",
 
-                isActive: true
+                message:
+                    `${service.name} has been completed. Thank you for attending.`,
+
+                type:
+                    "Service",
+
+                priority:
+                    "Normal",
+
+                relatedId:
+                    service._id,
+
+                relatedModel:
+                    "Service",
+
+                actionUrl:
+                    `/services/${service._id}`,
+
+                sender:
+                    req.user?._id || null
 
             });
-
-
-        if (leaders.length) {
-
-            await Notification.insertMany(
-
-                leaders.map(user => ({
-
-                    recipient:
-                        user._id,
-
-                    sender:
-                        req.user?._id || null,
-
-                    title:
-                        "Service Completed",
-
-                    message:
-                        `${service.name} completed. ${followUps.length} follow ups created.`,
-
-                    type:
-                        "Service",
-
-                    priority:
-                        "Normal",
-
-                    relatedId:
-                        service._id,
-
-                    relatedModel:
-                        "Service",
-
-                    actionUrl:
-                        `/services/${service._id}`
-
-                }))
-
-            );
-
-        }
 
 
         // ------------------------------------------
@@ -669,6 +716,8 @@ const endService = async (req, res) => {
             followUpsCreated:
                 followUps.length,
 
+            notificationsSent,
+
             service
 
         });
@@ -680,6 +729,7 @@ const endService = async (req, res) => {
             "END SERVICE ERROR:",
             error
         );
+
 
         return res.status(500).json({
 

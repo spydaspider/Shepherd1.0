@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import {
     View,
+    Text,
     ActivityIndicator,
     StyleSheet,
 } from "react-native";
@@ -31,6 +32,8 @@ import {
     sessionExpired,
 } from "../store/authSlice";
 
+import api from "../api/axios";
+
 
 // =====================================================
 // AUTHENTICATION GATE
@@ -45,6 +48,10 @@ function AppTabs() {
     const pathname = usePathname();
 
 
+    // =================================================
+    // AUTH STATE
+    // =================================================
+
     const authChecked = useSelector(
         (state) => state.auth.authChecked
     );
@@ -55,11 +62,87 @@ function AppTabs() {
 
 
     // =================================================
+    // NOTIFICATION STATE
+    // =================================================
+
+    const [unreadCount, setUnreadCount] = useState(0);
+
+
+    // =================================================
     // CHECK CURRENT ROUTE
     // =================================================
 
     const isLoginScreen =
         pathname === "/login";
+
+
+    // =================================================
+    // FETCH UNREAD NOTIFICATION COUNT
+    // =================================================
+
+    const fetchUnreadNotificationCount = async () => {
+
+        try {
+
+            if (!isAuthenticated) {
+
+                setUnreadCount(0);
+
+                return;
+
+            }
+
+
+            const response =
+                await api.get("/notifications");
+
+
+            const count =
+                response?.data?.unreadCount;
+
+
+            setUnreadCount(
+                Number(count) || 0
+            );
+
+
+        } catch (error) {
+
+            console.log(
+                "FETCH NOTIFICATION COUNT ERROR:",
+                error?.response?.data ||
+                error.message
+            );
+
+        }
+
+    };
+
+
+    // =================================================
+    // REFRESH NOTIFICATION COUNT
+    // =================================================
+
+    useEffect(() => {
+
+        if (
+            authChecked &&
+            isAuthenticated
+        ) {
+
+            fetchUnreadNotificationCount();
+
+        } else {
+
+            setUnreadCount(0);
+
+        }
+
+    }, [
+        authChecked,
+        isAuthenticated,
+        pathname,
+    ]);
 
 
     // =================================================
@@ -87,7 +170,9 @@ function AppTabs() {
 
                 console.log(
                     "TOKEN:",
-                    token ? "FOUND" : "NOT FOUND"
+                    token
+                        ? "FOUND"
+                        : "NOT FOUND"
                 );
 
 
@@ -123,9 +208,10 @@ function AppTabs() {
 
                     try {
 
-                        user = JSON.parse(
-                            userString
-                        );
+                        user =
+                            JSON.parse(
+                                userString
+                            );
 
                     } catch (error) {
 
@@ -185,7 +271,7 @@ function AppTabs() {
     useEffect(() => {
 
         // ---------------------------------------------
-        // Wait until AsyncStorage has been checked
+        // Wait until authentication has been checked
         // ---------------------------------------------
 
         if (!authChecked) {
@@ -196,13 +282,10 @@ function AppTabs() {
 
 
         // ---------------------------------------------
-        // USER IS NOT LOGGED IN
+        // USER IS NOT AUTHENTICATED
         // ---------------------------------------------
 
         if (!isAuthenticated) {
-
-            // Already on login.
-            // Do absolutely nothing.
 
             if (isLoginScreen) {
 
@@ -230,7 +313,7 @@ function AppTabs() {
 
 
         // ---------------------------------------------
-        // USER IS LOGGED IN
+        // USER IS AUTHENTICATED
         // ---------------------------------------------
 
         if (
@@ -267,6 +350,7 @@ function AppTabs() {
     if (!authChecked) {
 
         return (
+
             <View
                 style={
                     styles.loadingContainer
@@ -279,6 +363,7 @@ function AppTabs() {
                 />
 
             </View>
+
         );
 
     }
@@ -287,43 +372,41 @@ function AppTabs() {
     // =================================================
     // TABS NAVIGATOR
     // =================================================
-    //
-    // IMPORTANT:
-    // The Tabs navigator ALWAYS remains mounted.
-    //
-    // This prevents the previous:
-    //
-    // "REPLACE was not handled by any navigator"
-    //
-    // and:
-    //
-    // "Unmatched Route"
-    //
-    // problems.
-    //
-    // =================================================
 
     return (
 
         <Tabs
+
             screenOptions={{
+
                 headerShown: false,
 
-                tabBarActiveTintColor: "#0f2a5f",
+                tabBarActiveTintColor:
+                    "#0f2a5f",
 
-                tabBarInactiveTintColor: "#8a8a8a",
+                tabBarInactiveTintColor:
+                    "#8a8a8a",
 
                 tabBarStyle: {
+
                     height: 65,
+
                     paddingBottom: 8,
+
                     paddingTop: 6,
+
                 },
 
                 tabBarLabelStyle: {
+
                     fontSize: 12,
+
                     fontWeight: "600",
+
                 },
+
             }}
+
         >
 
             {/* =========================================
@@ -331,8 +414,11 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
+
                 name="index"
+
                 options={{
+
                     title: "Home",
 
                     tabBarIcon: ({
@@ -347,7 +433,9 @@ function AppTabs() {
                         />
 
                     ),
+
                 }}
+
             />
 
 
@@ -356,8 +444,11 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
+
                 name="attendance"
+
                 options={{
+
                     title: "Attendance",
 
                     tabBarIcon: ({
@@ -372,7 +463,9 @@ function AppTabs() {
                         />
 
                     ),
+
                 }}
+
             />
 
 
@@ -381,8 +474,11 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
+
                 name="notifications"
+
                 options={{
+
                     title: "Notifications",
 
                     tabBarIcon: ({
@@ -390,14 +486,55 @@ function AppTabs() {
                         size,
                     }) => (
 
-                        <Ionicons
-                            name="notifications-outline"
-                            size={size}
-                            color={color}
-                        />
+                        <View
+                            style={
+                                styles.notificationIconContainer
+                            }
+                        >
+
+                            <Ionicons
+                                name="notifications-outline"
+                                size={size}
+                                color={color}
+                            />
+
+
+                            {/* =================================
+                                UNREAD COUNT
+                            ================================= */}
+
+                            {unreadCount > 0 && (
+
+                                <View
+                                    style={
+                                        styles.notificationBadge
+                                    }
+                                >
+
+                                    <Text
+                                        style={
+                                            styles.notificationBadgeText
+                                        }
+                                    >
+
+                                        {
+                                            unreadCount > 99
+                                                ? "99+"
+                                                : unreadCount
+                                        }
+
+                                    </Text>
+
+                                </View>
+
+                            )}
+
+                        </View>
 
                     ),
+
                 }}
+
             />
 
 
@@ -406,8 +543,11 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
+
                 name="profile"
+
                 options={{
+
                     title: "Profile",
 
                     tabBarIcon: ({
@@ -422,7 +562,9 @@ function AppTabs() {
                         />
 
                     ),
+
                 }}
+
             />
 
 
@@ -431,16 +573,21 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
+
                 name="login"
+
                 options={{
+
                     href: null,
 
-                    // Hide the tab bar on login.
-
                     tabBarStyle: {
+
                         display: "none",
+
                     },
+
                 }}
+
             />
 
 
@@ -449,10 +596,15 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
+
                 name="explore"
+
                 options={{
+
                     href: null,
+
                 }}
+
             />
 
 
@@ -461,10 +613,15 @@ function AppTabs() {
             ========================================== */}
 
             <Tabs.Screen
+
                 name="mark-attendance"
+
                 options={{
+
                     href: null,
+
                 }}
+
             />
 
         </Tabs>
@@ -508,6 +665,71 @@ const styles = StyleSheet.create({
         justifyContent: "center",
 
         alignItems: "center",
+
+    },
+
+
+    // =================================================
+    // NOTIFICATION ICON CONTAINER
+    // =================================================
+
+    notificationIconContainer: {
+
+        position: "relative",
+
+        justifyContent: "center",
+
+        alignItems: "center",
+
+    },
+
+
+    // =================================================
+    // NOTIFICATION BADGE
+    // =================================================
+
+    notificationBadge: {
+
+        position: "absolute",
+
+        right: -10,
+
+        top: -6,
+
+        minWidth: 18,
+
+        height: 18,
+
+        paddingHorizontal: 4,
+
+        borderRadius: 9,
+
+        backgroundColor: "#e53935",
+
+        justifyContent: "center",
+
+        alignItems: "center",
+
+        borderWidth: 1,
+
+        borderColor: "#ffffff",
+
+    },
+
+
+    // =================================================
+    // BADGE TEXT
+    // =================================================
+
+    notificationBadgeText: {
+
+        color: "#ffffff",
+
+        fontSize: 10,
+
+        fontWeight: "700",
+
+        textAlign: "center",
 
     },
 
