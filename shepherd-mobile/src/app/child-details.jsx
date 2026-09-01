@@ -532,15 +532,23 @@ export default function ChildDetailsScreen() {
     // =================================================
     // ATTENDANCE
     // =================================================
-
-    const handleAttendance = () => {
-
+const handleAttendance = () => {
+    if (!childId) {
         Alert.alert(
-            "Child Attendance",
-            "Child attendance will be available here."
+            "Error",
+            "Child information is missing."
         );
 
-    };
+        return;
+    }
+
+    router.push({
+        pathname: "/child-attendance",
+        params: {
+            childId: String(childId),
+        },
+    });
+};
 
 
     // =================================================

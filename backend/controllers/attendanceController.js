@@ -2,7 +2,237 @@ const Attendance = require("../models/Attendance");
 const Service = require("../models/Service");
 const User = require("../models/User");
 
+// =====================================================
+// Get Child Attendance History
+// GET /api/attendance/child/:childId
+// =====================================================
 
+const getChildAttendanceHistory = async (req, res) => {
+
+    try {
+
+        const { childId } = req.params;
+
+
+        // =================================================
+        // VALIDATE CHILD ID
+        // =================================================
+
+        if (!childId) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Child ID is required."
+
+            });
+
+        }
+
+
+        // =================================================
+        // FIND CHILD
+        // =================================================
+
+        const child = await User.findOne({
+
+            _id: childId,
+
+            isChild: true
+
+        });
+
+
+        if (!child) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Child not found."
+
+            });
+
+        }
+
+
+        // =================================================
+        // VERIFY PARENT
+        // =================================================
+
+        if (
+            !child.parent ||
+            String(child.parent) !==
+            String(req.user._id)
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "You are not authorized to view this child's attendance."
+
+            });
+
+        }
+
+
+        // =================================================
+        // GET ATTENDANCE
+        // =================================================
+
+        const attendance = await Attendance.find({
+
+            user: child._id
+
+        })
+
+            .populate(
+
+                "service",
+
+                "name serviceType serviceDate startTime endTime"
+
+            )
+
+            .populate(
+
+                "markedBy",
+
+                "firstName lastName"
+
+            )
+
+            .sort({
+
+                attendanceDate: -1,
+
+                createdAt: -1
+
+            });
+
+
+        // =================================================
+        // CALCULATE SUMMARY
+        // =================================================
+
+        const total = attendance.length;
+
+
+        const present = attendance.filter(
+
+            item =>
+                item.status === "Present"
+
+        ).length;
+
+
+        const absent = attendance.filter(
+
+            item =>
+                item.status === "Absent"
+
+        ).length;
+
+
+        const excused = attendance.filter(
+
+            item =>
+                item.status === "Excused"
+
+        ).length;
+
+
+        const attendanceRate =
+
+            total > 0
+
+                ? Number(
+
+                    (
+
+                        present /
+
+                        total *
+
+                        100
+
+                    ).toFixed(2)
+
+                )
+
+                : 0;
+
+
+        // =================================================
+        // RESPONSE
+        // =================================================
+
+        res.json({
+
+            success: true,
+
+            child: {
+
+                _id: child._id,
+
+                firstName: child.firstName,
+
+                lastName: child.lastName,
+
+                gender: child.gender,
+
+                dateOfBirth: child.dateOfBirth,
+
+                membershipNumber:
+                    child.membershipNumber
+
+            },
+
+            summary: {
+
+                total,
+
+                present,
+
+                absent,
+
+                excused,
+
+                attendanceRate
+
+            },
+
+            attendance
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+
+            "Get child attendance history error:",
+
+            error
+
+        );
+
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
 // =====================================================
 // Get My Attendance History
 // GET /api/attendance/my-history
@@ -1284,7 +1514,9 @@ getAttendanceDashboard,
 
 updateAttendanceStatus,
 
- getMyAttendanceHistory
+ getMyAttendanceHistory,
+
+ getChildAttendanceHistory,
 
 
 };

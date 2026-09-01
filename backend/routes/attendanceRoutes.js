@@ -15,7 +15,9 @@ const {
 
     updateAttendanceStatus,
 
-    getMyAttendanceHistory 
+    getMyAttendanceHistory,
+    
+    getChildAttendanceHistory
 
 } = require("../controllers/attendanceController");
 
@@ -32,7 +34,21 @@ require("../middleware/permissionMiddleware");
 
 
 
+// =================================================
+// Child Attendance History
+//
+// GET /api/attendance/child/:childId
+// =================================================
 
+router.get(
+
+    "/child/:childId",
+
+    protect,
+
+    getChildAttendanceHistory
+
+);
 
 // =================================================
 // Member / Parent Mark Attendance

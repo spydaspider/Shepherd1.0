@@ -467,6 +467,8 @@ function AppTabs() {
     }}
 />
 
+{/* ========================================= CHILD ATTENDANCE Hidden from bottom tabs Opened from Child Details ========================================== */} <Tabs.Screen name="child-attendance" options={{ href: null, headerShown: false, }} />
+
             {/* =========================================
                 HOME
             ========================================== */}
