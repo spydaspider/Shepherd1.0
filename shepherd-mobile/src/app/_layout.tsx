@@ -66,7 +66,7 @@ function AppTabs() {
 
 
     // =================================================
-    // NOTIFICATION STATE FROM REDUX
+    // NOTIFICATION STATE
     // =================================================
 
     const unreadCount = useSelector(
@@ -75,7 +75,7 @@ function AppTabs() {
 
 
     // =================================================
-    // CHECK CURRENT ROUTE
+    // LOGIN ROUTE CHECK
     // =================================================
 
     const isLoginScreen =
@@ -124,7 +124,8 @@ function AppTabs() {
                     );
 
 
-                } catch (error) {
+                }
+                catch (error) {
 
                     console.log(
                         "FETCH NOTIFICATION COUNT ERROR:",
@@ -146,12 +147,8 @@ function AppTabs() {
             isAuthenticated
         ) {
 
-            // Fetch immediately
-
             fetchUnreadNotificationCount();
 
-
-            // Check every 30 seconds
 
             intervalId =
                 setInterval(
@@ -163,7 +160,8 @@ function AppTabs() {
                     30000
                 );
 
-        } else {
+        }
+        else {
 
             dispatch(
                 setUnreadCount(0)
@@ -173,7 +171,7 @@ function AppTabs() {
 
 
         // =================================================
-        // CLEAN UP POLLING
+        // CLEAN UP
         // =================================================
 
         return () => {
@@ -195,9 +193,9 @@ function AppTabs() {
     ]);
 
 
-    // =================================================
+    // =====================================================
     // RESTORE SAVED SESSION
-    // =================================================
+    // =====================================================
 
     useEffect(() => {
 
@@ -230,6 +228,10 @@ function AppTabs() {
                             : "NOT FOUND"
                     );
 
+
+                    // =====================================
+                    // NO TOKEN
+                    // =====================================
 
                     if (!token) {
 
@@ -264,7 +266,8 @@ function AppTabs() {
                                     userString
                                 );
 
-                        } catch (error) {
+                        }
+                        catch (error) {
 
                             console.log(
                                 "USER DATA COULD NOT BE PARSED:",
@@ -292,8 +295,8 @@ function AppTabs() {
                         "AUTH SESSION RESTORED"
                     );
 
-
-                } catch (error) {
+                }
+                catch (error) {
 
                     console.log(
                         "SESSION RESTORATION ERROR:",
@@ -315,9 +318,9 @@ function AppTabs() {
     }, [dispatch]);
 
 
-    // =================================================
+    // =====================================================
     // HANDLE AUTHENTICATION ROUTING
-    // =================================================
+    // =====================================================
 
     useEffect(() => {
 
@@ -327,6 +330,10 @@ function AppTabs() {
 
         }
 
+
+        // =====================================
+        // USER NOT LOGGED IN
+        // =====================================
 
         if (!isAuthenticated) {
 
@@ -357,6 +364,10 @@ function AppTabs() {
         }
 
 
+        // =====================================
+        // USER ALREADY LOGGED IN
+        // =====================================
+
         if (
             isAuthenticated &&
             isLoginScreen
@@ -386,9 +397,9 @@ function AppTabs() {
     ]);
 
 
-    // =================================================
+    // =====================================================
     // WAIT FOR AUTH CHECK
-    // =================================================
+    // =====================================================
 
     if (!authChecked) {
 
@@ -412,14 +423,13 @@ function AppTabs() {
     }
 
 
-    // =================================================
+    // =====================================================
     // TABS
-    // =================================================
+    // =====================================================
 
     return (
 
         <Tabs
-
             screenOptions={{
 
                 headerShown: false,
@@ -449,7 +459,6 @@ function AppTabs() {
                 },
 
             }}
-
         >
 
             {/* =========================================
@@ -596,6 +605,24 @@ function AppTabs() {
 
 
             {/* =========================================
+                MY CHILDREN
+                Hidden from bottom tabs
+                Accessible from Profile
+            ========================================== */}
+
+            <Tabs.Screen
+                name="my-children"
+                options={{
+
+                    href: null,
+
+                    headerShown: false,
+
+                }}
+            />
+
+
+            {/* =========================================
                 LOGIN
             ========================================== */}
 
@@ -620,7 +647,9 @@ function AppTabs() {
             <Tabs.Screen
                 name="explore"
                 options={{
+
                     href: null,
+
                 }}
             />
 
@@ -632,7 +661,9 @@ function AppTabs() {
             <Tabs.Screen
                 name="mark-attendance"
                 options={{
+
                     href: null,
+
                 }}
             />
 
@@ -681,6 +712,10 @@ const styles = StyleSheet.create({
     },
 
 
+    // =================================================
+    // NOTIFICATION ICON
+    // =================================================
+
     notificationIconContainer: {
 
         position: "relative",
@@ -691,6 +726,10 @@ const styles = StyleSheet.create({
 
     },
 
+
+    // =================================================
+    // NOTIFICATION BADGE
+    // =================================================
 
     notificationBadge: {
 

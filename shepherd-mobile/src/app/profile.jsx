@@ -11,6 +11,10 @@ import {
     useSelector,
 } from "react-redux";
 
+import {
+    useRouter,
+} from "expo-router";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
@@ -25,6 +29,8 @@ import {
 export default function ProfileScreen() {
 
     const dispatch = useDispatch();
+
+    const router = useRouter();
 
 
     // =================================================
@@ -51,7 +57,19 @@ export default function ProfileScreen() {
         "Member";
 
     const email =
-        user?.email || "No email available";
+        user?.email ||
+        "No email available";
+
+
+    // =================================================
+    // Handle My Children
+    // =================================================
+
+    const handleMyChildren = () => {
+
+        router.push("/my-children");
+
+    };
 
 
     // =================================================
@@ -93,21 +111,10 @@ export default function ProfileScreen() {
                             // ---------------------------------
                             // Clear Redux authentication
                             // ---------------------------------
-                            //
-                            // IMPORTANT:
-                            // Do NOT call router.replace("/login")
-                            // here.
-                            //
-                            // _layout.tsx watches isAuthenticated.
-                            // Once logout() changes it to false,
-                            // the authentication gate redirects
-                            // to /login automatically.
-                            // ---------------------------------
 
                             dispatch(
                                 logout()
                             );
-
 
                         }
                         catch (error) {
@@ -202,7 +209,14 @@ export default function ProfileScreen() {
                 </Text>
 
 
-                <View style={styles.option}>
+                {/* =====================================
+                    MY PROFILE
+                ====================================== */}
+
+                <TouchableOpacity
+                    style={styles.option}
+                    activeOpacity={0.7}
+                >
 
                     <View>
 
@@ -220,10 +234,18 @@ export default function ProfileScreen() {
                         →
                     </Text>
 
-                </View>
+                </TouchableOpacity>
 
 
-                <View style={styles.option}>
+                {/* =====================================
+                    MY CHILDREN
+                ====================================== */}
+
+                <TouchableOpacity
+                    style={styles.option}
+                    onPress={handleMyChildren}
+                    activeOpacity={0.7}
+                >
 
                     <View>
 
@@ -241,7 +263,7 @@ export default function ProfileScreen() {
                         →
                     </Text>
 
-                </View>
+                </TouchableOpacity>
 
             </View>
 
