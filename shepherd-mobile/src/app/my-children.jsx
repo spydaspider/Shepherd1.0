@@ -1,5 +1,5 @@
 import {
-    useEffect,
+    useCallback,
     useState,
 } from "react";
 
@@ -10,9 +10,11 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     ScrollView,
+    Alert,
 } from "react-native";
 
 import {
+    useFocusEffect,
     useRouter,
 } from "expo-router";
 
@@ -40,28 +42,36 @@ export default function MyChildrenScreen() {
 
     const [loading, setLoading] = useState(true);
 
-    const [error, setError] = useState("");
-
     const [refreshing, setRefreshing] = useState(false);
 
+    const [error, setError] = useState("");
+
 
     // =================================================
-    // GET FAMILY
-    // GET /api/users/family
+    // GET FAMILY / CHILDREN
     // =================================================
 
-    const fetchChildren = async () => {
+    const fetchChildren = async (
+        showLoading = true
+    ) => {
 
         try {
 
+            if (showLoading) {
+                setLoading(true);
+            }
+
             setError("");
+
 
             const response = await api.get(
                 "/users/family"
             );
 
+
             const family =
                 response?.data?.family;
+
 
             if (!family) {
 
@@ -69,6 +79,7 @@ export default function MyChildrenScreen() {
 
                 return;
             }
+
 
             setChildren(
                 Array.isArray(family.children)
@@ -84,6 +95,7 @@ export default function MyChildrenScreen() {
                 error?.response?.data ||
                 error?.message
             );
+
 
             setError(
                 error?.response?.data?.message ||
@@ -103,29 +115,32 @@ export default function MyChildrenScreen() {
 
 
     // =================================================
-    // LOAD CHILDREN
+    // LOAD CHILDREN EVERY TIME SCREEN IS FOCUSED
     // =================================================
 
-    useEffect(() => {
+    useFocusEffect(
+        useCallback(() => {
 
-        fetchChildren();
+            fetchChildren();
 
-    }, []);
+        }, [])
+    );
 
 
     // =================================================
-    // REFRESH
+    // MANUAL REFRESH
     // =================================================
 
-    const handleRefresh = () => {
+    const handleRefresh = async () => {
 
         if (refreshing) {
             return;
         }
 
+
         setRefreshing(true);
 
-        fetchChildren();
+        await fetchChildren(false);
 
     };
 
@@ -147,9 +162,15 @@ export default function MyChildrenScreen() {
 
     const handleChildPress = (child) => {
 
-        console.log(
-            "SELECTED CHILD:",
-            child
+        const fullName =
+            `${child.firstName || ""} ${
+                child.lastName || ""
+            }`.trim();
+
+
+        Alert.alert(
+            fullName || "Child",
+            "Child management options will be added here."
         );
 
     };
@@ -167,7 +188,7 @@ export default function MyChildrenScreen() {
 
 
     // =================================================
-    // LOADING SCREEN
+    // LOADING
     // =================================================
 
     if (loading) {
@@ -175,7 +196,9 @@ export default function MyChildrenScreen() {
         return (
 
             <View
-                style={styles.loadingContainer}
+                style={
+                    styles.loadingContainer
+                }
             >
 
                 <ActivityIndicator
@@ -184,7 +207,9 @@ export default function MyChildrenScreen() {
                 />
 
                 <Text
-                    style={styles.loadingText}
+                    style={
+                        styles.loadingText
+                    }
                 >
                     Loading your children...
                 </Text>
@@ -197,22 +222,18 @@ export default function MyChildrenScreen() {
 
 
     // =================================================
-    // MAIN SCREEN
+    // SCREEN
     // =================================================
 
     return (
 
-        <View
-            style={styles.container}
-        >
+        <View style={styles.container}>
 
             {/* =========================================
                 HEADER
             ========================================== */}
 
-            <View
-                style={styles.header}
-            >
+            <View style={styles.header}>
 
                 <TouchableOpacity
                     style={styles.backButton}
@@ -229,9 +250,7 @@ export default function MyChildrenScreen() {
                 </TouchableOpacity>
 
 
-                <View
-                    style={styles.headerText}
-                >
+                <View style={styles.headerText}>
 
                     <Text
                         style={styles.title}
@@ -249,7 +268,7 @@ export default function MyChildrenScreen() {
 
 
                 {/* =====================================
-                    ADD CHILD HEADER BUTTON
+                    HEADER ADD BUTTON
                 ====================================== */}
 
                 <TouchableOpacity
@@ -260,7 +279,7 @@ export default function MyChildrenScreen() {
 
                     <Ionicons
                         name="person-add-outline"
-                        size={21}
+                        size={22}
                         color="#ffffff"
                     />
 
@@ -290,25 +309,17 @@ export default function MyChildrenScreen() {
                         style={styles.errorCard}
                     >
 
-                        <View
-                            style={styles.errorIcon}
-                        >
-
-                            <Ionicons
-                                name="alert-circle-outline"
-                                size={34}
-                                color="#dc2626"
-                            />
-
-                        </View>
-
+                        <Ionicons
+                            name="alert-circle-outline"
+                            size={30}
+                            color="#dc2626"
+                        />
 
                         <Text
                             style={styles.errorTitle}
                         >
-                            Unable to Load Children
+                            Unable to load children
                         </Text>
-
 
                         <Text
                             style={styles.errorMessage}
@@ -320,20 +331,26 @@ export default function MyChildrenScreen() {
                         <TouchableOpacity
                             style={styles.retryButton}
                             onPress={handleRefresh}
+                            disabled={refreshing}
                             activeOpacity={0.8}
                         >
 
-                            <Ionicons
-                                name="refresh-outline"
-                                size={19}
-                                color="#ffffff"
-                            />
+                            {refreshing ? (
 
-                            <Text
-                                style={styles.retryText}
-                            >
-                                Try Again
-                            </Text>
+                                <ActivityIndicator
+                                    size="small"
+                                    color="#ffffff"
+                                />
+
+                            ) : (
+
+                                <Text
+                                    style={styles.retryText}
+                                >
+                                    Try Again
+                                </Text>
+
+                            )}
 
                         </TouchableOpacity>
 
@@ -343,7 +360,7 @@ export default function MyChildrenScreen() {
 
 
                 {/* =====================================
-                    CHILDREN SUMMARY
+                    SUMMARY CARD
                 ====================================== */}
 
                 {!error ? (
@@ -358,7 +375,7 @@ export default function MyChildrenScreen() {
 
                             <Ionicons
                                 name="people-outline"
-                                size={26}
+                                size={25}
                                 color="#0f2a5f"
                             />
 
@@ -370,38 +387,59 @@ export default function MyChildrenScreen() {
                         >
 
                             <Text
-                                style={styles.summaryNumber}
+                                style={
+                                    styles.summaryNumber
+                                }
                             >
                                 {children.length}
                             </Text>
 
-
                             <Text
-                                style={styles.summaryLabel}
+                                style={
+                                    styles.summaryLabel
+                                }
                             >
-                                {children.length === 1
-                                    ? "Child registered"
-                                    : "Children registered"}
+                                {
+                                    children.length === 1
+                                        ? "Child registered"
+                                        : "Children registered"
+                                }
                             </Text>
 
                         </View>
 
-
-                        <TouchableOpacity
-                            style={styles.summaryAddButton}
-                            onPress={handleAddChild}
-                            activeOpacity={0.8}
-                        >
-
-                            <Ionicons
-                                name="add"
-                                size={22}
-                                color="#ffffff"
-                            />
-
-                        </TouchableOpacity>
-
                     </View>
+
+                ) : null}
+
+
+                {/* =====================================
+                    ADD CHILD BUTTON
+                ====================================== */}
+
+                {!error ? (
+
+                    <TouchableOpacity
+                        style={styles.addChildButton}
+                        onPress={handleAddChild}
+                        activeOpacity={0.8}
+                    >
+
+                        <Ionicons
+                            name="person-add-outline"
+                            size={21}
+                            color="#ffffff"
+                        />
+
+                        <Text
+                            style={
+                                styles.addChildButtonText
+                            }
+                        >
+                            Add Child
+                        </Text>
+
+                    </TouchableOpacity>
 
                 ) : null}
 
@@ -414,217 +452,145 @@ export default function MyChildrenScreen() {
                 children.length > 0 ? (
 
                     <View
-                        style={styles.childrenSection}
+                        style={
+                            styles.childrenSection
+                        }
                     >
 
-                        <View
-                            style={styles.sectionHeader}
+                        <Text
+                            style={styles.sectionTitle}
                         >
-
-                            <Text
-                                style={styles.sectionTitle}
-                            >
-                                Your Children
-                            </Text>
-
-
-                            <View
-                                style={styles.sectionCount}
-                            >
-
-                                <Text
-                                    style={styles.sectionCountText}
-                                >
-                                    {children.length}
-                                </Text>
-
-                            </View>
-
-                        </View>
+                            Your Children
+                        </Text>
 
 
                         {children.map(
-                            (child, index) => {
+                            (child, index) => (
 
-                                const fullName =
-                                    `${child.firstName || ""} ${
-                                        child.lastName || ""
-                                    }`.trim();
+                                <TouchableOpacity
+                                    key={
+                                        child._id ||
+                                        index
+                                    }
+                                    style={
+                                        styles.childCard
+                                    }
+                                    onPress={() =>
+                                        handleChildPress(
+                                            child
+                                        )
+                                    }
+                                    activeOpacity={0.75}
+                                >
 
+                                    {/* =================
+                                        AVATAR
+                                    ================== */}
 
-                                const avatarLetter =
-                                    child.firstName
-                                        ? child.firstName
-                                            .charAt(0)
-                                            .toUpperCase()
-                                        : "C";
-
-
-                                return (
-
-                                    <TouchableOpacity
-                                        key={
-                                            child._id ||
-                                            index
-                                        }
+                                    <View
                                         style={
-                                            styles.childCard
+                                            styles.childAvatar
                                         }
-                                        onPress={() =>
-                                            handleChildPress(
-                                                child
-                                            )
-                                        }
-                                        activeOpacity={0.75}
                                     >
 
-                                        {/* =================
-                                            AVATAR
-                                        ================== */}
-
-                                        <View
+                                        <Text
                                             style={
-                                                styles.childAvatar
+                                                styles.childAvatarText
                                             }
                                         >
+                                            {child.firstName
+                                                ? child.firstName
+                                                    .charAt(0)
+                                                    .toUpperCase()
+                                                : "C"}
+                                        </Text>
+
+                                    </View>
+
+
+                                    {/* =================
+                                        CHILD INFORMATION
+                                    ================== */}
+
+                                    <View
+                                        style={
+                                            styles.childInfo
+                                        }
+                                    >
+
+                                        <Text
+                                            style={
+                                                styles.childName
+                                            }
+                                        >
+                                            {child.firstName || ""}
+                                            {child.lastName
+                                                ? ` ${child.lastName}`
+                                                : ""}
+                                        </Text>
+
+
+                                        <Text
+                                            style={
+                                                styles.childDetails
+                                            }
+                                        >
+                                            {
+                                                child.gender ||
+                                                "Gender not provided"
+                                            }
+                                        </Text>
+
+
+                                        {child.dateOfBirth ? (
 
                                             <Text
                                                 style={
-                                                    styles.childAvatarText
+                                                    styles.childDetails
                                                 }
                                             >
-                                                {avatarLetter}
+                                                Date of birth:{" "}
+                                                {
+                                                    new Date(
+                                                        child.dateOfBirth
+                                                    ).toLocaleDateString()
+                                                }
                                             </Text>
 
-                                        </View>
+                                        ) : null}
 
 
-                                        {/* =================
-                                            CHILD INFORMATION
-                                        ================== */}
-
-                                        <View
-                                            style={
-                                                styles.childInfo
-                                            }
-                                        >
+                                        {child.membershipNumber ? (
 
                                             <Text
                                                 style={
-                                                    styles.childName
+                                                    styles.childDetails
                                                 }
-                                                numberOfLines={1}
                                             >
-                                                {fullName ||
-                                                    "Child"}
+                                                Membership No:{" "}
+                                                {
+                                                    child.membershipNumber
+                                                }
                                             </Text>
 
+                                        ) : null}
 
-                                            {child.gender ? (
-
-                                                <View
-                                                    style={
-                                                        styles.detailRow
-                                                    }
-                                                >
-
-                                                    <Ionicons
-                                                        name={
-                                                            child.gender ===
-                                                            "Male"
-                                                                ? "male-outline"
-                                                                : "female-outline"
-                                                        }
-                                                        size={14}
-                                                        color="#777777"
-                                                    />
-
-                                                    <Text
-                                                        style={
-                                                            styles.childDetails
-                                                        }
-                                                    >
-                                                        {child.gender}
-                                                    </Text>
-
-                                                </View>
-
-                                            ) : null}
+                                    </View>
 
 
-                                            {child.dateOfBirth ? (
+                                    {/* =================
+                                        ARROW
+                                    ================== */}
 
-                                                <View
-                                                    style={
-                                                        styles.detailRow
-                                                    }
-                                                >
+                                    <Ionicons
+                                        name="chevron-forward"
+                                        size={22}
+                                        color="#8a8a8a"
+                                    />
 
-                                                    <Ionicons
-                                                        name="calendar-outline"
-                                                        size={14}
-                                                        color="#777777"
-                                                    />
+                                </TouchableOpacity>
 
-                                                    <Text
-                                                        style={
-                                                            styles.childDetails
-                                                        }
-                                                    >
-                                                        {new Date(
-                                                            child.dateOfBirth
-                                                        ).toLocaleDateString()}
-                                                    </Text>
-
-                                                </View>
-
-                                            ) : null}
-
-
-                                            {child.membershipNumber ? (
-
-                                                <View
-                                                    style={
-                                                        styles.detailRow
-                                                    }
-                                                >
-
-                                                    <Ionicons
-                                                        name="card-outline"
-                                                        size={14}
-                                                        color="#777777"
-                                                    />
-
-                                                    <Text
-                                                        style={
-                                                            styles.childDetails
-                                                        }
-                                                    >
-                                                        {child.membershipNumber}
-                                                    </Text>
-
-                                                </View>
-
-                                            ) : null}
-
-                                        </View>
-
-
-                                        {/* =================
-                                            ARROW
-                                        ================== */}
-
-                                        <Ionicons
-                                            name="chevron-forward"
-                                            size={21}
-                                            color="#8a8a8a"
-                                        />
-
-                                    </TouchableOpacity>
-
-                                );
-
-                            }
+                            )
                         )}
 
                     </View>
@@ -649,7 +615,7 @@ export default function MyChildrenScreen() {
 
                             <Ionicons
                                 name="people-outline"
-                                size={42}
+                                size={40}
                                 color="#0f2a5f"
                             />
 
@@ -671,21 +637,31 @@ export default function MyChildrenScreen() {
                         </Text>
 
 
+                        <Text
+                            style={styles.emptyHint}
+                        >
+                            Add your child using the button
+                            below.
+                        </Text>
+
+
                         <TouchableOpacity
-                            style={styles.addChildButton}
+                            style={
+                                styles.emptyAddButton
+                            }
                             onPress={handleAddChild}
                             activeOpacity={0.8}
                         >
 
                             <Ionicons
                                 name="person-add-outline"
-                                size={21}
+                                size={20}
                                 color="#ffffff"
                             />
 
                             <Text
                                 style={
-                                    styles.addChildButtonText
+                                    styles.emptyAddButtonText
                                 }
                             >
                                 Add Child
@@ -699,49 +675,18 @@ export default function MyChildrenScreen() {
 
 
                 {/* =====================================
-                    ADD ANOTHER CHILD
-                ====================================== */}
-
-                {!error &&
-                children.length > 0 ? (
-
-                    <TouchableOpacity
-                        style={
-                            styles.addAnotherButton
-                        }
-                        onPress={handleAddChild}
-                        activeOpacity={0.8}
-                    >
-
-                        <Ionicons
-                            name="person-add-outline"
-                            size={20}
-                            color="#0f2a5f"
-                        />
-
-                        <Text
-                            style={
-                                styles.addAnotherText
-                            }
-                        >
-                            Add Another Child
-                        </Text>
-
-                    </TouchableOpacity>
-
-                ) : null}
-
-
-                {/* =====================================
                     REFRESH BUTTON
                 ====================================== */}
 
                 {!error ? (
 
                     <TouchableOpacity
-                        style={
-                            styles.refreshButton
-                        }
+                        style={[
+                            styles.refreshButton,
+
+                            refreshing &&
+                                styles.refreshButtonDisabled,
+                        ]}
                         onPress={handleRefresh}
                         disabled={refreshing}
                         activeOpacity={0.8}
@@ -766,16 +711,28 @@ export default function MyChildrenScreen() {
 
 
                         <Text
-                            style={styles.refreshText}
+                            style={
+                                styles.refreshText
+                            }
                         >
-                            {refreshing
-                                ? "Refreshing..."
-                                : "Refresh"}
+                            {
+                                refreshing
+                                    ? "Refreshing..."
+                                    : "Refresh"
+                            }
                         </Text>
 
                     </TouchableOpacity>
 
                 ) : null}
+
+
+                <Text
+                    style={styles.footerText}
+                >
+                    Your children's information is
+                    securely linked to your account.
+                </Text>
 
             </ScrollView>
 
@@ -791,26 +748,6 @@ export default function MyChildrenScreen() {
 // =====================================================
 
 const styles = StyleSheet.create({
-
-    // =================================================
-    // COLOR PALETTE
-    // =================================================
-    //
-    // Primary Navy:       #0f2a5f
-    // Page Background:    #f4f6fb
-    // White:              #ffffff
-    // Main Text:          #222222
-    // Secondary Text:     #777777
-    // Light Text:         #999999
-    // Border:             #dddddd
-    // Header Border:      #eeeeee
-    // Light Navy:         #eef3ff
-    // Error Red:          #dc2626
-    // Error Background:   #fef2f2
-    // Error Border:       #fecaca
-    //
-    // =================================================
-
 
     // =================================================
     // CONTAINER
@@ -848,7 +785,7 @@ const styles = StyleSheet.create({
 
         fontSize: 14,
 
-        color: "#777777",
+        color: "#777",
 
     },
 
@@ -897,16 +834,16 @@ const styles = StyleSheet.create({
 
     headerText: {
 
-        flex: 1,
-
         marginLeft: 14,
+
+        flex: 1,
 
     },
 
 
     title: {
 
-        fontSize: 25,
+        fontSize: 26,
 
         fontWeight: "800",
 
@@ -921,7 +858,7 @@ const styles = StyleSheet.create({
 
         fontSize: 13,
 
-        color: "#777777",
+        color: "#777",
 
     },
 
@@ -966,13 +903,13 @@ const styles = StyleSheet.create({
 
         borderRadius: 16,
 
-        padding: 18,
+        padding: 20,
 
         flexDirection: "row",
 
         alignItems: "center",
 
-        marginBottom: 25,
+        marginBottom: 18,
 
     },
 
@@ -996,8 +933,6 @@ const styles = StyleSheet.create({
 
     summaryInfo: {
 
-        flex: 1,
-
         marginLeft: 15,
 
     },
@@ -1020,24 +955,43 @@ const styles = StyleSheet.create({
 
         fontSize: 13,
 
-        color: "#777777",
+        color: "#777",
 
     },
 
 
-    summaryAddButton: {
+    // =================================================
+    // ADD CHILD BUTTON
+    // =================================================
 
-        width: 42,
+    addChildButton: {
 
-        height: 42,
-
-        borderRadius: 21,
+        height: 54,
 
         backgroundColor: "#0f2a5f",
+
+        borderRadius: 12,
+
+        flexDirection: "row",
 
         justifyContent: "center",
 
         alignItems: "center",
+
+        marginBottom: 25,
+
+    },
+
+
+    addChildButtonText: {
+
+        marginLeft: 9,
+
+        color: "#ffffff",
+
+        fontSize: 15,
+
+        fontWeight: "800",
 
     },
 
@@ -1048,59 +1002,20 @@ const styles = StyleSheet.create({
 
     childrenSection: {
 
-        marginBottom: 10,
-
-    },
-
-
-    sectionHeader: {
-
-        flexDirection: "row",
-
-        alignItems: "center",
-
-        marginBottom: 12,
+        marginBottom: 5,
 
     },
 
 
     sectionTitle: {
 
-        flex: 1,
-
         fontSize: 18,
 
         fontWeight: "800",
 
-        color: "#222222",
+        color: "#222",
 
-    },
-
-
-    sectionCount: {
-
-        width: 28,
-
-        height: 28,
-
-        borderRadius: 14,
-
-        backgroundColor: "#eef3ff",
-
-        justifyContent: "center",
-
-        alignItems: "center",
-
-    },
-
-
-    sectionCountText: {
-
-        fontSize: 12,
-
-        fontWeight: "800",
-
-        color: "#0f2a5f",
+        marginBottom: 12,
 
     },
 
@@ -1115,7 +1030,7 @@ const styles = StyleSheet.create({
 
         borderRadius: 16,
 
-        padding: 17,
+        padding: 18,
 
         marginBottom: 12,
 
@@ -1128,9 +1043,9 @@ const styles = StyleSheet.create({
 
     childAvatar: {
 
-        width: 56,
+        width: 55,
 
-        height: 56,
+        height: 55,
 
         borderRadius: 28,
 
@@ -1171,31 +1086,20 @@ const styles = StyleSheet.create({
 
         fontWeight: "800",
 
-        color: "#222222",
+        color: "#222",
 
         marginBottom: 5,
 
     },
 
 
-    detailRow: {
-
-        flexDirection: "row",
-
-        alignItems: "center",
-
-        marginTop: 3,
-
-    },
-
-
     childDetails: {
-
-        marginLeft: 5,
 
         fontSize: 12,
 
-        color: "#777777",
+        color: "#777",
+
+        marginTop: 2,
 
     },
 
@@ -1219,11 +1123,11 @@ const styles = StyleSheet.create({
 
     emptyIcon: {
 
-        width: 82,
+        width: 80,
 
-        height: 82,
+        height: 80,
 
-        borderRadius: 41,
+        borderRadius: 40,
 
         backgroundColor: "#eef3ff",
 
@@ -1231,7 +1135,7 @@ const styles = StyleSheet.create({
 
         alignItems: "center",
 
-        marginBottom: 16,
+        marginBottom: 15,
 
     },
 
@@ -1242,7 +1146,7 @@ const styles = StyleSheet.create({
 
         fontWeight: "800",
 
-        color: "#222222",
+        color: "#222",
 
         textAlign: "center",
 
@@ -1255,7 +1159,7 @@ const styles = StyleSheet.create({
 
         fontSize: 14,
 
-        color: "#666666",
+        color: "#666",
 
         textAlign: "center",
 
@@ -1264,72 +1168,47 @@ const styles = StyleSheet.create({
     },
 
 
-    addChildButton: {
+    emptyHint: {
 
-        marginTop: 22,
+        marginTop: 12,
 
-        minHeight: 52,
+        fontSize: 12,
 
-        paddingHorizontal: 28,
+        color: "#999",
 
-        borderRadius: 12,
+        textAlign: "center",
+
+        lineHeight: 18,
+
+    },
+
+
+    emptyAddButton: {
+
+        marginTop: 20,
 
         backgroundColor: "#0f2a5f",
 
-        flexDirection: "row",
-
-        justifyContent: "center",
-
-        alignItems: "center",
-
-        gap: 8,
-
-    },
-
-
-    addChildButtonText: {
-
-        color: "#ffffff",
-
-        fontSize: 15,
-
-        fontWeight: "800",
-
-    },
-
-
-    // =================================================
-    // ADD ANOTHER CHILD
-    // =================================================
-
-    addAnotherButton: {
-
-        minHeight: 52,
-
-        backgroundColor: "#ffffff",
-
-        borderWidth: 1,
-
-        borderColor: "#0f2a5f",
-
         borderRadius: 12,
 
-        flexDirection: "row",
+        paddingHorizontal: 22,
 
-        justifyContent: "center",
+        paddingVertical: 13,
+
+        flexDirection: "row",
 
         alignItems: "center",
 
-        marginTop: 8,
-
-        gap: 8,
+        justifyContent: "center",
 
     },
 
 
-    addAnotherText: {
+    emptyAddButtonText: {
 
-        color: "#0f2a5f",
+        marginLeft: 8,
+
+        color: "#ffffff",
 
         fontSize: 14,
 
@@ -1348,24 +1227,7 @@ const styles = StyleSheet.create({
 
         borderRadius: 16,
 
-        padding: 28,
-
-        alignItems: "center",
-
-    },
-
-
-    errorIcon: {
-
-        width: 70,
-
-        height: 70,
-
-        borderRadius: 35,
-
-        backgroundColor: "#fef2f2",
-
-        justifyContent: "center",
+        padding: 25,
 
         alignItems: "center",
 
@@ -1374,13 +1236,13 @@ const styles = StyleSheet.create({
 
     errorTitle: {
 
-        marginTop: 12,
+        marginTop: 10,
 
         fontSize: 17,
 
         fontWeight: "800",
 
-        color: "#222222",
+        color: "#222",
 
         textAlign: "center",
 
@@ -1389,38 +1251,34 @@ const styles = StyleSheet.create({
 
     errorMessage: {
 
-        marginTop: 8,
+        marginTop: 7,
 
         fontSize: 13,
 
-        color: "#777777",
+        color: "#777",
 
         textAlign: "center",
-
-        lineHeight: 19,
 
     },
 
 
     retryButton: {
 
+        minWidth: 120,
+
         backgroundColor: "#0f2a5f",
 
         borderRadius: 10,
 
-        minHeight: 46,
+        paddingHorizontal: 25,
 
-        paddingHorizontal: 24,
+        paddingVertical: 12,
 
         marginTop: 18,
-
-        flexDirection: "row",
 
         justifyContent: "center",
 
         alignItems: "center",
-
-        gap: 7,
 
     },
 
@@ -1442,11 +1300,11 @@ const styles = StyleSheet.create({
 
     refreshButton: {
 
+        height: 52,
+
         backgroundColor: "#0f2a5f",
 
         borderRadius: 12,
-
-        minHeight: 52,
 
         paddingHorizontal: 20,
 
@@ -1461,6 +1319,13 @@ const styles = StyleSheet.create({
     },
 
 
+    refreshButtonDisabled: {
+
+        opacity: 0.7,
+
+    },
+
+
     refreshText: {
 
         color: "#ffffff",
@@ -1470,6 +1335,25 @@ const styles = StyleSheet.create({
         fontWeight: "700",
 
         marginLeft: 8,
+
+    },
+
+
+    // =================================================
+    // FOOTER
+    // =================================================
+
+    footerText: {
+
+        marginTop: 18,
+
+        fontSize: 11,
+
+        color: "#999",
+
+        textAlign: "center",
+
+        lineHeight: 17,
 
     },
 
