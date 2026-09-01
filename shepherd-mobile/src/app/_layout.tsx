@@ -607,11 +607,29 @@ function AppTabs() {
             {/* =========================================
                 MY CHILDREN
                 Hidden from bottom tabs
-                Accessible from Profile
+                Opened from Profile
             ========================================== */}
 
             <Tabs.Screen
                 name="my-children"
+                options={{
+
+                    href: null,
+
+                    headerShown: false,
+
+                }}
+            />
+
+
+            {/* =========================================
+                ADD CHILD
+                Hidden from bottom tabs
+                Opened from My Children
+            ========================================== */}
+
+            <Tabs.Screen
+                name="add-child"
                 options={{
 
                     href: null,
@@ -633,7 +651,9 @@ function AppTabs() {
                     href: null,
 
                     tabBarStyle: {
+
                         display: "none",
+
                     },
 
                 }}
@@ -698,6 +718,10 @@ export default function RootLayout() {
 // =====================================================
 
 const styles = StyleSheet.create({
+
+    // =================================================
+    // LOADING
+    // =================================================
 
     loadingContainer: {
 
