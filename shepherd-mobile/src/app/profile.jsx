@@ -213,11 +213,11 @@ export default function ProfileScreen() {
                     MY PROFILE
                 ====================================== */}
 
-                <TouchableOpacity
-                    style={styles.option}
-                    activeOpacity={0.7}
-                >
-
+              <TouchableOpacity
+    style={styles.option}
+    onPress={() => router.push("/my-profile")}
+    activeOpacity={0.7}
+>
                     <View>
 
                         <Text style={styles.optionTitle}>

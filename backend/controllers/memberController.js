@@ -501,6 +501,7 @@ const getMyDashboard = async (req, res) => {
                 email
                 phone
                 gender
+                dateOfBirth
                 membershipNumber
                 membershipType
                 role
@@ -823,6 +824,9 @@ const getMyDashboard = async (req, res) => {
 
                 status:
                     member.status,
+
+                dateOfBirth: 
+                member.dateOfBirth,
 
                 isActive:
                     member.isActive,

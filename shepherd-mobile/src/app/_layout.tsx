@@ -494,7 +494,13 @@ function AppTabs() {
 
                 }}
             />
-
+  <Tabs.Screen
+    name="my-profile"
+    options={{
+        href: null,
+        headerShown: false,
+    }}
+/>
 
             {/* =========================================
                 ATTENDANCE
