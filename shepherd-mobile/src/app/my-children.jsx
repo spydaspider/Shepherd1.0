@@ -162,18 +162,24 @@ export default function MyChildrenScreen() {
 
     const handleChildPress = (child) => {
 
-        const fullName =
-            `${child.firstName || ""} ${
-                child.lastName || ""
-            }`.trim();
-
+    if (!child?._id) {
 
         Alert.alert(
-            fullName || "Child",
-            "Child management options will be added here."
+            "Error",
+            "Unable to open this child's details."
         );
 
-    };
+        return;
+    }
+
+    router.push({
+        pathname: "/child-details",
+        params: {
+            childId: String(child._id),
+        },
+    });
+
+};
 
 
     // =================================================

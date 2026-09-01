@@ -459,7 +459,13 @@ function AppTabs() {
                 },
 
             }}
-        >
+        >  <Tabs.Screen
+    name="child-details"
+    options={{
+        href: null,
+        headerShown: false,
+    }}
+/>
 
             {/* =========================================
                 HOME
