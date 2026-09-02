@@ -2,6 +2,7 @@ const Attendance = require("../models/Attendance");
 const Service = require("../models/Service");
 const User = require("../models/User");
 
+
 // =====================================================
 // Get Child Attendance History
 // GET /api/attendance/child/:childId
@@ -21,11 +22,8 @@ const getChildAttendanceHistory = async (req, res) => {
         if (!childId) {
 
             return res.status(400).json({
-
                 success: false,
-
                 message: "Child ID is required."
-
             });
 
         }
@@ -36,22 +34,16 @@ const getChildAttendanceHistory = async (req, res) => {
         // =================================================
 
         const child = await User.findOne({
-
             _id: childId,
-
             isChild: true
-
         });
 
 
         if (!child) {
 
             return res.status(404).json({
-
                 success: false,
-
                 message: "Child not found."
-
             });
 
         }
@@ -68,12 +60,9 @@ const getChildAttendanceHistory = async (req, res) => {
         ) {
 
             return res.status(403).json({
-
                 success: false,
-
                 message:
                     "You are not authorized to view this child's attendance."
-
             });
 
         }
@@ -85,32 +74,25 @@ const getChildAttendanceHistory = async (req, res) => {
 
         const attendance = await Attendance.find({
 
-            user: child._id
+            user: child._id,
+
+            isDeleted: false
 
         })
 
             .populate(
-
                 "service",
-
                 "name serviceType serviceDate startTime endTime"
-
             )
 
             .populate(
-
                 "markedBy",
-
                 "firstName lastName"
-
             )
 
             .sort({
-
                 attendanceDate: -1,
-
                 createdAt: -1
-
             });
 
 
@@ -120,49 +102,28 @@ const getChildAttendanceHistory = async (req, res) => {
 
         const total = attendance.length;
 
-
         const present = attendance.filter(
-
-            item =>
-                item.status === "Present"
-
+            item => item.status === "Present"
         ).length;
-
 
         const absent = attendance.filter(
-
-            item =>
-                item.status === "Absent"
-
+            item => item.status === "Absent"
         ).length;
 
-
         const excused = attendance.filter(
-
-            item =>
-                item.status === "Excused"
-
+            item => item.status === "Excused"
         ).length;
 
 
         const attendanceRate =
-
             total > 0
-
                 ? Number(
-
                     (
-
                         present /
-
                         total *
-
                         100
-
                     ).toFixed(2)
-
                 )
-
                 : 0;
 
 
@@ -214,13 +175,9 @@ const getChildAttendanceHistory = async (req, res) => {
     catch (error) {
 
         console.error(
-
             "Get child attendance history error:",
-
             error
-
         );
-
 
         res.status(500).json({
 
@@ -233,6 +190,9 @@ const getChildAttendanceHistory = async (req, res) => {
     }
 
 };
+
+
+
 // =====================================================
 // Get My Attendance History
 // GET /api/attendance/my-history
@@ -243,7 +203,11 @@ const getMyAttendanceHistory = async (req, res) => {
     try {
 
         const attendance = await Attendance.find({
+
             user: req.user._id,
+
+            isDeleted: false
+
         })
 
             .populate(
@@ -253,12 +217,12 @@ const getMyAttendanceHistory = async (req, res) => {
 
             .sort({
                 attendanceDate: -1,
-                createdAt: -1,
+                createdAt: -1
             });
 
 
         // =================================================
-        // Calculate Summary
+        // CALCULATE SUMMARY
         // =================================================
 
         const total = attendance.length;
@@ -289,7 +253,7 @@ const getMyAttendanceHistory = async (req, res) => {
 
 
         // =================================================
-        // Response
+        // RESPONSE
         // =================================================
 
         res.json({
@@ -306,15 +270,16 @@ const getMyAttendanceHistory = async (req, res) => {
 
                 excused,
 
-                attendanceRate,
+                attendanceRate
 
             },
 
-            attendance,
+            attendance
 
         });
 
     }
+
     catch (error) {
 
         console.error(
@@ -322,12 +287,11 @@ const getMyAttendanceHistory = async (req, res) => {
             error
         );
 
-
         res.status(500).json({
 
             success: false,
 
-            message: error.message,
+            message: error.message
 
         });
 
@@ -335,125 +299,190 @@ const getMyAttendanceHistory = async (req, res) => {
 
 };
 
+
+
 // =====================================================
 // Update Attendance Summary
 // =====================================================
+//
+// This function updates the summary stored on the
+// Service document.
+//
+// IMPORTANT:
+// Male and Female now mean ADULT males/females only.
+// Children are counted separately.
+//
+// Male Adults
+// + Female Adults
+// + Children
+// = Total Present
+// =====================================================
 
-const updateAttendanceSummary = async(serviceId)=>{
+const updateAttendanceSummary = async (serviceId) => {
 
-    const service = await Service.findById(serviceId);
+    const service =
+        await Service.findById(serviceId);
 
 
-    if(!service){
+    if (!service) {
         return;
     }
 
 
+    // =================================================
+    // COUNT ACTIVE MEMBERS
+    // =================================================
 
-    const totalMembers = await User.countDocuments({
+    const totalMembers =
+        await User.countDocuments({
 
-        isActive:true
+            isActive: true,
 
-    });
+            deleted: false
 
-
-
-
-    const records = await Attendance.find({
-
-        service:serviceId,
-
-        status:"Present"
-
-    })
-    .populate("user");
+        });
 
 
+    // =================================================
+    // GET PRESENT ATTENDANCE
+    // =================================================
+
+    const records =
+        await Attendance.find({
+
+            service: serviceId,
+
+            status: "Present",
+
+            isDeleted: false
+
+        }).populate(
+            "user",
+            "gender isChild isActive deleted"
+        );
 
 
+    // =================================================
+    // ONLY COUNT VALID USERS
+    // =================================================
 
     const users = records
-    .map(record=>record.user)
-    .filter(Boolean);
+
+        .map(record => record.user)
+
+        .filter(user =>
+
+            user &&
+
+            user.isActive !== false &&
+
+            user.deleted !== true
+
+        );
 
 
+    // =================================================
+    // TOTAL PRESENT
+    // =================================================
+
+    const totalPresent =
+        users.length;
 
 
+    // =================================================
+    // CHILDREN
+    // =================================================
 
-    const totalPresent = users.length;
+    const childrenPresent =
+        users.filter(
+            user => user.isChild === true
+        ).length;
 
 
+    // =================================================
+    // ADULT MALES
+    // =================================================
+
+    const malePresent =
+        users.filter(
+            user =>
+                user.isChild !== true &&
+                user.gender === "Male"
+        ).length;
 
 
+    // =================================================
+    // ADULT FEMALES
+    // =================================================
+
+    const femalePresent =
+        users.filter(
+            user =>
+                user.isChild !== true &&
+                user.gender === "Female"
+        ).length;
+
+
+    // =================================================
+    // ADULTS
+    // =================================================
+
+    const adultsPresent =
+        malePresent +
+        femalePresent;
+
+
+    // =================================================
+    // ABSENT
+    // =================================================
+
+    const totalAbsent =
+        Math.max(
+            totalMembers -
+            totalPresent,
+            0
+        );
+
+
+    // =================================================
+    // ATTENDANCE RATE
+    // =================================================
+
+    const attendanceRate =
+        totalMembers > 0
+
+            ? Number(
+                (
+                    totalPresent /
+                    totalMembers *
+                    100
+                ).toFixed(2)
+            )
+
+            : 0;
+
+
+    // =================================================
+    // SAVE SUMMARY
+    // =================================================
 
     service.attendanceSummary = {
 
-
         totalPresent,
 
+        totalAbsent,
 
-        totalAbsent:
+        adultsPresent,
 
-        Math.max(
-            totalMembers - totalPresent,
-            0
-        ),
+        childrenPresent,
 
+        malePresent,
 
+        femalePresent,
 
-        adultsPresent:
-
-        users.filter(
-            user=>user.isChild === false
-        ).length,
-
-
-
-        childrenPresent:
-
-        users.filter(
-            user=>user.isChild === true
-        ).length,
-
-
-
-        malePresent:
-
-        users.filter(
-            user=>user.gender === "Male"
-        ).length,
-
-
-
-        femalePresent:
-
-        users.filter(
-            user=>user.gender === "Female"
-        ).length,
-
-
-
-        attendanceRate:
-
-        totalMembers > 0
-
-        ?
-
-        Number(
-            (
-                totalPresent /
-                totalMembers *
-                100
-            )
-            .toFixed(2)
-        )
-
-        :
-
-        0
+        attendanceRate
 
     };
-
 
 
     await service.save();
@@ -462,51 +491,72 @@ const updateAttendanceSummary = async(serviceId)=>{
 
 
 
-
-
-
-
-
-
 // =====================================================
 // Update User Attendance Statistics
 // =====================================================
 
-const updateUserAttendance = async(userId)=>{
+const updateUserAttendance = async (userId) => {
+
+    const user =
+        await User.findById(userId);
 
 
-    const user = await User.findById(userId);
-
-
-    if(!user){
+    if (!user) {
         return;
     }
 
 
+    // =================================================
+    // TOTAL PRESENT
+    // =================================================
 
-    user.totalAttendance = await Attendance.countDocuments({
+    user.totalAttendance =
+        await Attendance.countDocuments({
 
-        user:userId,
+            user: userId,
 
-        status:"Present"
+            status: "Present",
 
-    });
+            isDeleted: false
+
+        });
 
 
+    // =================================================
+    // FIND MOST RECENT ATTENDANCE
+    // =================================================
 
-    user.lastAttendance = new Date();
+    const latestAttendance =
+        await Attendance.findOne({
+
+            user: userId,
+
+            status: "Present",
+
+            isDeleted: false
+
+        })
+
+            .sort({
+                attendanceDate: -1,
+                createdAt: -1
+            });
+
+
+    if (latestAttendance) {
+
+        user.lastAttendance =
+            latestAttendance.attendanceDate;
+
+        user.lastServiceAttended =
+            latestAttendance.service;
+
+    }
 
 
     await user.save();
 
-
 };
-
-
-
-
-
-
 
 
 
@@ -515,246 +565,275 @@ const updateUserAttendance = async(userId)=>{
 // POST /api/attendance/mark
 // =====================================================
 
-const markAttendance = async(req,res)=>{
+const markAttendance = async (req, res) => {
 
-try{
+    try {
 
+        const {
+            code,
+            members = []
+        } = req.body;
 
-const {
 
-code,
+        // =================================================
+        // FIND ACTIVE SERVICE
+        // =================================================
 
-members=[]
+        const service =
+            await Service.findOne({
 
-}=req.body;
+                attendanceCode: code,
 
+                status: "Active",
 
+                attendanceOpen: true
 
+            });
 
 
-const service = await Service.findOne({
+        if (!service) {
 
-attendanceCode:code,
+            return res.status(400).json({
 
-status:"Active",
+                success: false,
 
-attendanceOpen:true
+                message:
+                    "Invalid or expired attendance code"
 
-});
+            });
 
+        }
 
 
+        // =================================================
+        // BUILD SELECTED MEMBERS
+        // =================================================
 
+        let selectedMembers =
+            [...members];
 
-if(!service){
 
-return res.status(400).json({
+        // Always include logged-in user
 
-success:false,
+        if (
+            !selectedMembers.includes(
+                req.user._id.toString()
+            )
+        ) {
 
-message:"Invalid or expired attendance code"
+            selectedMembers.push(
+                req.user._id.toString()
+            );
 
-});
+        }
 
-}
 
+        // =================================================
+        // FIND ALLOWED MEMBERS
+        // =================================================
 
+        const allowedMembers =
+            await User.find({
 
+                _id: {
+                    $in: selectedMembers
+                },
 
+                deleted: false,
 
-let selectedMembers=[...members];
+                $or: [
 
+                    {
+                        _id: req.user._id
+                    },
 
+                    {
+                        parent: req.user._id
+                    }
 
+                ]
 
+            });
 
-if(
-!selectedMembers.includes(
-req.user._id.toString()
-)
-){
 
-selectedMembers.push(
-req.user._id.toString()
-);
+        if (
+            allowedMembers.length !==
+            selectedMembers.length
+        ) {
 
-}
+            return res.status(403).json({
 
+                success: false,
 
+                message:
+                    "You can only mark yourself and your children"
 
+            });
 
+        }
 
 
-const allowedMembers = await User.find({
+        // =================================================
+        // CREATE ATTENDANCE
+        // =================================================
 
-_id:{
-$in:selectedMembers
-},
+        let created = [];
 
-$or:[
+        let alreadyPresent = [];
 
-{
-_id:req.user._id
-},
 
-{
-parent:req.user._id
-}
+        for (
+            const member of allowedMembers
+        ) {
 
-]
+            const existing =
+                await Attendance.findOne({
 
-});
+                    user: member._id,
 
+                    service: service._id
 
+                });
 
 
+            if (existing) {
 
+                if (
+                    existing.status === "Present" &&
+                    existing.isDeleted === false
+                ) {
 
-if(
-allowedMembers.length !== selectedMembers.length
-){
+                    alreadyPresent.push(member);
 
-return res.status(403).json({
+                    continue;
 
-success:false,
+                }
 
-message:
-"You can only mark yourself and your children"
 
-});
+                // Restore previously deleted/absent record
 
-}
+                existing.status = "Present";
 
+                existing.isDeleted = false;
 
+                existing.attendanceMethod =
+                    member._id.toString() ===
+                    req.user._id.toString()
 
+                        ? "Self"
 
+                        : "Parent";
 
+                existing.markedBy =
+                    req.user._id;
 
-let created=[];
+                existing.attendanceDate =
+                    new Date();
 
-let alreadyPresent=[];
+                existing.checkedInAt =
+                    new Date();
 
+                await existing.save();
 
+                created.push(existing);
 
+                await updateUserAttendance(
+                    member._id
+                );
 
+                continue;
 
+            }
 
-for(const member of allowedMembers){
 
+            const attendance =
+                await Attendance.create({
 
-const existing = await Attendance.findOne({
+                    user: member._id,
 
-user:member._id,
+                    service: service._id,
 
-service:service._id
+                    status: "Present",
 
-});
+                    attendanceMethod:
 
+                        member._id.toString() ===
+                        req.user._id.toString()
 
+                            ? "Self"
 
+                            : "Parent",
 
+                    markedBy:
+                        req.user._id,
 
-if(existing){
+                    attendanceDate:
+                        new Date(),
 
-alreadyPresent.push(member);
+                    checkedInAt:
+                        new Date()
 
-continue;
+                });
 
-}
 
+            created.push(attendance);
 
 
+            await updateUserAttendance(
+                member._id
+            );
 
+        }
 
-const attendance = await Attendance.create({
 
-user:member._id,
+        // =================================================
+        // UPDATE SERVICE SUMMARY
+        // =================================================
 
-service:service._id,
+        await updateAttendanceSummary(
+            service._id
+        );
 
-status:"Present",
 
-attendanceMethod:
+        // =================================================
+        // RESPONSE
+        // =================================================
 
-member._id.toString()
-===
-req.user._id.toString()
+        res.status(201).json({
 
-?
+            success: true,
 
-"Self"
+            message:
+                "Attendance marked successfully",
 
-:
+            created:
+                created.length,
 
-"Parent",
+            alreadyPresent:
+                alreadyPresent.length
 
+        });
 
-markedBy:req.user._id,
+    }
 
-attendanceDate:new Date(),
+    catch (error) {
 
-checkedInAt:new Date()
+        console.error(
+            "Mark attendance error:",
+            error
+        );
 
-});
+        res.status(500).json({
 
+            success: false,
 
+            message: error.message
 
-created.push(attendance);
+        });
 
-
-
-await updateUserAttendance(
-member._id
-);
-
-
-}
-
-
-
-
-
-await updateAttendanceSummary(
-service._id
-);
-
-
-
-
-
-res.status(201).json({
-
-success:true,
-
-message:"Attendance marked successfully",
-
-created:created.length,
-
-alreadyPresent:alreadyPresent.length
-
-});
-
-
-}
-catch(error){
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-}
+    }
 
 };
-
-
-
-
-
-
 
 
 
@@ -763,190 +842,212 @@ message:error.message
 // POST /api/attendance/admin-mark
 // =====================================================
 
-const adminMarkAttendance = async(req,res)=>{
+const adminMarkAttendance = async (
+    req,
+    res
+) => {
 
-try{
+    try {
 
+        const {
+            serviceId,
+            members = []
+        } = req.body;
 
-const {
 
-serviceId,
+        // =================================================
+        // FIND ACTIVE SERVICE
+        // =================================================
 
-members=[]
+        const service =
+            await Service.findOne({
 
-}=req.body;
+                _id: serviceId,
 
+                status: "Active",
 
+                attendanceOpen: true
 
+            });
 
 
+        if (!service) {
 
-const service = await Service.findOne({
+            return res.status(404).json({
 
-_id:serviceId,
+                success: false,
 
-status:"Active",
+                message:
+                    "Active service not found"
 
-attendanceOpen:true
+            });
 
-});
+        }
 
 
+        // =================================================
+        // CREATE ATTENDANCE
+        // =================================================
 
+        let created = [];
 
+        let alreadyPresent = [];
 
 
-if(!service){
+        for (
+            const memberId of members
+        ) {
 
-return res.status(404).json({
+            const member =
+                await User.findOne({
 
-success:false,
+                    _id: memberId,
 
-message:"Active service not found"
+                    deleted: false
 
-});
+                });
 
-}
 
+            if (!member) {
+                continue;
+            }
 
 
+            const existing =
+                await Attendance.findOne({
 
+                    user: member._id,
 
+                    service: service._id
 
-let created=[];
+                });
 
-let alreadyPresent=[];
 
+            if (existing) {
 
+                if (
+                    existing.status === "Present" &&
+                    existing.isDeleted === false
+                ) {
 
+                    alreadyPresent.push(member);
 
+                    continue;
 
+                }
 
-for(const memberId of members){
 
+                existing.status = "Present";
 
+                existing.isDeleted = false;
 
-const member = await User.findById(memberId);
+                existing.attendanceMethod =
+                    "Admin";
 
+                existing.markedBy =
+                    req.user._id;
 
+                existing.attendanceDate =
+                    new Date();
 
-if(!member){
+                existing.checkedInAt =
+                    new Date();
 
-continue;
+                await existing.save();
 
-}
+                created.push(existing);
 
+                await updateUserAttendance(
+                    member._id
+                );
 
+                continue;
 
+            }
 
 
-const existing = await Attendance.findOne({
+            const attendance =
+                await Attendance.create({
 
-user:member._id,
+                    user: member._id,
 
-service:service._id
+                    service: service._id,
 
-});
+                    status: "Present",
 
+                    attendanceMethod:
+                        "Admin",
 
+                    markedBy:
+                        req.user._id,
 
+                    attendanceDate:
+                        new Date(),
 
+                    checkedInAt:
+                        new Date()
 
-if(existing){
+                });
 
-alreadyPresent.push(member);
 
-continue;
+            created.push(attendance);
 
-}
 
+            await updateUserAttendance(
+                member._id
+            );
 
+        }
 
 
+        // =================================================
+        // UPDATE SERVICE SUMMARY
+        // =================================================
 
-const attendance = await Attendance.create({
+        await updateAttendanceSummary(
+            service._id
+        );
 
-user:member._id,
 
-service:service._id,
+        // =================================================
+        // RESPONSE
+        // =================================================
 
-status:"Present",
+        res.status(201).json({
 
-attendanceMethod:"Admin",
+            success: true,
 
-markedBy:req.user._id,
+            message:
+                "Admin attendance recorded",
 
-attendanceDate:new Date(),
+            created:
+                created.length,
 
-checkedInAt:new Date()
+            alreadyPresent:
+                alreadyPresent.length
 
-});
+        });
 
+    }
 
+    catch (error) {
 
+        console.error(
+            "Admin mark attendance error:",
+            error
+        );
 
+        res.status(500).json({
 
-created.push(attendance);
+            success: false,
 
+            message: error.message
 
+        });
 
-await updateUserAttendance(
-member._id
-);
-
-
-
-}
-
-
-
-
-
-
-await updateAttendanceSummary(
-service._id
-);
-
-
-
-
-
-
-res.status(201).json({
-
-success:true,
-
-message:"Admin attendance recorded",
-
-created:created.length,
-
-alreadyPresent:alreadyPresent.length
-
-});
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
+    }
 
 };
-
-
-
-
-
-
 
 
 
@@ -955,227 +1056,522 @@ message:error.message
 // GET /api/attendance/service/:serviceId
 // =====================================================
 
-const getServiceAttendance = async(req,res)=>{
+const getServiceAttendance = async (
+    req,
+    res
+) => {
 
-try{
+    try {
 
+        const service =
+            await Service.findById(
+                req.params.serviceId
+            )
 
-const service = await Service.findById(
-req.params.serviceId
-)
-.populate(
-"generatedBy",
-"firstName lastName"
-);
+            .populate(
+                "generatedBy",
+                "firstName lastName"
+            );
 
 
+        if (!service) {
 
+            return res.status(404).json({
 
+                success: false,
 
-if(!service){
+                message:
+                    "Service not found"
 
-return res.status(404).json({
+            });
 
-success:false,
+        }
 
-message:"Service not found"
 
-});
+        // =================================================
+        // GET ATTENDANCE
+        // =================================================
 
-}
+        const attendance =
+            await Attendance.find({
 
+                service: service._id,
 
+                isDeleted: false
 
+            })
 
+            .populate(
+                "user",
+                "firstName lastName gender phone isChild membershipNumber"
+            )
 
+            .populate(
+                "markedBy",
+                "firstName lastName"
+            )
 
+            .sort({
+                createdAt: -1
+            });
 
-const attendance = await Attendance.find({
 
-service:service._id
+        // =================================================
+        // PRESENT USERS
+        // =================================================
 
-})
+        const present =
+            attendance.filter(
+                item =>
+                    item.status === "Present"
+            );
 
-.populate(
-"user",
-"firstName lastName gender phone isChild membershipNumber"
-)
 
-.populate(
-"markedBy",
-"firstName lastName"
-)
+        const users =
+            present
 
-.sort({
-createdAt:-1
-});
+                .map(item => item.user)
 
+                .filter(Boolean);
 
 
+        // =================================================
+        // ACTIVE MEMBERS
+        // =================================================
 
+        const totalMembers =
+            await User.countDocuments({
 
+                isActive: true,
 
+                deleted: false
 
-const present = attendance.filter(
+            });
 
-item=>item.status==="Present"
 
-);
+        // =================================================
+        // SUMMARY
+        // =================================================
 
+        const maleAdults =
+            users.filter(
+                user =>
+                    user.isChild !== true &&
+                    user.gender === "Male"
+            ).length;
 
 
+        const femaleAdults =
+            users.filter(
+                user =>
+                    user.isChild !== true &&
+                    user.gender === "Female"
+            ).length;
 
 
+        const children =
+            users.filter(
+                user =>
+                    user.isChild === true
+            ).length;
 
 
-const totalMembers = await User.countDocuments({
+        const adults =
+            maleAdults +
+            femaleAdults;
 
-isActive:true
 
-});
+        const totalPresent =
+            maleAdults +
+            femaleAdults +
+            children;
 
 
+        const totalAbsent =
+            Math.max(
+                totalMembers -
+                totalPresent,
+                0
+            );
 
 
+        const attendanceRate =
+            totalMembers > 0
 
+                ? Number(
+                    (
+                        totalPresent /
+                        totalMembers *
+                        100
+                    ).toFixed(2)
+                )
 
+                : 0;
 
-const users = present
-.map(item=>item.user)
-.filter(Boolean);
 
+        // =================================================
+        // RESPONSE
+        // =================================================
 
+        res.json({
 
+            success: true,
 
+            service: {
 
+                id: service._id,
 
+                name: service.name,
 
-const summary = {
+                serviceType:
+                    service.serviceType,
 
+                date:
+                    service.serviceDate,
 
-totalPresent:users.length,
+                startTime:
+                    service.startTime,
 
+                endTime:
+                    service.endTime,
 
-totalAbsent:
+                status:
+                    service.status,
 
-Math.max(
-totalMembers - users.length,
-0
-),
+                generatedBy:
+                    service.generatedBy
 
+            },
 
+            summary: {
 
-men:
+                totalPresent,
 
-users.filter(
-user=>user.gender==="Male"
-).length,
+                totalAbsent,
 
+                maleAdults,
 
+                femaleAdults,
 
-women:
+                children,
 
-users.filter(
-user=>user.gender==="Female"
-).length,
+                adults,
 
+                attendanceRate
 
+            },
 
-children:
+            attendanceCount:
+                attendance.length,
 
-users.filter(
-user=>user.isChild===true
-).length,
+            attendance
 
+        });
 
+    }
 
-adults:
+    catch (error) {
 
-users.filter(
-user=>user.isChild===false
-).length,
+        console.error(
+            "Get service attendance error:",
+            error
+        );
 
+        res.status(500).json({
 
+            success: false,
 
-attendanceRate:
+            message: error.message
 
-totalMembers > 0
+        });
 
-?
-
-Number(
-(
-users.length /
-totalMembers *
-100
-)
-.toFixed(2)
-)
-
-:
-
-0
-
+    }
 
 };
 
 
 
+// =====================================================
+// Secretary Attendance Report
+// GET /api/attendance/secretary-report/:serviceId
+// =====================================================
+//
+// This is the simplified report intended for the
+// church Secretary.
+//
+// Categories are mutually exclusive:
+//
+// Male Adults
+// Female Adults
+// Children
+// Total Present
+// =====================================================
+
+const getSecretaryAttendanceReport = async (
+    req,
+    res
+) => {
+
+    try {
+
+        const { serviceId } =
+            req.params;
 
 
+        // =================================================
+        // VALIDATE SERVICE ID
+        // =================================================
+
+        if (!serviceId) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Service ID is required"
+
+            });
+
+        }
 
 
-res.json({
+        // =================================================
+        // FIND SERVICE
+        // =================================================
 
-success:true,
+        const service =
+            await Service.findById(
+                serviceId
+            )
 
-service:{
-
-id:service._id,
-
-name:service.name,
-
-serviceType:service.serviceType,
-
-date:service.serviceDate,
-
-status:service.status,
-
-generatedBy:service.generatedBy
-
-},
-
-summary,
-
-attendanceCount:attendance.length,
-
-attendance
+            .populate(
+                "generatedBy",
+                "firstName lastName"
+            );
 
 
-});
+        if (!service) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Service not found"
+
+            });
+
+        }
 
 
-}
-catch(error){
+        // =================================================
+        // GET PRESENT ATTENDANCE
+        // =================================================
 
-res.status(500).json({
+        const attendance =
+            await Attendance.find({
 
-success:false,
+                service: service._id,
 
-message:error.message
+                status: "Present",
 
-});
+                isDeleted: false
 
-}
+            })
 
+            .populate(
+                "user",
+                "firstName lastName gender isChild"
+            );
+
+
+        // =================================================
+        // VALID USERS
+        // =================================================
+
+        const users =
+            attendance
+
+                .map(record => record.user)
+
+                .filter(user =>
+
+                    user &&
+
+                    user.isChild !== undefined
+
+                );
+
+
+        // =================================================
+        // COUNT CHILDREN
+        // =================================================
+
+        const children =
+            users.filter(
+                user =>
+                    user.isChild === true
+            ).length;
+
+
+        // =================================================
+        // COUNT MALE ADULTS
+        // =================================================
+
+        const maleAdults =
+            users.filter(
+                user =>
+                    user.isChild !== true &&
+                    user.gender === "Male"
+            ).length;
+
+
+        // =================================================
+        // COUNT FEMALE ADULTS
+        // =================================================
+
+        const femaleAdults =
+            users.filter(
+                user =>
+                    user.isChild !== true &&
+                    user.gender === "Female"
+            ).length;
+
+
+        // =================================================
+        // TOTAL PRESENT
+        // =================================================
+
+        const totalPresent =
+            maleAdults +
+            femaleAdults +
+            children;
+
+
+        // =================================================
+        // TOTAL ACTIVE MEMBERS
+        // =================================================
+
+        const totalMembers =
+            await User.countDocuments({
+
+                isActive: true,
+
+                deleted: false
+
+            });
+
+
+        // =================================================
+        // ABSENT
+        // =================================================
+
+        const totalAbsent =
+            Math.max(
+                totalMembers -
+                totalPresent,
+                0
+            );
+
+
+        // =================================================
+        // ATTENDANCE RATE
+        // =================================================
+
+        const attendanceRate =
+            totalMembers > 0
+
+                ? Number(
+                    (
+                        totalPresent /
+                        totalMembers *
+                        100
+                    ).toFixed(2)
+                )
+
+                : 0;
+
+
+        // =================================================
+        // RESPONSE
+        // =================================================
+
+        res.json({
+
+            success: true,
+
+            report: {
+
+                service: {
+
+                    id: service._id,
+
+                    name:
+                        service.name,
+
+                    serviceType:
+                        service.serviceType,
+
+                    date:
+                        service.serviceDate,
+
+                    startTime:
+                        service.startTime,
+
+                    endTime:
+                        service.endTime,
+
+                    status:
+                        service.status,
+
+                    generatedBy:
+                        service.generatedBy
+
+                },
+
+                attendance: {
+
+                    maleAdults,
+
+                    femaleAdults,
+
+                    children,
+
+                    totalPresent,
+
+                    totalAbsent,
+
+                    totalMembers,
+
+                    attendanceRate
+
+                }
+
+            }
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Secretary attendance report error:",
+            error
+        );
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
 
 };
-
-
-
-
-
-
 
 
 
@@ -1184,92 +1580,141 @@ message:error.message
 // PATCH /api/attendance/:id
 // =====================================================
 
-const updateAttendanceStatus = async(req,res)=>{
+const updateAttendanceStatus = async (
+    req,
+    res
+) => {
 
-try{
+    try {
 
-
-const attendance = await Attendance.findById(
-req.params.id
-);
-
-
-
-
-
-if(!attendance){
-
-return res.status(404).json({
-
-success:false,
-
-message:"Attendance record not found"
-
-});
-
-}
+        const attendance =
+            await Attendance.findById(
+                req.params.id
+            );
 
 
+        if (!attendance) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Attendance record not found"
+
+            });
+
+        }
 
 
+        // =================================================
+        // VALIDATE STATUS
+        // =================================================
 
-attendance.status=req.body.status;
+        const allowedStatuses = [
 
-attendance.markedBy=req.user._id;
+            "Present",
+            "Absent",
+            "Excused"
 
-
-await attendance.save();
-
-
-
-
-
-await updateAttendanceSummary(
-attendance.service
-);
+        ];
 
 
+        if (
+            !allowedStatuses.includes(
+                req.body.status
+            )
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Invalid attendance status"
+
+            });
+
+        }
 
 
+        attendance.status =
+            req.body.status;
+
+        attendance.markedBy =
+            req.user._id;
+
+        attendance.isDeleted = false;
 
 
-res.json({
-
-success:true,
-
-message:"Attendance updated successfully",
-
-attendance
-
-});
+        await attendance.save();
 
 
-}
-catch(error){
+        // =================================================
+        // UPDATE USER STATISTICS
+        // =================================================
 
-res.status(500).json({
+        await updateUserAttendance(
+            attendance.user
+        );
 
-success:false,
 
-message:error.message
+        // =================================================
+        // UPDATE SERVICE SUMMARY
+        // =================================================
 
-});
+        await updateAttendanceSummary(
+            attendance.service
+        );
 
-}
+
+        // =================================================
+        // RESPONSE
+        // =================================================
+
+        res.json({
+
+            success: true,
+
+            message:
+                "Attendance updated successfully",
+
+            attendance
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Update attendance status error:",
+            error
+        );
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
 
 };
 
-// =====================================================
-// Attendance Dashboard
-// GET /api/attendance/dashboard
-// =====================================================
+
 
 // =====================================================
 // Attendance Dashboard
 // GET /api/attendance/dashboard
 // =====================================================
 
-const getAttendanceDashboard = async (req, res) => {
+const getAttendanceDashboard = async (
+    req,
+    res
+) => {
 
     try {
 
@@ -1277,18 +1722,26 @@ const getAttendanceDashboard = async (req, res) => {
         // TOTAL ACTIVE MEMBERS
         // =================================================
 
-        const totalMembers = await User.countDocuments({
-            isActive: true
-        });
+        const totalMembers =
+            await User.countDocuments({
+
+                isActive: true,
+
+                deleted: false
+
+            });
 
 
         // =================================================
         // ACTIVE SERVICE
         // =================================================
 
-        const activeService = await Service.findOne({
-            status: "Active"
-        });
+        const activeService =
+            await Service.findOne({
+
+                status: "Active"
+
+            });
 
 
         let overview = {
@@ -1297,7 +1750,8 @@ const getAttendanceDashboard = async (req, res) => {
 
             presentToday: 0,
 
-            absentToday: totalMembers,
+            absentToday:
+                totalMembers,
 
             attendanceRate: 0,
 
@@ -1319,11 +1773,16 @@ const getAttendanceDashboard = async (req, res) => {
             const attendance =
                 await Attendance.find({
 
-                    service: activeService._id,
+                    service:
+                        activeService._id,
 
-                    status: "Present"
+                    status: "Present",
 
-                }).populate(
+                    isDeleted: false
+
+                })
+
+                .populate(
                     "user",
                     "gender isChild"
                 );
@@ -1339,10 +1798,12 @@ const getAttendanceDashboard = async (req, res) => {
 
                 presentToday,
 
-                absentToday: Math.max(
-                    totalMembers - presentToday,
-                    0
-                ),
+                absentToday:
+                    Math.max(
+                        totalMembers -
+                        presentToday,
+                        0
+                    ),
 
                 attendanceRate:
 
@@ -1359,26 +1820,29 @@ const getAttendanceDashboard = async (req, res) => {
                         : 0,
 
 
-                men: attendance.filter(
-                    item =>
-                    item.user?.gender === "Male"
-                    &&
-                    !item.user?.isChild
-                ).length,
+                men:
+                    attendance.filter(
+                        item =>
+                            item.user?.gender ===
+                                "Male" &&
+                            item.user?.isChild !== true
+                    ).length,
 
 
-                women: attendance.filter(
-                    item =>
-                    item.user?.gender === "Female"
-                    &&
-                    !item.user?.isChild
-                ).length,
+                women:
+                    attendance.filter(
+                        item =>
+                            item.user?.gender ===
+                                "Female" &&
+                            item.user?.isChild !== true
+                    ).length,
 
 
-                children: attendance.filter(
-                    item =>
-                    item.user?.isChild
-                ).length
+                children:
+                    attendance.filter(
+                        item =>
+                            item.user?.isChild === true
+                    ).length
 
             };
 
@@ -1392,30 +1856,38 @@ const getAttendanceDashboard = async (req, res) => {
         const recentServices =
             await Service.find()
 
-            .sort({
-                serviceDate: -1
-            })
+                .sort({
+                    serviceDate: -1
+                })
 
-            .limit(10);
+                .limit(10);
 
 
         const services =
-            recentServices.map(service => ({
+            recentServices.map(
+                service => ({
 
-                _id: service._id,
+                    _id:
+                        service._id,
 
-                name: service.name,
+                    name:
+                        service.name,
 
-                date: service.serviceDate,
+                    date:
+                        service.serviceDate,
 
-                type: service.serviceType,
+                    type:
+                        service.serviceType,
 
-                status: service.status,
+                    status:
+                        service.status,
 
-                summary:
-                    service.attendanceSummary || {}
+                    summary:
+                        service.attendanceSummary ||
+                        {}
 
-            }));
+                })
+            );
 
 
         // =================================================
@@ -1424,19 +1896,28 @@ const getAttendanceDashboard = async (req, res) => {
 
         const attendanceTrend =
             recentServices
-            .slice()
-            .reverse()
-            .map(service => ({
 
-                name: service.name,
+                .slice()
 
-                date: service.serviceDate,
+                .reverse()
 
-                attendance:
-                    service.attendanceSummary
-                    ?.totalPresent || 0
+                .map(
+                    service => ({
 
-            }));
+                        name:
+                            service.name,
+
+                        date:
+                            service.serviceDate,
+
+                        attendance:
+                            service
+                                .attendanceSummary
+                                ?.totalPresent ||
+                            0
+
+                    })
+                );
 
 
         // =================================================
@@ -1444,18 +1925,22 @@ const getAttendanceDashboard = async (req, res) => {
         // =================================================
 
         const recentAttendance =
-            await Attendance.find()
+            await Attendance.find({
 
-            .populate(
-                "user",
-                "firstName lastName"
-            )
+                isDeleted: false
 
-            .sort({
-                checkedInAt: -1
             })
 
-            .limit(10);
+                .populate(
+                    "user",
+                    "firstName lastName"
+                )
+
+                .sort({
+                    checkedInAt: -1
+                })
+
+                .limit(10);
 
 
         // =================================================
@@ -1470,7 +1955,8 @@ const getAttendanceDashboard = async (req, res) => {
 
             activeService,
 
-            recentServices: services,
+            recentServices:
+                services,
 
             recentAttendance,
 
@@ -1478,15 +1964,14 @@ const getAttendanceDashboard = async (req, res) => {
 
         });
 
-
     }
+
     catch (error) {
 
         console.error(
             "Attendance dashboard error:",
             error
         );
-
 
         res.status(500).json({
 
@@ -1501,22 +1986,29 @@ const getAttendanceDashboard = async (req, res) => {
 };
 
 
+
+// =====================================================
+// EXPORTS
+// =====================================================
+
 module.exports = {
 
+    markAttendance,
 
-markAttendance,
+    adminMarkAttendance,
 
-adminMarkAttendance,
+    getServiceAttendance,
 
-getServiceAttendance,
+    getSecretaryAttendanceReport,
 
-getAttendanceDashboard,
+    getAttendanceDashboard,
 
-updateAttendanceStatus,
+    updateAttendanceStatus,
 
- getMyAttendanceHistory,
+    getMyAttendanceHistory,
 
- getChildAttendanceHistory,
+    getChildAttendanceHistory,
 
+    updateAttendanceSummary
 
 };

@@ -40,10 +40,10 @@ import api from "../api/axios";
 
 
 // =====================================================
-// AUTHENTICATION GATE
+// APPLICATION LAYOUT
 // =====================================================
 
-function AppTabs() {
+function AppLayout() {
 
     const dispatch = useDispatch();
 
@@ -75,15 +75,127 @@ function AppTabs() {
 
 
     // =================================================
-    // LOGIN ROUTE CHECK
+    // RESTORE SESSION
     // =================================================
 
-    const isLoginScreen =
-        pathname === "/login";
+    useEffect(() => {
+
+        const restoreSavedSession =
+            async () => {
+
+                console.log(
+                    "CHECKING SAVED AUTH SESSION..."
+                );
+
+                try {
+
+                    const token =
+                        await AsyncStorage.getItem(
+                            "token"
+                        );
+
+                    const userString =
+                        await AsyncStorage.getItem(
+                            "user"
+                        );
+
+
+                    console.log(
+                        "TOKEN:",
+                        token
+                            ? "FOUND"
+                            : "NOT FOUND"
+                    );
+
+
+                    // =================================
+                    // NO TOKEN
+                    // =================================
+
+                    if (!token) {
+
+                        console.log(
+                            "NO SAVED AUTH TOKEN"
+                        );
+
+                        dispatch(
+                            sessionExpired()
+                        );
+
+                        return;
+
+                    }
+
+
+                    // =================================
+                    // RESTORE USER
+                    // =================================
+
+                    let user = null;
+
+
+                    if (userString) {
+
+                        try {
+
+                            user =
+                                JSON.parse(
+                                    userString
+                                );
+
+                        }
+                        catch (error) {
+
+                            console.log(
+                                "USER DATA COULD NOT BE PARSED:",
+                                error
+                            );
+
+                        }
+
+                    }
+
+
+                    // =================================
+                    // RESTORE REDUX SESSION
+                    // =================================
+
+                    dispatch(
+                        restoreSession({
+                            token,
+                            user,
+                        })
+                    );
+
+
+                    console.log(
+                        "AUTH SESSION RESTORED"
+                    );
+
+                }
+                catch (error) {
+
+                    console.log(
+                        "SESSION RESTORATION ERROR:",
+                        error
+                    );
+
+                    dispatch(
+                        sessionExpired()
+                    );
+
+                }
+
+            };
+
+
+        restoreSavedSession();
+
+    }, [dispatch]);
 
 
     // =================================================
-    // FETCH UNREAD NOTIFICATION COUNT
+    // NOTIFICATION COUNT
     // =================================================
 
     useEffect(() => {
@@ -123,7 +235,6 @@ function AppTabs() {
                         )
                     );
 
-
                 }
                 catch (error) {
 
@@ -138,10 +249,6 @@ function AppTabs() {
             };
 
 
-        // =================================================
-        // START POLLING
-        // =================================================
-
         if (
             authChecked &&
             isAuthenticated
@@ -152,11 +259,7 @@ function AppTabs() {
 
             intervalId =
                 setInterval(
-                    () => {
-
-                        fetchUnreadNotificationCount();
-
-                    },
+                    fetchUnreadNotificationCount,
                     30000
                 );
 
@@ -169,10 +272,6 @@ function AppTabs() {
 
         }
 
-
-        // =================================================
-        // CLEAN UP
-        // =================================================
 
         return () => {
 
@@ -193,134 +292,9 @@ function AppTabs() {
     ]);
 
 
-    // =====================================================
-    // RESTORE SAVED SESSION
-    // =====================================================
-
-    useEffect(() => {
-
-        const restoreSavedSession =
-            async () => {
-
-                console.log(
-                    "CHECKING SAVED AUTH SESSION..."
-                );
-
-
-                try {
-
-                    const token =
-                        await AsyncStorage.getItem(
-                            "token"
-                        );
-
-
-                    const userString =
-                        await AsyncStorage.getItem(
-                            "user"
-                        );
-
-
-                    console.log(
-                        "TOKEN:",
-                        token
-                            ? "FOUND"
-                            : "NOT FOUND"
-                    );
-
-
-                    // =====================================
-                    // NO TOKEN
-                    // =====================================
-
-                    if (!token) {
-
-                        console.log(
-                            "NO SAVED AUTH TOKEN"
-                        );
-
-
-                        dispatch(
-                            sessionExpired()
-                        );
-
-
-                        return;
-
-                    }
-
-
-                    // =====================================
-                    // RESTORE USER
-                    // =====================================
-
-                    let user = null;
-
-
-                    if (userString) {
-
-                        try {
-
-                            user =
-                                JSON.parse(
-                                    userString
-                                );
-
-                        }
-                        catch (error) {
-
-                            console.log(
-                                "USER DATA COULD NOT BE PARSED:",
-                                error
-                            );
-
-                        }
-
-                    }
-
-
-                    // =====================================
-                    // RESTORE REDUX SESSION
-                    // =====================================
-
-                    dispatch(
-                        restoreSession({
-                            token,
-                            user,
-                        })
-                    );
-
-
-                    console.log(
-                        "AUTH SESSION RESTORED"
-                    );
-
-                }
-                catch (error) {
-
-                    console.log(
-                        "SESSION RESTORATION ERROR:",
-                        error
-                    );
-
-
-                    dispatch(
-                        sessionExpired()
-                    );
-
-                }
-
-            };
-
-
-        restoreSavedSession();
-
-    }, [dispatch]);
-
-
-    // =====================================================
-    // HANDLE AUTHENTICATION ROUTING
-    // =====================================================
+    // =================================================
+    // AUTHENTICATION REDIRECT
+    // =================================================
 
     useEffect(() => {
 
@@ -331,32 +305,32 @@ function AppTabs() {
         }
 
 
-        // =====================================
-        // USER NOT LOGGED IN
-        // =====================================
+        const isLoginScreen =
+            pathname === "/login";
+
+
+        // =============================================
+        // NOT AUTHENTICATED
+        // =============================================
 
         if (!isAuthenticated) {
 
-            if (isLoginScreen) {
+            if (!isLoginScreen) {
 
-                return;
+                console.log(
+                    "USER NOT AUTHENTICATED"
+                );
+
+                console.log(
+                    "NAVIGATING TO LOGIN..."
+                );
+
+
+                router.replace(
+                    "/login"
+                );
 
             }
-
-
-            console.log(
-                "USER NOT AUTHENTICATED"
-            );
-
-
-            console.log(
-                "NAVIGATING TO LOGIN..."
-            );
-
-
-            router.replace(
-                "/login"
-            );
 
 
             return;
@@ -364,9 +338,9 @@ function AppTabs() {
         }
 
 
-        // =====================================
-        // USER ALREADY LOGGED IN
-        // =====================================
+        // =============================================
+        // AUTHENTICATED
+        // =============================================
 
         if (
             isAuthenticated &&
@@ -377,29 +351,35 @@ function AppTabs() {
                 "USER ALREADY AUTHENTICATED"
             );
 
-
             console.log(
                 "NAVIGATING TO HOME..."
             );
 
 
-            router.replace(
-                "/"
-            );
+            /*
+             * IMPORTANT:
+             *
+             * We navigate to "/" rather than
+             * "index" directly.
+             *
+             * "/" resolves to app/index.jsx.
+             */
+
+            router.replace("/");
 
         }
 
     }, [
         authChecked,
         isAuthenticated,
-        isLoginScreen,
+        pathname,
         router,
     ]);
 
 
-    // =====================================================
-    // WAIT FOR AUTH CHECK
-    // =====================================================
+    // =================================================
+    // AUTH LOADING
+    // =================================================
 
     if (!authChecked) {
 
@@ -423,9 +403,9 @@ function AppTabs() {
     }
 
 
-    // =====================================================
-    // TABS
-    // =====================================================
+    // =================================================
+    // BOTTOM TAB NAVIGATION
+    // =================================================
 
     return (
 
@@ -459,19 +439,11 @@ function AppTabs() {
                 },
 
             }}
-        >  <Tabs.Screen
-    name="child-details"
-    options={{
-        href: null,
-        headerShown: false,
-    }}
-/>
-
-{/* ========================================= CHILD ATTENDANCE Hidden from bottom tabs Opened from Child Details ========================================== */} <Tabs.Screen name="child-attendance" options={{ href: null, headerShown: false, }} />
+        >
 
             {/* =========================================
                 HOME
-            ========================================== */}
+            ========================================= */}
 
             <Tabs.Screen
                 name="index"
@@ -494,17 +466,11 @@ function AppTabs() {
 
                 }}
             />
-  <Tabs.Screen
-    name="my-profile"
-    options={{
-        href: null,
-        headerShown: false,
-    }}
-/>
+
 
             {/* =========================================
                 ATTENDANCE
-            ========================================== */}
+            ========================================= */}
 
             <Tabs.Screen
                 name="attendance"
@@ -531,7 +497,7 @@ function AppTabs() {
 
             {/* =========================================
                 NOTIFICATIONS
-            ========================================== */}
+            ========================================= */}
 
             <Tabs.Screen
                 name="notifications"
@@ -593,7 +559,7 @@ function AppTabs() {
 
             {/* =========================================
                 PROFILE
-            ========================================== */}
+            ========================================= */}
 
             <Tabs.Screen
                 name="profile"
@@ -619,10 +585,45 @@ function AppTabs() {
 
 
             {/* =========================================
+                LOGIN
+                HIDDEN FROM TAB BAR
+            ========================================= */}
+
+            <Tabs.Screen
+                name="login"
+                options={{
+
+                    href: null,
+
+                    tabBarStyle: {
+                        display: "none",
+                    },
+
+                }}
+            />
+
+
+            {/* =========================================
+                MY PROFILE
+                HIDDEN FROM TAB BAR
+            ========================================= */}
+
+            <Tabs.Screen
+                name="my-profile"
+                options={{
+
+                    href: null,
+
+                    headerShown: false,
+
+                }}
+            />
+
+
+            {/* =========================================
                 MY CHILDREN
-                Hidden from bottom tabs
-                Opened from Profile
-            ========================================== */}
+                HIDDEN FROM TAB BAR
+            ========================================= */}
 
             <Tabs.Screen
                 name="my-children"
@@ -638,9 +639,8 @@ function AppTabs() {
 
             {/* =========================================
                 ADD CHILD
-                Hidden from bottom tabs
-                Opened from My Children
-            ========================================== */}
+                HIDDEN FROM TAB BAR
+            ========================================= */}
 
             <Tabs.Screen
                 name="add-child"
@@ -655,34 +655,34 @@ function AppTabs() {
 
 
             {/* =========================================
-                LOGIN
-            ========================================== */}
+                CHILD DETAILS
+                HIDDEN FROM TAB BAR
+            ========================================= */}
 
             <Tabs.Screen
-                name="login"
+                name="child-details"
                 options={{
 
                     href: null,
 
-                    tabBarStyle: {
-
-                        display: "none",
-
-                    },
+                    headerShown: false,
 
                 }}
             />
 
 
             {/* =========================================
-                EXPLORE
-            ========================================== */}
+                CHILD ATTENDANCE
+                HIDDEN FROM TAB BAR
+            ========================================= */}
 
             <Tabs.Screen
-                name="explore"
+                name="child-attendance"
                 options={{
 
                     href: null,
+
+                    headerShown: false,
 
                 }}
             />
@@ -690,13 +690,50 @@ function AppTabs() {
 
             {/* =========================================
                 MARK ATTENDANCE
-            ========================================== */}
+                HIDDEN FROM TAB BAR
+            ========================================= */}
 
             <Tabs.Screen
                 name="mark-attendance"
                 options={{
 
                     href: null,
+
+                    headerShown: false,
+
+                }}
+            />
+
+
+            {/* =========================================
+                EXPLORE
+                HIDDEN FROM TAB BAR
+            ========================================= */}
+
+            <Tabs.Screen
+                name="explore"
+                options={{
+
+                    href: null,
+
+                    headerShown: false,
+
+                }}
+            />
+
+
+            {/* =========================================
+                SECRETARY
+                HIDDEN FROM TAB BAR
+            ========================================= */}
+
+            <Tabs.Screen
+                name="secretary"
+                options={{
+
+                    href: null,
+
+                    headerShown: false,
 
                 }}
             />
@@ -718,7 +755,7 @@ export default function RootLayout() {
 
         <Provider store={store}>
 
-            <AppTabs />
+            <AppLayout />
 
         </Provider>
 
@@ -733,10 +770,6 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
 
-    // =================================================
-    // LOADING
-    // =================================================
-
     loadingContainer: {
 
         flex: 1,
@@ -750,10 +783,6 @@ const styles = StyleSheet.create({
     },
 
 
-    // =================================================
-    // NOTIFICATION ICON
-    // =================================================
-
     notificationIconContainer: {
 
         position: "relative",
@@ -764,10 +793,6 @@ const styles = StyleSheet.create({
 
     },
 
-
-    // =================================================
-    // NOTIFICATION BADGE
-    // =================================================
 
     notificationBadge: {
 

@@ -1,11 +1,12 @@
 const permissions = {
 
+    // =====================================================
+    // ADMIN
+    // =====================================================
 
-    Admin:[
-
+    Admin: [
 
         // Users
-
         "CREATE_USER",
         "UPDATE_USER",
         "DELETE_USER",
@@ -13,172 +14,152 @@ const permissions = {
         "VIEW_MEMBERS",
         "VIEW_PROFILE",
 
-
-
-
         // Services
-
         "CREATE_SERVICE",
         "END_SERVICE",
         "VIEW_SERVICES",
 
-
-
-
         // Attendance
-
         "MARK_ATTENDANCE",
         "VIEW_ATTENDANCE",
-
-
-
+        "VIEW_ATTENDANCE_REPORT",
 
         // Dashboard
-
         "VIEW_DASHBOARD",
         "VIEW_REPORTS",
 
-
-
-
         // Follow Ups
-
         "MANAGE_FOLLOWUPS",
 
-
-
-
         // Management
-
         "MANAGE_DEPARTMENTS",
         "MANAGE_NOTIFICATIONS"
 
-
     ],
 
 
+    // =====================================================
+    // PASTOR
+    // =====================================================
 
+    Pastor: [
 
-
-
-
-    Pastor:[
-
-
+        // Users
         "CREATE_USER",
         "UPDATE_USER",
-
 
         "VIEW_MEMBERS",
         "VIEW_PROFILE",
 
-
-
+        // Services
         "CREATE_SERVICE",
         "END_SERVICE",
         "VIEW_SERVICES",
 
-
-
+        // Attendance
         "MARK_ATTENDANCE",
         "VIEW_ATTENDANCE",
+        "VIEW_ATTENDANCE_REPORT",
 
-
-
+        // Dashboard
         "VIEW_DASHBOARD",
         "VIEW_REPORTS",
 
-
-
+        // Follow Ups
         "MANAGE_FOLLOWUPS",
 
-
+        // Notifications
         "MANAGE_NOTIFICATIONS"
-
 
     ],
 
 
+    // =====================================================
+    // SECRETARY
+    // =====================================================
+
+    Secretary: [
+
+        // Users
+        "VIEW_MEMBERS",
+        "VIEW_PROFILE",
+
+        // Services
+        "VIEW_SERVICES",
+
+        // Attendance
+        "VIEW_ATTENDANCE",
+        "VIEW_ATTENDANCE_REPORT",
+
+        // Dashboard
+        "VIEW_DASHBOARD",
+
+        // Reports
+        "VIEW_REPORTS"
+
+    ],
 
 
+    // =====================================================
+    // LEADER
+    // =====================================================
 
+    Leader: [
 
-
-    Leader:[
-
-
+        // Users
         "CREATE_USER",
         "UPDATE_USER",
-
 
         "VIEW_MEMBERS",
         "VIEW_PROFILE",
 
-
-
+        // Services
         "VIEW_SERVICES",
 
-
-
+        // Attendance
         "MARK_ATTENDANCE",
         "VIEW_ATTENDANCE",
 
-
-
+        // Dashboard
         "VIEW_DASHBOARD",
 
-
-
+        // Follow Ups
         "MANAGE_FOLLOWUPS"
 
-
     ],
 
 
+    // =====================================================
+    // MEMBER
+    // =====================================================
 
-
-
-
-
-    Member:[
-
+    Member: [
 
         "VIEW_PROFILE",
 
         "MARK_ATTENDANCE"
 
-
     ],
 
 
+    // =====================================================
+    // CHILD
+    // =====================================================
 
-
-
-
-
-    Child:[
-
+    Child: [
 
         "VIEW_PROFILE",
 
         "MARK_ATTENDANCE"
-
 
     ]
 
 };
 
 
-
-
-
-
-
-
-
-// ==========================================
-// Permission Checker
-// ==========================================
+// =====================================================
+// PERMISSION CHECKER
+// =====================================================
 
 const hasPermission = (
 
@@ -186,29 +167,22 @@ const hasPermission = (
 
     permission
 
-)=>{
-
+) => {
 
     return (
 
         permissions[role] || []
 
-    )
-
-    .includes(permission);
-
+    ).includes(permission);
 
 };
 
 
+// =====================================================
+// EXPORT
+// =====================================================
 
-
-
-
-
-
-
-module.exports={
+module.exports = {
 
     permissions,
 

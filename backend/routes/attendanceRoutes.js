@@ -3,196 +3,154 @@ const express = require("express");
 const router = express.Router();
 
 
+// =====================================================
+// CONTROLLERS
+// =====================================================
+
 const {
-
     markAttendance,
-
     adminMarkAttendance,
-
     getServiceAttendance,
-
     getAttendanceDashboard,
-
     updateAttendanceStatus,
-
     getMyAttendanceHistory,
-    
-    getChildAttendanceHistory
-
+    getChildAttendanceHistory,
+    getSecretaryAttendanceReport
 } = require("../controllers/attendanceController");
 
 
+// =====================================================
+// MIDDLEWARE
+// =====================================================
 
 const {
     protect
 } = require("../middleware/authMiddleware");
 
-
-
 const checkPermission =
-require("../middleware/permissionMiddleware");
+    require("../middleware/permissionMiddleware");
 
 
-
-// =================================================
-// Child Attendance History
+// =====================================================
+// CHILD ATTENDANCE HISTORY
 //
 // GET /api/attendance/child/:childId
-// =================================================
+// =====================================================
 
 router.get(
-
     "/child/:childId",
-
     protect,
-
     getChildAttendanceHistory
-
 );
 
-// =================================================
-// Member / Parent Mark Attendance
-// Members with accounts
+
+// =====================================================
+// MEMBER / PARENT MARK ATTENDANCE
 //
 // POST /api/attendance/mark
-// =================================================
+// =====================================================
 
 router.post(
-
     "/mark",
-
     protect,
-
-    checkPermission(
-        "MARK_ATTENDANCE"
-    ),
-
+    checkPermission("MARK_ATTENDANCE"),
     markAttendance
-
 );
 
 
-
-
-
-
-
-
-// =================================================
-// Admin Mark Attendance
-// Members without accounts
+// =====================================================
+// ADMIN MARK ATTENDANCE
 //
 // POST /api/attendance/admin-mark
-// =================================================
+// =====================================================
 
 router.post(
-
     "/admin-mark",
-
     protect,
-
-    checkPermission(
-        "MARK_ATTENDANCE"
-    ),
-
+    checkPermission("MARK_ATTENDANCE"),
     adminMarkAttendance
-
 );
 
-// =================================================
-// Attendance Dashboard
+
+// =====================================================
+// ATTENDANCE DASHBOARD
+//
 // GET /api/attendance/dashboard
-// =================================================
+// =====================================================
 
 router.get(
-
     "/dashboard",
-
     protect,
-
-    checkPermission(
-        "VIEW_ATTENDANCE"
-    ),
-
+    checkPermission("VIEW_ATTENDANCE"),
     getAttendanceDashboard
-
 );
 
 
-// =================================================
-// Member Attendance History
+// =====================================================
+// MEMBER ATTENDANCE HISTORY
 //
 // GET /api/attendance/my-history
-// =================================================
+// =====================================================
 
 router.get(
-
     "/my-history",
-
     protect,
-
     getMyAttendanceHistory
-
 );
 
 
+// =====================================================
+// SECRETARY ATTENDANCE REPORT
+//
+// GET /api/attendance/secretary-report/:serviceId
+//
+// Used by:
+// - Secretary
+// - Pastor
+// - Admin
+//
+// Permission:
+// VIEW_ATTENDANCE_REPORT
+// =====================================================
+
+router.get(
+    "/secretary-report/:serviceId",
+    protect,
+    checkPermission("VIEW_ATTENDANCE_REPORT"),
+    getSecretaryAttendanceReport
+);
 
 
-// =================================================
-// Get Attendance For A Service
-// Admin Dashboard
+// =====================================================
+// GET ATTENDANCE FOR A SERVICE
 //
 // GET /api/attendance/service/:serviceId
-// =================================================
+// =====================================================
 
 router.get(
-
     "/service/:serviceId",
-
     protect,
-
-    checkPermission(
-        "VIEW_ATTENDANCE"
-    ),
-
+    checkPermission("VIEW_ATTENDANCE"),
     getServiceAttendance
-
 );
 
 
-
-
-
-
-
-
-// =================================================
-// Update Attendance Status
-// Example:
-// Change Present -> Absent
+// =====================================================
+// UPDATE ATTENDANCE STATUS
 //
 // PATCH /api/attendance/:id
-// =================================================
+// =====================================================
 
 router.patch(
-
     "/:id",
-
     protect,
-
-    checkPermission(
-        "UPDATE_ATTENDANCE"
-    ),
-
+    checkPermission("UPDATE_ATTENDANCE"),
     updateAttendanceStatus
-
 );
 
 
-
-
-
-
-
+// =====================================================
+// EXPORT
+// =====================================================
 
 module.exports = router;
