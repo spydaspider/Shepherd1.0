@@ -15,8 +15,6 @@ import {
 
 import {
     Tabs,
-    usePathname,
-    useRouter,
 } from "expo-router";
 
 import {
@@ -47,10 +45,6 @@ function AppLayout() {
 
     const dispatch = useDispatch();
 
-    const router = useRouter();
-
-    const pathname = usePathname();
-
 
     // =================================================
     // AUTH STATE
@@ -75,10 +69,13 @@ function AppLayout() {
 
 
     // =================================================
-    // RESTORE SESSION
+    // RESTORE SAVED SESSION
     // =================================================
 
     useEffect(() => {
+
+        let mounted = true;
+
 
         const restoreSavedSession =
             async () => {
@@ -87,12 +84,22 @@ function AppLayout() {
                     "CHECKING SAVED AUTH SESSION..."
                 );
 
+
                 try {
+
+                    // =================================
+                    // GET SAVED TOKEN
+                    // =================================
 
                     const token =
                         await AsyncStorage.getItem(
                             "token"
                         );
+
+
+                    // =================================
+                    // GET SAVED USER
+                    // =================================
 
                     const userString =
                         await AsyncStorage.getItem(
@@ -118,9 +125,14 @@ function AppLayout() {
                             "NO SAVED AUTH TOKEN"
                         );
 
-                        dispatch(
-                            sessionExpired()
-                        );
+
+                        if (mounted) {
+
+                            dispatch(
+                                sessionExpired()
+                            );
+
+                        }
 
                         return;
 
@@ -128,7 +140,7 @@ function AppLayout() {
 
 
                     // =================================
-                    // RESTORE USER
+                    // PARSE USER
                     // =================================
 
                     let user = null;
@@ -160,12 +172,16 @@ function AppLayout() {
                     // RESTORE REDUX SESSION
                     // =================================
 
-                    dispatch(
-                        restoreSession({
-                            token,
-                            user,
-                        })
-                    );
+                    if (mounted) {
+
+                        dispatch(
+                            restoreSession({
+                                token,
+                                user,
+                            })
+                        );
+
+                    }
 
 
                     console.log(
@@ -177,12 +193,17 @@ function AppLayout() {
 
                     console.log(
                         "SESSION RESTORATION ERROR:",
-                        error
+                        error?.message || error
                     );
 
-                    dispatch(
-                        sessionExpired()
-                    );
+
+                    if (mounted) {
+
+                        dispatch(
+                            sessionExpired()
+                        );
+
+                    }
 
                 }
 
@@ -190,6 +211,17 @@ function AppLayout() {
 
 
         restoreSavedSession();
+
+
+        // =============================================
+        // CLEANUP
+        // =============================================
+
+        return () => {
+
+            mounted = false;
+
+        };
 
     }, [dispatch]);
 
@@ -208,6 +240,10 @@ function AppLayout() {
 
                 try {
 
+                    // =================================
+                    // USER NOT LOGGED IN
+                    // =================================
+
                     if (!isAuthenticated) {
 
                         dispatch(
@@ -219,11 +255,19 @@ function AppLayout() {
                     }
 
 
+                    // =================================
+                    // GET NOTIFICATIONS
+                    // =================================
+
                     const response =
                         await api.get(
                             "/notifications"
                         );
 
+
+                    // =================================
+                    // GET UNREAD COUNT
+                    // =================================
 
                     const count =
                         response?.data?.unreadCount;
@@ -241,7 +285,8 @@ function AppLayout() {
                     console.log(
                         "FETCH NOTIFICATION COUNT ERROR:",
                         error?.response?.data ||
-                        error?.message
+                        error?.message ||
+                        error
                     );
 
                 }
@@ -249,13 +294,21 @@ function AppLayout() {
             };
 
 
+        // =============================================
+        // ONLY POLL WHEN AUTHENTICATED
+        // =============================================
+
         if (
             authChecked &&
             isAuthenticated
         ) {
 
+            // Fetch immediately
+
             fetchUnreadNotificationCount();
 
+
+            // Refresh every 30 seconds
 
             intervalId =
                 setInterval(
@@ -272,6 +325,10 @@ function AppLayout() {
 
         }
 
+
+        // =============================================
+        // CLEANUP INTERVAL
+        // =============================================
 
         return () => {
 
@@ -293,91 +350,6 @@ function AppLayout() {
 
 
     // =================================================
-    // AUTHENTICATION REDIRECT
-    // =================================================
-
-    useEffect(() => {
-
-        if (!authChecked) {
-
-            return;
-
-        }
-
-
-        const isLoginScreen =
-            pathname === "/login";
-
-
-        // =============================================
-        // NOT AUTHENTICATED
-        // =============================================
-
-        if (!isAuthenticated) {
-
-            if (!isLoginScreen) {
-
-                console.log(
-                    "USER NOT AUTHENTICATED"
-                );
-
-                console.log(
-                    "NAVIGATING TO LOGIN..."
-                );
-
-
-                router.replace(
-                    "/login"
-                );
-
-            }
-
-
-            return;
-
-        }
-
-
-        // =============================================
-        // AUTHENTICATED
-        // =============================================
-
-        if (
-            isAuthenticated &&
-            isLoginScreen
-        ) {
-
-            console.log(
-                "USER ALREADY AUTHENTICATED"
-            );
-
-            console.log(
-                "NAVIGATING TO HOME..."
-            );
-
-
-            /*
-             * IMPORTANT:
-             *
-             * We navigate to "/" rather than
-             * "index" directly.
-             *
-             * "/" resolves to app/index.jsx.
-             */
-
-            router.replace("/");
-
-        }
-
-    }, [
-        authChecked,
-        isAuthenticated,
-        pathname,
-        router,
-    ]);
-
-
-    // =================================================
     // AUTH LOADING
     // =================================================
 
@@ -395,6 +367,14 @@ function AppLayout() {
                     size="large"
                     color="#0f2a5f"
                 />
+
+                <Text
+                    style={
+                        styles.loadingText
+                    }
+                >
+                    Loading...
+                </Text>
 
             </View>
 
@@ -523,6 +503,10 @@ function AppLayout() {
                             />
 
 
+                            {/* =========================
+                                UNREAD BADGE
+                            ========================= */}
+
                             {unreadCount > 0 && (
 
                                 <View
@@ -594,6 +578,8 @@ function AppLayout() {
                 options={{
 
                     href: null,
+
+                    headerShown: false,
 
                     tabBarStyle: {
                         display: "none",
@@ -721,23 +707,6 @@ function AppLayout() {
                 }}
             />
 
-
-            {/* =========================================
-                SECRETARY
-                HIDDEN FROM TAB BAR
-            ========================================= */}
-
-            <Tabs.Screen
-                name="secretary"
-                options={{
-
-                    href: null,
-
-                    headerShown: false,
-
-                }}
-            />
-
         </Tabs>
 
     );
@@ -779,6 +748,17 @@ const styles = StyleSheet.create({
         justifyContent: "center",
 
         alignItems: "center",
+
+    },
+
+
+    loadingText: {
+
+        marginTop: 12,
+
+        fontSize: 15,
+
+        color: "#555",
 
     },
 

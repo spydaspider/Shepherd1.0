@@ -5,8 +5,6 @@ import React, {
 
 import {
     ActivityIndicator,
-    Alert,
-    FlatList,
     RefreshControl,
     SafeAreaView,
     ScrollView,
@@ -19,6 +17,10 @@ import {
 import {
     useRouter,
 } from "expo-router";
+
+import {
+    useSelector,
+} from "react-redux";
 
 import {
     Ionicons,
@@ -34,6 +36,38 @@ import api from "../../api/axios";
 export default function SecretaryAttendanceReportScreen() {
 
     const router = useRouter();
+
+
+    // =====================================================
+    // AUTHENTICATION / USER
+    // =====================================================
+
+    const user = useSelector(
+        (state) => state.auth.user
+    );
+
+    const isAuthenticated = useSelector(
+        (state) => state.auth.isAuthenticated
+    );
+
+    const authChecked = useSelector(
+        (state) => state.auth.authChecked
+    );
+
+
+    // =====================================================
+    // PERMISSION
+    // =====================================================
+
+    const canViewAttendanceReport =
+        user?.role === "Secretary" ||
+        user?.role === "Pastor" ||
+        user?.role === "Admin";
+
+
+    // =====================================================
+    // STATE
+    // =====================================================
 
     const [services, setServices] = useState([]);
 
@@ -53,53 +87,113 @@ export default function SecretaryAttendanceReportScreen() {
 
 
     // =====================================================
+    // PROTECT SCREEN
+    // =====================================================
+
+    useEffect(() => {
+
+        if (!authChecked) {
+            return;
+        }
+
+
+        // -------------------------------------------------
+        // NOT LOGGED IN
+        // -------------------------------------------------
+
+        if (!isAuthenticated) {
+
+            router.replace("/login");
+
+            return;
+        }
+
+
+        // -------------------------------------------------
+        // LOGGED IN BUT NO PERMISSION
+        // -------------------------------------------------
+
+        if (!canViewAttendanceReport) {
+
+            router.replace("/");
+
+            return;
+        }
+
+    }, [
+        authChecked,
+        isAuthenticated,
+        canViewAttendanceReport,
+    ]);
+
+
+    // =====================================================
     // LOAD SERVICES
     // =====================================================
 
     const loadServices = async () => {
 
+        // Never make the request if the user
+        // does not have permission.
+
+        if (!canViewAttendanceReport) {
+            return;
+        }
+
         try {
 
             setError("");
 
-            const response = await api.get("/services");
+            const response = await api.get(
+                "/services"
+            );
 
             const data = response.data;
 
             let serviceList = [];
 
+
             if (Array.isArray(data)) {
 
                 serviceList = data;
 
-            } else if (Array.isArray(data.services)) {
+            } else if (
+                Array.isArray(data?.services)
+            ) {
 
                 serviceList = data.services;
 
             } else if (
-                data.success &&
-                Array.isArray(data.data)
+                data?.success &&
+                Array.isArray(data?.data)
             ) {
 
                 serviceList = data.data;
 
             } else if (
-                data.success &&
-                Array.isArray(data.services)
+                data?.success &&
+                Array.isArray(data?.services)
             ) {
 
                 serviceList = data.services;
             }
 
+
             setServices(serviceList);
 
-            // Select the first service automatically
+
+            // -------------------------------------------------
+            // SELECT FIRST SERVICE
+            // -------------------------------------------------
+
             if (
                 serviceList.length > 0 &&
                 !selectedService
             ) {
 
-                setSelectedService(serviceList[0]);
+                setSelectedService(
+                    serviceList[0]
+                );
             }
 
         } catch (err) {
@@ -117,6 +211,7 @@ export default function SecretaryAttendanceReportScreen() {
         } finally {
 
             setLoadingServices(false);
+
             setRefreshing(false);
         }
     };
@@ -128,9 +223,14 @@ export default function SecretaryAttendanceReportScreen() {
 
     const loadReport = async (serviceId) => {
 
-        if (!serviceId) {
+        if (
+            !serviceId ||
+            !canViewAttendanceReport
+        ) {
+
             return;
         }
+
 
         try {
 
@@ -138,11 +238,15 @@ export default function SecretaryAttendanceReportScreen() {
 
             setError("");
 
+
             const response = await api.get(
                 `/attendance/secretary-report/${serviceId}`
             );
 
-            if (response.data?.success) {
+
+            if (
+                response.data?.success
+            ) {
 
                 setReport(
                     response.data.report
@@ -185,9 +289,20 @@ export default function SecretaryAttendanceReportScreen() {
 
     useEffect(() => {
 
-        loadServices();
+        if (
+            authChecked &&
+            isAuthenticated &&
+            canViewAttendanceReport
+        ) {
 
-    }, []);
+            loadServices();
+        }
+
+    }, [
+        authChecked,
+        isAuthenticated,
+        canViewAttendanceReport,
+    ]);
 
 
     // =====================================================
@@ -196,14 +311,24 @@ export default function SecretaryAttendanceReportScreen() {
 
     useEffect(() => {
 
-        if (selectedService?._id) {
+        if (
+            authChecked &&
+            isAuthenticated &&
+            canViewAttendanceReport &&
+            selectedService?._id
+        ) {
 
             loadReport(
                 selectedService._id
             );
         }
 
-    }, [selectedService]);
+    }, [
+        selectedService,
+        authChecked,
+        isAuthenticated,
+        canViewAttendanceReport,
+    ]);
 
 
     // =====================================================
@@ -211,6 +336,10 @@ export default function SecretaryAttendanceReportScreen() {
     // =====================================================
 
     const handleRefresh = async () => {
+
+        if (!canViewAttendanceReport) {
+            return;
+        }
 
         setRefreshing(true);
 
@@ -231,7 +360,9 @@ export default function SecretaryAttendanceReportScreen() {
     // SELECT SERVICE
     // =====================================================
 
-    const handleSelectService = (service) => {
+    const handleSelectService = (
+        service
+    ) => {
 
         setSelectedService(service);
 
@@ -253,7 +384,9 @@ export default function SecretaryAttendanceReportScreen() {
 
         try {
 
-            return new Date(date).toLocaleDateString(
+            return new Date(
+                date
+            ).toLocaleDateString(
                 "en-GB",
                 {
                     weekday: "long",
@@ -274,7 +407,9 @@ export default function SecretaryAttendanceReportScreen() {
     // SERVICE STATUS
     // =====================================================
 
-    const getStatusStyle = (status) => {
+    const getStatusStyle = (
+        status
+    ) => {
 
         switch (status) {
 
@@ -294,48 +429,131 @@ export default function SecretaryAttendanceReportScreen() {
 
 
     // =====================================================
-    // STAT CARD
+    // WAIT FOR AUTH CHECK
     // =====================================================
 
-    const StatCard = ({
-        icon,
-        label,
-        value,
-        description,
-    }) => {
+    if (!authChecked) {
 
         return (
-            <View style={styles.statCard}>
+            <SafeAreaView
+                style={styles.safeArea}
+            >
 
-                <View style={styles.statIcon}>
-                    <Ionicons
-                        name={icon}
-                        size={24}
+                <View
+                    style={styles.loadingContainer}
+                >
+
+                    <ActivityIndicator
+                        size="large"
                         color="#0f2a5f"
                     />
-                </View>
 
-                <View style={styles.statContent}>
-
-                    <Text style={styles.statValue}>
-                        {value}
+                    <Text
+                        style={styles.loadingText}
+                    >
+                        Checking permissions...
                     </Text>
-
-                    <Text style={styles.statLabel}>
-                        {label}
-                    </Text>
-
-                    {description ? (
-                        <Text style={styles.statDescription}>
-                            {description}
-                        </Text>
-                    ) : null}
 
                 </View>
 
-            </View>
+            </SafeAreaView>
         );
-    };
+    }
+
+
+    // =====================================================
+    // NOT AUTHENTICATED
+    // =====================================================
+
+    if (!isAuthenticated) {
+
+        return (
+            <SafeAreaView
+                style={styles.safeArea}
+            >
+
+                <View
+                    style={styles.loadingContainer}
+                >
+
+                    <ActivityIndicator
+                        size="large"
+                        color="#0f2a5f"
+                    />
+
+                    <Text
+                        style={styles.loadingText}
+                    >
+                        Redirecting to login...
+                    </Text>
+
+                </View>
+
+            </SafeAreaView>
+        );
+    }
+
+
+    // =====================================================
+    // UNAUTHORIZED
+    // =====================================================
+
+    if (!canViewAttendanceReport) {
+
+        return (
+            <SafeAreaView
+                style={styles.safeArea}
+            >
+
+                <View
+                    style={styles.accessDeniedContainer}
+                >
+
+                    <View
+                        style={styles.accessDeniedIcon}
+                    >
+
+                        <Ionicons
+                            name="lock-closed"
+                            size={42}
+                            color="#b42318"
+                        />
+
+                    </View>
+
+                    <Text
+                        style={styles.accessDeniedTitle}
+                    >
+                        Access Denied
+                    </Text>
+
+                    <Text
+                        style={styles.accessDeniedText}
+                    >
+                        You do not have permission to
+                        view the attendance report.
+                    </Text>
+
+                    <TouchableOpacity
+                        style={styles.backHomeButton}
+                        onPress={() =>
+                            router.replace("/")
+                        }
+                    >
+
+                        <Text
+                            style={styles.backHomeButtonText}
+                        >
+                            Go to Home
+                        </Text>
+
+                    </TouchableOpacity>
+
+                </View>
+
+            </SafeAreaView>
+        );
+    }
 
 
     // =====================================================
@@ -345,16 +563,22 @@ export default function SecretaryAttendanceReportScreen() {
     if (loadingServices) {
 
         return (
-            <SafeAreaView style={styles.safeArea}>
+            <SafeAreaView
+                style={styles.safeArea}
+            >
 
-                <View style={styles.loadingContainer}>
+                <View
+                    style={styles.loadingContainer}
+                >
 
                     <ActivityIndicator
                         size="large"
                         color="#0f2a5f"
                     />
 
-                    <Text style={styles.loadingText}>
+                    <Text
+                        style={styles.loadingText}
+                    >
                         Loading services...
                     </Text>
 
@@ -366,50 +590,129 @@ export default function SecretaryAttendanceReportScreen() {
 
 
     // =====================================================
+    // STAT CARD
+    // =====================================================
+
+    const StatCard = ({
+        icon,
+        label,
+        value,
+        description,
+    }) => {
+
+        return (
+            <View
+                style={styles.statCard}
+            >
+
+                <View
+                    style={styles.statIcon}
+                >
+
+                    <Ionicons
+                        name={icon}
+                        size={24}
+                        color="#0f2a5f"
+                    />
+
+                </View>
+
+                <View
+                    style={styles.statContent}
+                >
+
+                    <Text
+                        style={styles.statValue}
+                    >
+                        {value}
+                    </Text>
+
+                    <Text
+                        style={styles.statLabel}
+                    >
+                        {label}
+                    </Text>
+
+                    {description ? (
+
+                        <Text
+                            style={
+                                styles.statDescription
+                            }
+                        >
+                            {description}
+                        </Text>
+
+                    ) : null}
+
+                </View>
+
+            </View>
+        );
+    };
+
+
+    // =====================================================
     // SCREEN
     // =====================================================
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <SafeAreaView
+            style={styles.safeArea}
+        >
 
             {/* ========================================= */}
             {/* HEADER */}
             {/* ========================================= */}
 
-            <View style={styles.header}>
+            <View
+                style={styles.header}
+            >
 
                 <TouchableOpacity
                     style={styles.backButton}
                     onPress={() => router.back()}
                 >
+
                     <Ionicons
                         name="arrow-back"
                         size={24}
                         color="#ffffff"
                     />
+
                 </TouchableOpacity>
 
-                <View style={styles.headerTextContainer}>
 
-                    <Text style={styles.headerTitle}>
+                <View
+                    style={styles.headerTextContainer}
+                >
+
+                    <Text
+                        style={styles.headerTitle}
+                    >
                         Attendance Report
                     </Text>
 
-                    <Text style={styles.headerSubtitle}>
+                    <Text
+                        style={styles.headerSubtitle}
+                    >
                         Secretary Report
                     </Text>
 
                 </View>
 
+
                 <TouchableOpacity
                     style={styles.refreshButton}
                     onPress={handleRefresh}
                 >
+
                     <Ionicons
                         name="refresh"
                         size={23}
                         color="#ffffff"
                     />
+
                 </TouchableOpacity>
 
             </View>
@@ -421,7 +724,9 @@ export default function SecretaryAttendanceReportScreen() {
 
             <ScrollView
                 style={styles.container}
-                contentContainerStyle={styles.content}
+                contentContainerStyle={
+                    styles.content
+                }
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -435,12 +740,17 @@ export default function SecretaryAttendanceReportScreen() {
                 {/* SERVICE SELECTOR */}
                 {/* ===================================== */}
 
-                <Text style={styles.sectionTitle}>
+                <Text
+                    style={styles.sectionTitle}
+                >
                     Select Service
                 </Text>
 
+
                 <TouchableOpacity
-                    style={styles.serviceSelector}
+                    style={
+                        styles.serviceSelector
+                    }
                     onPress={() =>
                         setShowServices(
                             !showServices
@@ -448,9 +758,15 @@ export default function SecretaryAttendanceReportScreen() {
                     }
                 >
 
-                    <View style={styles.serviceSelectorLeft}>
+                    <View
+                        style={
+                            styles.serviceSelectorLeft
+                        }
+                    >
 
-                        <View style={styles.serviceIcon}>
+                        <View
+                            style={styles.serviceIcon}
+                        >
 
                             <Ionicons
                                 name="calendar"
@@ -460,13 +776,22 @@ export default function SecretaryAttendanceReportScreen() {
 
                         </View>
 
+
                         <View>
 
-                            <Text style={styles.selectorLabel}>
+                            <Text
+                                style={
+                                    styles.selectorLabel
+                                }
+                            >
                                 Service
                             </Text>
 
-                            <Text style={styles.selectorValue}>
+                            <Text
+                                style={
+                                    styles.selectorValue
+                                }
+                            >
                                 {
                                     selectedService?.name ||
                                     "Select a service"
@@ -476,6 +801,7 @@ export default function SecretaryAttendanceReportScreen() {
                         </View>
 
                     </View>
+
 
                     <Ionicons
                         name={
@@ -496,73 +822,86 @@ export default function SecretaryAttendanceReportScreen() {
 
                 {showServices && (
 
-                    <View style={styles.serviceList}>
+                    <View
+                        style={styles.serviceList}
+                    >
 
                         {services.length === 0 ? (
 
-                            <Text style={styles.emptyText}>
+                            <Text
+                                style={
+                                    styles.emptyText
+                                }
+                            >
                                 No services available.
                             </Text>
 
                         ) : (
 
-                            services.map((service) => (
+                            services.map(
+                                (service) => (
 
-                                <TouchableOpacity
-                                    key={service._id}
-                                    style={[
-                                        styles.serviceItem,
-                                        selectedService?._id ===
-                                            service._id &&
-                                            styles.selectedServiceItem,
-                                    ]}
-                                    onPress={() =>
-                                        handleSelectService(
-                                            service
-                                        )
-                                    }
-                                >
+                                    <TouchableOpacity
+                                        key={service._id}
+                                        style={[
+                                            styles.serviceItem,
+                                            selectedService?._id ===
+                                                service._id &&
+                                                styles.selectedServiceItem,
+                                        ]}
+                                        onPress={() =>
+                                            handleSelectService(
+                                                service
+                                            )
+                                        }
+                                    >
 
-                                    <View>
+                                        <View>
 
-                                        <Text
-                                            style={
-                                                styles.serviceItemName
-                                            }
-                                        >
-                                            {service.name}
-                                        </Text>
+                                            <Text
+                                                style={
+                                                    styles.serviceItemName
+                                                }
+                                            >
+                                                {
+                                                    service.name
+                                                }
+                                            </Text>
 
-                                        <Text
-                                            style={
-                                                styles.serviceItemDate
-                                            }
-                                        >
-                                            {
-                                                service.serviceDate
-                                                    ? formatDate(
-                                                        service.serviceDate
-                                                    )
-                                                    : "Date unavailable"
-                                            }
-                                        </Text>
+                                            <Text
+                                                style={
+                                                    styles.serviceItemDate
+                                                }
+                                            >
+                                                {
+                                                    service.serviceDate
+                                                        ? formatDate(
+                                                            service.serviceDate
+                                                        )
+                                                        : "Date unavailable"
+                                                }
+                                            </Text>
 
-                                    </View>
+                                        </View>
 
-                                    {selectedService?._id ===
-                                        service._id && (
 
-                                        <Ionicons
-                                            name="checkmark-circle"
-                                            size={22}
-                                            color="#0f2a5f"
-                                        />
+                                        {
+                                            selectedService?._id ===
+                                            service._id && (
 
-                                    )}
+                                                <Ionicons
+                                                    name="checkmark-circle"
+                                                    size={22}
+                                                    color="#0f2a5f"
+                                                />
 
-                                </TouchableOpacity>
+                                            )
+                                        }
 
-                            ))
+                                    </TouchableOpacity>
+
+                                )
+                            )
 
                         )}
 
@@ -576,7 +915,9 @@ export default function SecretaryAttendanceReportScreen() {
 
                 {error ? (
 
-                    <View style={styles.errorBox}>
+                    <View
+                        style={styles.errorBox}
+                    >
 
                         <Ionicons
                             name="alert-circle"
@@ -584,7 +925,9 @@ export default function SecretaryAttendanceReportScreen() {
                             color="#b42318"
                         />
 
-                        <Text style={styles.errorText}>
+                        <Text
+                            style={styles.errorText}
+                        >
                             {error}
                         </Text>
 
@@ -599,14 +942,18 @@ export default function SecretaryAttendanceReportScreen() {
 
                 {loadingReport ? (
 
-                    <View style={styles.reportLoading}>
+                    <View
+                        style={styles.reportLoading}
+                    >
 
                         <ActivityIndicator
                             size="large"
                             color="#0f2a5f"
                         />
 
-                        <Text style={styles.loadingText}>
+                        <Text
+                            style={styles.loadingText}
+                        >
                             Preparing attendance report...
                         </Text>
 
@@ -620,11 +967,21 @@ export default function SecretaryAttendanceReportScreen() {
                         {/* SERVICE INFORMATION */}
                         {/* ================================= */}
 
-                        <View style={styles.serviceCard}>
+                        <View
+                            style={styles.serviceCard}
+                        >
 
-                            <View style={styles.serviceCardHeader}>
+                            <View
+                                style={
+                                    styles.serviceCardHeader
+                                }
+                            >
 
-                                <View style={styles.serviceCardIcon}>
+                                <View
+                                    style={
+                                        styles.serviceCardIcon
+                                    }
+                                >
 
                                     <Ionicons
                                         name="business"
@@ -634,32 +991,55 @@ export default function SecretaryAttendanceReportScreen() {
 
                                 </View>
 
-                                <View style={styles.serviceCardTitleArea}>
 
-                                    <Text style={styles.serviceName}>
-                                        {report.service.name}
+                                <View
+                                    style={
+                                        styles.serviceCardTitleArea
+                                    }
+                                >
+
+                                    <Text
+                                        style={
+                                            styles.serviceName
+                                        }
+                                    >
+                                        {
+                                            report.service.name
+                                        }
                                     </Text>
 
-                                    <Text style={styles.serviceType}>
+                                    <Text
+                                        style={
+                                            styles.serviceType
+                                        }
+                                    >
                                         {
-                                            report.service.serviceType
+                                            report.service
+                                                .serviceType
                                         }
                                     </Text>
 
                                 </View>
 
+
                                 <View
                                     style={[
                                         styles.statusBadge,
                                         getStatusStyle(
-                                            report.service.status
+                                            report.service
+                                                .status
                                         ),
                                     ]}
                                 >
 
-                                    <Text style={styles.statusText}>
+                                    <Text
+                                        style={
+                                            styles.statusText
+                                        }
+                                    >
                                         {
-                                            report.service.status
+                                            report.service
+                                                .status
                                         }
                                     </Text>
 
@@ -668,9 +1048,15 @@ export default function SecretaryAttendanceReportScreen() {
                             </View>
 
 
-                            <View style={styles.serviceDetails}>
+                            <View
+                                style={
+                                    styles.serviceDetails
+                                }
+                            >
 
-                                <View style={styles.detailRow}>
+                                <View
+                                    style={styles.detailRow}
+                                >
 
                                     <Ionicons
                                         name="calendar-outline"
@@ -678,10 +1064,15 @@ export default function SecretaryAttendanceReportScreen() {
                                         color="#666"
                                     />
 
-                                    <Text style={styles.detailText}>
+                                    <Text
+                                        style={
+                                            styles.detailText
+                                        }
+                                    >
                                         {
                                             formatDate(
-                                                report.service.date
+                                                report.service
+                                                    .date
                                             )
                                         }
                                     </Text>
@@ -689,7 +1080,9 @@ export default function SecretaryAttendanceReportScreen() {
                                 </View>
 
 
-                                <View style={styles.detailRow}>
+                                <View
+                                    style={styles.detailRow}
+                                >
 
                                     <Ionicons
                                         name="time-outline"
@@ -697,17 +1090,23 @@ export default function SecretaryAttendanceReportScreen() {
                                         color="#666"
                                     />
 
-                                    <Text style={styles.detailText}>
+                                    <Text
+                                        style={
+                                            styles.detailText
+                                        }
+                                    >
 
                                         {
-                                            report.service.startTime ||
+                                            report.service
+                                                .startTime ||
                                             "N/A"
                                         }
 
                                         {" - "}
 
                                         {
-                                            report.service.endTime ||
+                                            report.service
+                                                .endTime ||
                                             "N/A"
                                         }
 
@@ -716,7 +1115,9 @@ export default function SecretaryAttendanceReportScreen() {
                                 </View>
 
 
-                                <View style={styles.detailRow}>
+                                <View
+                                    style={styles.detailRow}
+                                >
 
                                     <Ionicons
                                         name="person-outline"
@@ -724,12 +1125,17 @@ export default function SecretaryAttendanceReportScreen() {
                                         color="#666"
                                     />
 
-                                    <Text style={styles.detailText}>
+                                    <Text
+                                        style={
+                                            styles.detailText
+                                        }
+                                    >
 
                                         Generated by{" "}
 
                                         {
-                                            report.service.generatedBy
+                                            report.service
+                                                .generatedBy
                                                 ?.fullName ||
                                             "System"
                                         }
@@ -747,12 +1153,16 @@ export default function SecretaryAttendanceReportScreen() {
                         {/* ATTENDANCE OVERVIEW */}
                         {/* ================================= */}
 
-                        <Text style={styles.sectionTitle}>
+                        <Text
+                            style={styles.sectionTitle}
+                        >
                             Attendance Overview
                         </Text>
 
 
-                        <View style={styles.statsGrid}>
+                        <View
+                            style={styles.statsGrid}
+                        >
 
                             <StatCard
                                 icon="man"
@@ -764,6 +1174,7 @@ export default function SecretaryAttendanceReportScreen() {
                                 description="Adult men present"
                             />
 
+
                             <StatCard
                                 icon="woman"
                                 label="Female Adults"
@@ -773,6 +1184,7 @@ export default function SecretaryAttendanceReportScreen() {
                                 }
                                 description="Adult women present"
                             />
+
 
                             <StatCard
                                 icon="people"
@@ -784,6 +1196,7 @@ export default function SecretaryAttendanceReportScreen() {
                                 description="Children present"
                             />
 
+
                             <StatCard
                                 icon="checkmark-circle"
                                 label="Total Present"
@@ -794,6 +1207,7 @@ export default function SecretaryAttendanceReportScreen() {
                                 description="People present"
                             />
 
+
                             <StatCard
                                 icon="close-circle"
                                 label="Total Absent"
@@ -803,6 +1217,7 @@ export default function SecretaryAttendanceReportScreen() {
                                 }
                                 description="People absent"
                             />
+
 
                             <StatCard
                                 icon="people-circle"
@@ -821,27 +1236,43 @@ export default function SecretaryAttendanceReportScreen() {
                         {/* ATTENDANCE RATE */}
                         {/* ================================= */}
 
-                        <View style={styles.rateCard}>
+                        <View
+                            style={styles.rateCard}
+                        >
 
-                            <View style={styles.rateHeader}>
+                            <View
+                                style={styles.rateHeader}
+                            >
 
                                 <View>
 
-                                    <Text style={styles.rateTitle}>
+                                    <Text
+                                        style={
+                                            styles.rateTitle
+                                        }
+                                    >
                                         Attendance Rate
                                     </Text>
 
-                                    <Text style={styles.rateSubtitle}>
+                                    <Text
+                                        style={
+                                            styles.rateSubtitle
+                                        }
+                                    >
                                         Overall service attendance
                                     </Text>
 
                                 </View>
 
-                                <Text style={styles.rateValue}>
+
+                                <Text
+                                    style={styles.rateValue}
+                                >
                                     {
                                         Number(
                                             report.attendance
-                                                .attendanceRate || 0
+                                                .attendanceRate ||
+                                            0
                                         ).toFixed(2)
                                     }%
                                 </Text>
@@ -849,19 +1280,25 @@ export default function SecretaryAttendanceReportScreen() {
                             </View>
 
 
-                            <View style={styles.progressBackground}>
+                            <View
+                                style={
+                                    styles.progressBackground
+                                }
+                            >
 
                                 <View
                                     style={[
                                         styles.progressBar,
                                         {
-                                            width: `${Math.min(
-                                                Number(
-                                                    report.attendance
-                                                        .attendanceRate || 0
-                                                ),
-                                                100
-                                            )}%`,
+                                            width:
+                                                `${Math.min(
+                                                    Number(
+                                                        report.attendance
+                                                            .attendanceRate ||
+                                                        0
+                                                    ),
+                                                    100
+                                                )}%`,
                                         },
                                     ]}
                                 />
@@ -869,16 +1306,27 @@ export default function SecretaryAttendanceReportScreen() {
                             </View>
 
 
-                            <View style={styles.rateFooter}>
+                            <View
+                                style={styles.rateFooter}
+                            >
 
-                                <Text style={styles.rateFooterText}>
+                                <Text
+                                    style={
+                                        styles.rateFooterText
+                                    }
+                                >
                                     {
                                         report.attendance
                                             .totalPresent
                                     } present
                                 </Text>
 
-                                <Text style={styles.rateFooterText}>
+
+                                <Text
+                                    style={
+                                        styles.rateFooterText
+                                    }
+                                >
                                     {
                                         report.attendance
                                             .totalMembers
@@ -894,9 +1342,13 @@ export default function SecretaryAttendanceReportScreen() {
                         {/* REPORT SUMMARY */}
                         {/* ================================= */}
 
-                        <View style={styles.summaryCard}>
+                        <View
+                            style={styles.summaryCard}
+                        >
 
-                            <View style={styles.summaryHeader}>
+                            <View
+                                style={styles.summaryHeader}
+                            >
 
                                 <Ionicons
                                     name="document-text-outline"
@@ -904,26 +1356,43 @@ export default function SecretaryAttendanceReportScreen() {
                                     color="#0f2a5f"
                                 />
 
-                                <Text style={styles.summaryTitle}>
+                                <Text
+                                    style={
+                                        styles.summaryTitle
+                                    }
+                                >
                                     Report Summary
                                 </Text>
 
                             </View>
 
-                            <Text style={styles.summaryText}>
 
-                                {report.attendance.totalPresent}
+                            <Text
+                                style={styles.summaryText}
+                            >
+
+                                {
+                                    report.attendance
+                                        .totalPresent
+                                }
                                 {" "}of{" "}
-                                {report.attendance.totalMembers}
+                                {
+                                    report.attendance
+                                        .totalMembers
+                                }
                                 {" "}members attended{" "}
-                                {report.service.name}.
+                                {
+                                    report.service.name
+                                }.
                                 {" "}
 
                                 The attendance rate was{" "}
+
                                 {
                                     Number(
                                         report.attendance
-                                            .attendanceRate || 0
+                                            .attendanceRate ||
+                                        0
                                     ).toFixed(2)
                                 }%.
 
@@ -935,7 +1404,9 @@ export default function SecretaryAttendanceReportScreen() {
 
                 ) : (
 
-                    <View style={styles.emptyReport}>
+                    <View
+                        style={styles.emptyReport}
+                    >
 
                         <Ionicons
                             name="document-text-outline"
@@ -943,11 +1414,19 @@ export default function SecretaryAttendanceReportScreen() {
                             color="#b0b7c3"
                         />
 
-                        <Text style={styles.emptyReportTitle}>
+                        <Text
+                            style={
+                                styles.emptyReportTitle
+                            }
+                        >
                             No Report Available
                         </Text>
 
-                        <Text style={styles.emptyReportText}>
+                        <Text
+                            style={
+                                styles.emptyReportText
+                            }
+                        >
                             Select a service to view its
                             attendance report.
                         </Text>
@@ -1418,6 +1897,56 @@ const styles = StyleSheet.create({
         color: "#687386",
         fontSize: 14,
         marginTop: 10,
+    },
+
+
+    // =================================================
+    // ACCESS DENIED
+    // =================================================
+
+    accessDeniedContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 35,
+    },
+
+    accessDeniedIcon: {
+        width: 86,
+        height: 86,
+        borderRadius: 43,
+        backgroundColor: "#fff1f0",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 20,
+    },
+
+    accessDeniedTitle: {
+        fontSize: 24,
+        fontWeight: "800",
+        color: "#172033",
+        marginBottom: 10,
+    },
+
+    accessDeniedText: {
+        fontSize: 15,
+        color: "#687386",
+        textAlign: "center",
+        lineHeight: 22,
+        marginBottom: 25,
+    },
+
+    backHomeButton: {
+        backgroundColor: "#0f2a5f",
+        paddingHorizontal: 25,
+        paddingVertical: 13,
+        borderRadius: 10,
+    },
+
+    backHomeButtonText: {
+        color: "#ffffff",
+        fontSize: 15,
+        fontWeight: "700",
     },
 
 
