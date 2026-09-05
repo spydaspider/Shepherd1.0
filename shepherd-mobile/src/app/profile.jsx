@@ -4,6 +4,7 @@ import {
     StyleSheet,
     TouchableOpacity,
     Alert,
+    ScrollView,
 } from "react-native";
 
 import {
@@ -62,12 +63,66 @@ export default function ProfileScreen() {
 
 
     // =================================================
+    // USER ROLE
+    // =================================================
+
+    const userRole =
+        String(
+            user?.role ||
+            user?.userType ||
+            user?.membershipRole ||
+            ""
+        ).toLowerCase();
+
+
+    // =================================================
+    // MANAGEMENT ACCESS
+    // =================================================
+
+    const canViewManagement =
+        userRole === "admin" ||
+        userRole === "pastor" ||
+        userRole === "leader" ||
+        userRole === "secretary";
+
+
+    // =================================================
     // Handle My Children
     // =================================================
 
     const handleMyChildren = () => {
 
         router.push("/my-children");
+
+    };
+
+
+    // =================================================
+    // Handle Attendance Reports
+    // =================================================
+
+    const handleAttendanceReports = () => {
+
+        /*
+         * IMPORTANT:
+         *
+         * Replace "/attendance-report" below with the
+         * EXACT route used by your attendance report screen
+         * if it has a different filename.
+         */
+
+        router.push("/secretary/attendance-report");
+
+    };
+
+
+    // =================================================
+    // Handle Follow-Ups
+    // =================================================
+
+    const handleFollowUps = () => {
+
+        router.push("/followups");
 
     };
 
@@ -99,13 +154,10 @@ export default function ProfileScreen() {
                             // Remove stored authentication
                             // ---------------------------------
 
-                            await AsyncStorage.removeItem(
-                                "token"
-                            );
-
-                            await AsyncStorage.removeItem(
-                                "user"
-                            );
+                            await AsyncStorage.multiRemove([
+                                "token",
+                                "user",
+                            ]);
 
 
                             // ---------------------------------
@@ -145,7 +197,13 @@ export default function ProfileScreen() {
 
     return (
 
-        <View style={styles.container}>
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={
+                styles.contentContainer
+            }
+            showsVerticalScrollIndicator={false}
+        >
 
             {/* =========================================
                 Header
@@ -193,6 +251,13 @@ export default function ProfileScreen() {
                         {email}
                     </Text>
 
+                    {userRole !== "" && (
+                        <Text style={styles.role}>
+                            {userRole.charAt(0).toUpperCase() +
+                                userRole.slice(1)}
+                        </Text>
+                    )}
+
                 </View>
 
             </View>
@@ -213,11 +278,14 @@ export default function ProfileScreen() {
                     MY PROFILE
                 ====================================== */}
 
-              <TouchableOpacity
-    style={styles.option}
-    onPress={() => router.push("/my-profile")}
-    activeOpacity={0.7}
->
+                <TouchableOpacity
+                    style={styles.option}
+                    onPress={() =>
+                        router.push("/my-profile")
+                    }
+                    activeOpacity={0.7}
+                >
+
                     <View>
 
                         <Text style={styles.optionTitle}>
@@ -269,7 +337,84 @@ export default function ProfileScreen() {
 
 
             {/* =========================================
-                Logout
+                MANAGEMENT SECTION
+            ========================================== */}
+
+            {canViewManagement && (
+
+                <View style={styles.section}>
+
+                    <Text style={styles.sectionTitle}>
+                        Management
+                    </Text>
+
+
+                    {/* =================================
+                        ATTENDANCE REPORTS
+                    ================================== */}
+
+                    <TouchableOpacity
+                        style={styles.option}
+                        onPress={
+                            handleAttendanceReports
+                        }
+                        activeOpacity={0.7}
+                    >
+
+                        <View>
+
+                            <Text style={styles.optionTitle}>
+                                Attendance Reports
+                            </Text>
+
+                            <Text style={styles.optionDescription}>
+                                View attendance reports and statistics
+                            </Text>
+
+                        </View>
+
+                        <Text style={styles.arrow}>
+                            →
+                        </Text>
+
+                    </TouchableOpacity>
+
+
+                    {/* =================================
+                        FOLLOW-UPS
+                    ================================== */}
+
+                    <TouchableOpacity
+                        style={styles.option}
+                        onPress={handleFollowUps}
+                        activeOpacity={0.7}
+                    >
+
+                        <View>
+
+                            <Text style={styles.optionTitle}>
+                                Follow-Ups
+                            </Text>
+
+                            <Text style={styles.optionDescription}>
+                                View and manage member follow-ups
+                            </Text>
+
+                        </View>
+
+                        <Text style={styles.arrow}>
+                            →
+                        </Text>
+
+                    </TouchableOpacity>
+
+                </View>
+
+            )}
+
+
+            {/* =========================================
+                LOGOUT
             ========================================== */}
 
             <TouchableOpacity
@@ -284,7 +429,7 @@ export default function ProfileScreen() {
 
             </TouchableOpacity>
 
-        </View>
+        </ScrollView>
 
     );
 
@@ -303,7 +448,14 @@ const styles = StyleSheet.create({
 
         backgroundColor: "#f4f6fb",
 
+    },
+
+
+    contentContainer: {
+
         padding: 20,
+
+        paddingBottom: 40,
 
     },
 
@@ -419,8 +571,21 @@ const styles = StyleSheet.create({
     },
 
 
+    role: {
+
+        marginTop: 5,
+
+        color: "#0f2a5f",
+
+        fontSize: 13,
+
+        fontWeight: "700",
+
+    },
+
+
     // =================================================
-    // Account
+    // Sections
     // =================================================
 
     section: {
@@ -442,6 +607,10 @@ const styles = StyleSheet.create({
 
     },
 
+
+    // =================================================
+    // Options
+    // =================================================
 
     option: {
 

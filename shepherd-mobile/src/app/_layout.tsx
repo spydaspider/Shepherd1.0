@@ -5,6 +5,7 @@ import {
     Text,
     ActivityIndicator,
     StyleSheet,
+    Pressable,
 } from "react-native";
 
 import {
@@ -14,7 +15,9 @@ import {
 } from "react-redux";
 
 import {
-    Tabs,
+    Stack,
+    useRouter,
+    usePathname,
 } from "expo-router";
 
 import {
@@ -37,18 +40,112 @@ import {
 import api from "../api/axios";
 
 
-// =====================================================
-// APPLICATION LAYOUT
-// =====================================================
+function CustomTabBar() {
+    const router = useRouter();
+    const pathname = usePathname();
+
+    const unreadCount = useSelector(
+        (state) => state.notifications.unreadCount
+    );
+
+    const tabs = [
+        {
+            route: "/",
+            label: "Home",
+            icon: "home-outline",
+            activeIcon: "home",
+        },
+        {
+            route: "/attendance",
+            label: "Attendance",
+            icon: "calendar-outline",
+            activeIcon: "calendar",
+        },
+        {
+            route: "/notifications",
+            label: "Notifications",
+            icon: "notifications-outline",
+            activeIcon: "notifications",
+        },
+        {
+            route: "/profile",
+            label: "Profile",
+            icon: "person-outline",
+            activeIcon: "person",
+        },
+    ];
+
+    return (
+        <View style={styles.tabBar}>
+            {tabs.map((tab) => {
+                const isActive = pathname === tab.route;
+
+                return (
+                    <Pressable
+                        key={tab.route}
+                        style={styles.tabButton}
+                        onPress={() => {
+                            if (!isActive) {
+                                router.replace(tab.route);
+                            }
+                        }}
+                    >
+                        <View style={styles.tabIconContainer}>
+                            <Ionicons
+                                name={
+                                    isActive
+                                        ? tab.activeIcon
+                                        : tab.icon
+                                }
+                                size={24}
+                                color={
+                                    isActive
+                                        ? "#0f2a5f"
+                                        : "#8a8a8a"
+                                }
+                            />
+
+                            {tab.route === "/notifications" &&
+                                unreadCount > 0 && (
+                                    <View
+                                        style={
+                                            styles.notificationBadge
+                                        }
+                                    >
+                                        <Text
+                                            style={
+                                                styles.notificationBadgeText
+                                            }
+                                        >
+                                            {unreadCount > 99
+                                                ? "99+"
+                                                : unreadCount}
+                                        </Text>
+                                    </View>
+                                )}
+                        </View>
+
+                        <Text
+                            style={[
+                                styles.tabLabel,
+                                isActive &&
+                                    styles.activeTabLabel,
+                            ]}
+                        >
+                            {tab.label}
+                        </Text>
+                    </Pressable>
+                );
+            })}
+        </View>
+    );
+}
+
 
 function AppLayout() {
-
     const dispatch = useDispatch();
-
-
-    // =================================================
-    // AUTH STATE
-    // =================================================
+    const router = useRouter();
+    const pathname = usePathname();
 
     const authChecked = useSelector(
         (state) => state.auth.authChecked
@@ -59,219 +156,159 @@ function AppLayout() {
     );
 
 
-    // =================================================
-    // NOTIFICATION STATE
-    // =================================================
-
-    const unreadCount = useSelector(
-        (state) => state.notifications.unreadCount
-    );
-
-
-    // =================================================
-    // RESTORE SAVED SESSION
-    // =================================================
+    // =====================================================
+    // RESTORE SAVED LOGIN SESSION
+    // =====================================================
 
     useEffect(() => {
-
         let mounted = true;
 
+        const restoreSavedSession = async () => {
+            console.log("CHECKING SAVED AUTH SESSION...");
 
-        const restoreSavedSession =
-            async () => {
+            try {
+                const token =
+                    await AsyncStorage.getItem("token");
+
+                const userString =
+                    await AsyncStorage.getItem("user");
 
                 console.log(
-                    "CHECKING SAVED AUTH SESSION..."
+                    "TOKEN:",
+                    token ? "FOUND" : "NOT FOUND"
                 );
 
+                if (!token) {
+                    console.log("NO SAVED AUTH TOKEN");
+
+                    if (mounted) {
+                        dispatch(sessionExpired());
+                    }
+
+                    return;
+                }
+
+                let user = null;
+
+                if (userString) {
+                    try {
+                        user = JSON.parse(userString);
+                    } catch (error) {
+                        console.log(
+                            "USER DATA COULD NOT BE PARSED:",
+                            error
+                        );
+                    }
+                }
+
+                if (mounted) {
+                    dispatch(
+                        restoreSession({
+                            token,
+                            user,
+                        })
+                    );
+                }
+
+                console.log("AUTH SESSION RESTORED");
+
+            } catch (error) {
+                console.log(
+                    "SESSION RESTORATION ERROR:",
+                    error?.message || error
+                );
 
                 try {
-
-                    // =================================
-                    // GET SAVED TOKEN
-                    // =================================
-
-                    const token =
-                        await AsyncStorage.getItem(
-                            "token"
-                        );
-
-
-                    // =================================
-                    // GET SAVED USER
-                    // =================================
-
-                    const userString =
-                        await AsyncStorage.getItem(
-                            "user"
-                        );
-
-
+                    await AsyncStorage.multiRemove([
+                        "token",
+                        "user",
+                    ]);
+                } catch (storageError) {
                     console.log(
-                        "TOKEN:",
-                        token
-                            ? "FOUND"
-                            : "NOT FOUND"
+                        "STORAGE CLEAR ERROR:",
+                        storageError
                     );
-
-
-                    // =================================
-                    // NO TOKEN
-                    // =================================
-
-                    if (!token) {
-
-                        console.log(
-                            "NO SAVED AUTH TOKEN"
-                        );
-
-
-                        if (mounted) {
-
-                            dispatch(
-                                sessionExpired()
-                            );
-
-                        }
-
-                        return;
-
-                    }
-
-
-                    // =================================
-                    // PARSE USER
-                    // =================================
-
-                    let user = null;
-
-
-                    if (userString) {
-
-                        try {
-
-                            user =
-                                JSON.parse(
-                                    userString
-                                );
-
-                        }
-                        catch (error) {
-
-                            console.log(
-                                "USER DATA COULD NOT BE PARSED:",
-                                error
-                            );
-
-                        }
-
-                    }
-
-
-                    // =================================
-                    // RESTORE REDUX SESSION
-                    // =================================
-
-                    if (mounted) {
-
-                        dispatch(
-                            restoreSession({
-                                token,
-                                user,
-                            })
-                        );
-
-                    }
-
-
-                    console.log(
-                        "AUTH SESSION RESTORED"
-                    );
-
-                }
-                catch (error) {
-
-                    console.log(
-                        "SESSION RESTORATION ERROR:",
-                        error?.message || error
-                    );
-
-
-                    if (mounted) {
-
-                        dispatch(
-                            sessionExpired()
-                        );
-
-                    }
-
                 }
 
-            };
-
+                if (mounted) {
+                    dispatch(sessionExpired());
+                }
+            }
+        };
 
         restoreSavedSession();
 
-
-        // =============================================
-        // CLEANUP
-        // =============================================
-
         return () => {
-
             mounted = false;
-
         };
-
     }, [dispatch]);
 
 
-    // =================================================
-    // NOTIFICATION COUNT
-    // =================================================
+    // =====================================================
+    // AUTHENTICATION NAVIGATION
+    // =====================================================
 
     useEffect(() => {
+        if (!authChecked) {
+            return;
+        }
 
+        // User is NOT logged in
+        if (!isAuthenticated) {
+            if (pathname !== "/login") {
+                console.log("USER NOT AUTHENTICATED");
+                console.log("REDIRECTING TO LOGIN...");
+
+                router.replace("/login");
+            }
+
+            return;
+        }
+
+        // User is already logged in
+        if (
+            isAuthenticated &&
+            pathname === "/login"
+        ) {
+            console.log("USER IS ALREADY AUTHENTICATED");
+            console.log("REDIRECTING TO HOME...");
+
+            router.replace("/");
+        }
+
+    }, [
+        authChecked,
+        isAuthenticated,
+        pathname,
+        router,
+    ]);
+
+
+    // =====================================================
+    // NOTIFICATION COUNT
+    // =====================================================
+
+    useEffect(() => {
         let intervalId = null;
-
 
         const fetchUnreadNotificationCount =
             async () => {
-
                 try {
-
-                    // =================================
-                    // USER NOT LOGGED IN
-                    // =================================
-
                     if (!isAuthenticated) {
-
                         dispatch(
                             setUnreadCount(0)
                         );
 
                         return;
-
                     }
-
-
-                    // =================================
-                    // GET NOTIFICATIONS
-                    // =================================
 
                     const response =
                         await api.get(
                             "/notifications"
                         );
 
-
-                    // =================================
-                    // GET UNREAD COUNT
-                    // =================================
-
                     const count =
                         response?.data?.unreadCount;
-
 
                     dispatch(
                         setUnreadCount(
@@ -279,67 +316,39 @@ function AppLayout() {
                         )
                     );
 
-                }
-                catch (error) {
-
+                } catch (error) {
                     console.log(
                         "FETCH NOTIFICATION COUNT ERROR:",
                         error?.response?.data ||
                         error?.message ||
                         error
                     );
-
                 }
-
             };
 
-
-        // =============================================
-        // ONLY POLL WHEN AUTHENTICATED
-        // =============================================
 
         if (
             authChecked &&
             isAuthenticated
         ) {
-
-            // Fetch immediately
-
             fetchUnreadNotificationCount();
 
+            intervalId = setInterval(
+                fetchUnreadNotificationCount,
+                30000
+            );
 
-            // Refresh every 30 seconds
-
-            intervalId =
-                setInterval(
-                    fetchUnreadNotificationCount,
-                    30000
-                );
-
-        }
-        else {
-
+        } else {
             dispatch(
                 setUnreadCount(0)
             );
-
         }
 
 
-        // =============================================
-        // CLEANUP INTERVAL
-        // =============================================
-
         return () => {
-
             if (intervalId) {
-
-                clearInterval(
-                    intervalId
-                );
-
+                clearInterval(intervalId);
             }
-
         };
 
     }, [
@@ -349,470 +358,164 @@ function AppLayout() {
     ]);
 
 
-    // =================================================
-    // AUTH LOADING
-    // =================================================
+    // =====================================================
+    // LOADING SCREEN
+    // =====================================================
 
     if (!authChecked) {
-
         return (
-
-            <View
-                style={
-                    styles.loadingContainer
-                }
-            >
-
+            <View style={styles.loadingContainer}>
                 <ActivityIndicator
                     size="large"
                     color="#0f2a5f"
                 />
 
-                <Text
-                    style={
-                        styles.loadingText
-                    }
-                >
+                <Text style={styles.loadingText}>
                     Loading...
                 </Text>
-
             </View>
-
         );
-
     }
 
 
-    // =================================================
-    // BOTTOM TAB NAVIGATION
-    // =================================================
+    // =====================================================
+    // SHOW BOTTOM TAB BAR ONLY ON MAIN SCREENS
+    // =====================================================
+
+    const showTabBar =
+        isAuthenticated &&
+        (
+            pathname === "/" ||
+            pathname === "/attendance" ||
+            pathname === "/notifications" ||
+            pathname === "/profile"
+        );
+
 
     return (
-
-        <Tabs
-            screenOptions={{
-
-                headerShown: false,
-
-                tabBarActiveTintColor:
-                    "#0f2a5f",
-
-                tabBarInactiveTintColor:
-                    "#8a8a8a",
-
-                tabBarStyle: {
-
-                    height: 65,
-
-                    paddingBottom: 8,
-
-                    paddingTop: 6,
-
-                },
-
-                tabBarLabelStyle: {
-
-                    fontSize: 12,
-
-                    fontWeight: "600",
-
-                },
-
-            }}
-        >
-
-            {/* =========================================
-                HOME
-            ========================================= */}
-
-            <Tabs.Screen
-                name="index"
-                options={{
-
-                    title: "Home",
-
-                    tabBarIcon: ({
-                        color,
-                        size,
-                    }) => (
-
-                        <Ionicons
-                            name="home-outline"
-                            size={size}
-                            color={color}
-                        />
-
-                    ),
-
-                }}
-            />
-
-
-            {/* =========================================
-                ATTENDANCE
-            ========================================= */}
-
-            <Tabs.Screen
-                name="attendance"
-                options={{
-
-                    title: "Attendance",
-
-                    tabBarIcon: ({
-                        color,
-                        size,
-                    }) => (
-
-                        <Ionicons
-                            name="calendar-outline"
-                            size={size}
-                            color={color}
-                        />
-
-                    ),
-
-                }}
-            />
-
-
-            {/* =========================================
-                NOTIFICATIONS
-            ========================================= */}
-
-            <Tabs.Screen
-                name="notifications"
-                options={{
-
-                    title: "Notifications",
-
-                    tabBarIcon: ({
-                        color,
-                        size,
-                    }) => (
-
-                        <View
-                            style={
-                                styles.notificationIconContainer
-                            }
-                        >
-
-                            <Ionicons
-                                name="notifications-outline"
-                                size={size}
-                                color={color}
-                            />
-
-
-                            {/* =========================
-                                UNREAD BADGE
-                            ========================= */}
-
-                            {unreadCount > 0 && (
-
-                                <View
-                                    style={
-                                        styles.notificationBadge
-                                    }
-                                >
-
-                                    <Text
-                                        style={
-                                            styles.notificationBadgeText
-                                        }
-                                    >
-
-                                        {
-                                            unreadCount > 99
-                                                ? "99+"
-                                                : unreadCount
-                                        }
-
-                                    </Text>
-
-                                </View>
-
-                            )}
-
-                        </View>
-
-                    ),
-
-                }}
-            />
-
-
-            {/* =========================================
-                PROFILE
-            ========================================= */}
-
-            <Tabs.Screen
-                name="profile"
-                options={{
-
-                    title: "Profile",
-
-                    tabBarIcon: ({
-                        color,
-                        size,
-                    }) => (
-
-                        <Ionicons
-                            name="person-outline"
-                            size={size}
-                            color={color}
-                        />
-
-                    ),
-
-                }}
-            />
-
-
-            {/* =========================================
-                LOGIN
-                HIDDEN FROM TAB BAR
-            ========================================= */}
-
-            <Tabs.Screen
-                name="login"
-                options={{
-
-                    href: null,
-
-                    headerShown: false,
-
-                    tabBarStyle: {
-                        display: "none",
-                    },
-
-                }}
-            />
-
-
-            {/* =========================================
-                MY PROFILE
-                HIDDEN FROM TAB BAR
-            ========================================= */}
-
-            <Tabs.Screen
-                name="my-profile"
-                options={{
-
-                    href: null,
-
-                    headerShown: false,
-
-                }}
-            />
-
-
-            {/* =========================================
-                MY CHILDREN
-                HIDDEN FROM TAB BAR
-            ========================================= */}
-
-            <Tabs.Screen
-                name="my-children"
-                options={{
-
-                    href: null,
-
-                    headerShown: false,
-
-                }}
-            />
-
-
-            {/* =========================================
-                ADD CHILD
-                HIDDEN FROM TAB BAR
-            ========================================= */}
-
-            <Tabs.Screen
-                name="add-child"
-                options={{
-
-                    href: null,
-
-                    headerShown: false,
-
-                }}
-            />
-
-
-            {/* =========================================
-                CHILD DETAILS
-                HIDDEN FROM TAB BAR
-            ========================================= */}
-
-            <Tabs.Screen
-                name="child-details"
-                options={{
-
-                    href: null,
-
-                    headerShown: false,
-
-                }}
-            />
-
-
-            {/* =========================================
-                CHILD ATTENDANCE
-                HIDDEN FROM TAB BAR
-            ========================================= */}
-
-            <Tabs.Screen
-                name="child-attendance"
-                options={{
-
-                    href: null,
-
-                    headerShown: false,
-
-                }}
-            />
-
-
-            {/* =========================================
-                MARK ATTENDANCE
-                HIDDEN FROM TAB BAR
-            ========================================= */}
-
-            <Tabs.Screen
-                name="mark-attendance"
-                options={{
-
-                    href: null,
-
-                    headerShown: false,
-
-                }}
-            />
-
-
-            {/* =========================================
-                EXPLORE
-                HIDDEN FROM TAB BAR
-            ========================================= */}
-
-            <Tabs.Screen
-                name="explore"
-                options={{
-
-                    href: null,
-
-                    headerShown: false,
-
-                }}
-            />
-
-        </Tabs>
-
+        <View style={styles.appContainer}>
+            <View style={styles.stackContainer}>
+                <Stack
+                    screenOptions={{
+                        headerShown: false,
+                    }}
+                />
+            </View>
+
+            {showTabBar && (
+                <CustomTabBar />
+            )}
+        </View>
     );
-
 }
 
 
-// =====================================================
+// =========================================================
 // ROOT LAYOUT
-// =====================================================
+// =========================================================
 
 export default function RootLayout() {
-
     return (
-
         <Provider store={store}>
-
             <AppLayout />
-
         </Provider>
-
     );
-
 }
 
 
-// =====================================================
+// =========================================================
 // STYLES
-// =====================================================
+// =========================================================
 
 const styles = StyleSheet.create({
 
-    loadingContainer: {
-
+    appContainer: {
         flex: 1,
-
         backgroundColor: "#f4f6fb",
-
-        justifyContent: "center",
-
-        alignItems: "center",
-
     },
 
+    stackContainer: {
+        flex: 1,
+    },
+
+    loadingContainer: {
+        flex: 1,
+        backgroundColor: "#f4f6fb",
+        justifyContent: "center",
+        alignItems: "center",
+    },
 
     loadingText: {
-
         marginTop: 12,
-
         fontSize: 15,
-
-        color: "#555",
-
+        color: "#555555",
     },
 
+    // =====================================================
+    // BOTTOM TAB BAR
+    // =====================================================
 
-    notificationIconContainer: {
-
-        position: "relative",
-
-        justifyContent: "center",
-
+    tabBar: {
+        height: 70,
+        backgroundColor: "#ffffff",
+        borderTopWidth: 1,
+        borderTopColor: "#e5e5e5",
+        flexDirection: "row",
         alignItems: "center",
-
+        justifyContent: "space-around",
+        paddingTop: 5,
+        paddingBottom: 5,
     },
 
+    tabButton: {
+        flex: 1,
+        height: 65,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
+    tabIconContainer: {
+        position: "relative",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+
+    tabLabel: {
+        marginTop: 3,
+        fontSize: 11,
+        fontWeight: "500",
+        color: "#8a8a8a",
+    },
+
+    activeTabLabel: {
+        color: "#0f2a5f",
+        fontWeight: "700",
+    },
+
+    // =====================================================
+    // NOTIFICATION BADGE
+    // =====================================================
 
     notificationBadge: {
-
         position: "absolute",
-
         right: -10,
-
-        top: -6,
-
+        top: -7,
         minWidth: 18,
-
         height: 18,
-
         paddingHorizontal: 4,
-
         borderRadius: 9,
-
         backgroundColor: "#e53935",
-
         justifyContent: "center",
-
         alignItems: "center",
-
         borderWidth: 1,
-
         borderColor: "#ffffff",
-
     },
 
-
     notificationBadgeText: {
-
         color: "#ffffff",
-
         fontSize: 10,
-
         fontWeight: "700",
-
         textAlign: "center",
-
     },
 
 });
