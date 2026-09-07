@@ -3,87 +3,58 @@ const {
 } = require("../config/permissions");
 
 
+// =====================================================
+// CHECK PERMISSION
+// =====================================================
 
+const checkPermission = (permission) => {
 
+    return (req, res, next) => {
 
-
-
-const checkPermission = (permission)=>{
-
-
-    return (req,res,next)=>{
-
-
-        try{
-
+        try {
 
             // ==========================================
-            // Check Authentication
+            // AUTHENTICATION
             // ==========================================
 
-            if(!req.user){
-
+            if (!req.user) {
 
                 return res.status(401).json({
 
-                    success:false,
+                    success: false,
 
-                    message:
-                    "Authentication required"
+                    message: "Authentication required"
 
                 });
-
 
             }
 
 
-
-
-
-
-
-
             // ==========================================
-            // Check User Role
+            // USER ROLE
             // ==========================================
 
-
-            const userRole =
-            req.user.role;
+            const userRole = req.user.role;
 
 
-
-            if(!userRole){
-
+            if (!userRole) {
 
                 return res.status(403).json({
 
-                    success:false,
+                    success: false,
 
-                    message:
-                    "User role not assigned"
+                    message: "User role not assigned"
 
                 });
-
 
             }
 
 
-
-
-
-
-
-
-
             // ==========================================
-            // Permission Check
+            // CHECK PERMISSION
             // ==========================================
 
-
-            const allowed =
-
-            hasPermission(
+            const allowed = hasPermission(
 
                 userRole,
 
@@ -92,45 +63,33 @@ const checkPermission = (permission)=>{
             );
 
 
+            // ==========================================
+            // ACCESS DENIED
+            // ==========================================
 
-
-
-
-
-
-
-            if(!allowed){
-
+            if (!allowed) {
 
                 return res.status(403).json({
 
-                    success:false,
+                    success: false,
 
                     message:
-
-                    `Access denied. Missing permission: ${permission}`
+                        `Access denied. Missing permission: ${permission}`
 
                 });
-
 
             }
 
 
-
-
-
-
-
+            // ==========================================
+            // ALLOWED
+            // ==========================================
 
             next();
 
-
-
-
         }
 
-        catch(error){
-
+        catch (error) {
 
             console.error(
                 "Permission Middleware Error:",
@@ -138,31 +97,19 @@ const checkPermission = (permission)=>{
             );
 
 
+            return res.status(500).json({
 
-            res.status(500).json({
+                success: false,
 
-                success:false,
-
-                message:
-                "Permission check failed"
+                message: "Permission check failed"
 
             });
 
-
         }
 
-
     };
-
 
 };
 
 
-
-
-
-
-
-
-module.exports =
-checkPermission;
+module.exports = checkPermission;

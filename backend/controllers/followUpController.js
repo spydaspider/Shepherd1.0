@@ -1,514 +1,854 @@
 const FollowUp = require("../models/FollowUp");
 
-
-
+const Service = require("../models/Service");
 
 
 // =====================================================
-// Permission Filter
+// CHECK SERVICE ENDED
 // =====================================================
 
-const getFollowUpAccessQuery = (user)=>{
+const isServiceEnded = (service) => {
 
+    if (!service) {
 
-    if(
-        user.role === "Admin" ||
-        user.role === "Pastor"
-    ){
-
-        return {};
+        return false;
 
     }
 
 
-    return {
+    return (
 
-        assignedTo:user._id
+        service.closed === true ||
 
-    };
+        service.closedAt !== null
 
+    );
 
 };
 
 
+// =====================================================
+// GET ENDED SERVICE IDS
+// =====================================================
+
+const getEndedServiceIds = async () => {
+
+    const services = await Service.find({
+
+        $or: [
+
+            {
+                closed: true
+            },
+
+            {
+                closedAt: {
+                    $ne: null
+                }
+            }
+
+        ]
+
+    }).select("_id");
 
 
+    return services.map(
+        service => service._id
+    );
 
+};
 
 
 // =====================================================
 // GET ALL FOLLOW UPS
 // =====================================================
 
-const getFollowUps = async(req,res)=>{
+const getFollowUps = async (req, res) => {
+
+    try {
+
+        // ==============================================
+        // ONLY ENDED SERVICES
+        // ==============================================
+
+        const endedServiceIds =
+            await getEndedServiceIds();
 
 
-try{
+        // ==============================================
+        // GET FOLLOW UPS
+        // ==============================================
+
+        const followUps =
+            await FollowUp.find({
+
+                service: {
+                    $in: endedServiceIds
+                }
+
+            })
+
+            .populate(
+                "member",
+                "firstName lastName phone email gender"
+            )
+
+            .populate(
+                "assignedTo",
+                "firstName lastName role"
+            )
+
+            .populate(
+                "service",
+                "name serviceType serviceDate startTime endTime closed closedAt"
+            )
+
+            .populate(
+                "createdBy",
+                "firstName lastName role"
+            )
+
+            .populate(
+                "updatedBy",
+                "firstName lastName role"
+            )
+
+            .sort({
+                createdAt: -1
+            });
 
 
-const followUps =
-await FollowUp.find(
-    getFollowUpAccessQuery(req.user)
-)
+        // ==============================================
+        // RESPONSE
+        // ==============================================
 
-.populate(
-    "member",
-    "firstName lastName phone email gender"
-)
+        return res.json({
 
-.populate(
-    "assignedTo",
-    "firstName lastName role"
-)
+            success: true,
 
-.populate(
-    "service",
-    "name serviceDate"
-)
+            count: followUps.length,
 
-.sort({
-    createdAt:-1
-});
+            followUps
 
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Get Follow Ups Error:",
+            error
+        );
 
 
+        return res.status(500).json({
 
-res.json({
+            success: false,
 
-    success:true,
+            message: error.message
 
-    count:followUps.length,
+        });
 
-    followUps
-
-});
-
-
-}
-catch(error){
-
-res.status(500).json({
-
-    success:false,
-
-    message:error.message
-
-});
-
-}
-
+    }
 
 };
-
-
-
-
-
-
 
 
 // =====================================================
 // GET SINGLE FOLLOW UP
 // =====================================================
 
-const getFollowUp = async(req,res)=>{
+const getFollowUp = async (req, res) => {
+
+    try {
+
+        const followUp =
+            await FollowUp.findById(
+                req.params.id
+            )
+
+            .populate(
+                "member"
+            )
+
+            .populate(
+                "assignedTo",
+                "firstName lastName role"
+            )
+
+            .populate(
+                "service"
+            )
+
+            .populate(
+                "createdBy",
+                "firstName lastName role"
+            )
+
+            .populate(
+                "updatedBy",
+                "firstName lastName role"
+            );
 
 
-try{
+        // ==============================================
+        // NOT FOUND
+        // ==============================================
+
+        if (!followUp) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Follow up not found"
+
+            });
+
+        }
 
 
-const followUp =
-await FollowUp.findById(
-    req.params.id
-)
+        // ==============================================
+        // SERVICE MUST BE ENDED
+        // ==============================================
 
-.populate("member")
+        if (
+            !isServiceEnded(
+                followUp.service
+            )
+        ) {
 
-.populate(
-    "assignedTo",
-    "firstName lastName role"
-)
+            return res.status(403).json({
 
-.populate("service")
+                success: false,
 
-.populate(
-    "createdBy",
-    "firstName lastName"
-);
+                message:
+                    "Follow ups are only available after the service has ended."
 
+            });
 
-
-
-
-if(!followUp){
-
-return res.status(404).json({
-
-success:false,
-
-message:"Follow up not found"
-
-});
-
-}
+        }
 
 
+        // ==============================================
+        // RESPONSE
+        // ==============================================
 
-res.json({
+        return res.json({
 
-success:true,
+            success: true,
 
-followUp
+            followUp
 
-});
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Get Follow Up Error:",
+            error
+        );
 
 
-}
-catch(error){
+        return res.status(500).json({
 
-res.status(500).json({
+            success: false,
 
-success:false,
+            message: error.message
 
-message:error.message
+        });
 
-});
-
-}
-
+    }
 
 };
-
-
-
-
-
-
-
 
 
 // =====================================================
 // CREATE FOLLOW UP
 // =====================================================
 
-const createFollowUp = async(req,res)=>{
+const createFollowUp = async (req, res) => {
+
+    try {
+
+        const {
+
+            member,
+
+            assignedTo,
+
+            service,
+
+            type,
+
+            notes,
+
+            followUpDate,
+
+            priority
+
+        } = req.body;
 
 
-try{
+        // ==============================================
+        // REQUIRED SERVICE
+        // ==============================================
+
+        if (!service) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Service is required"
+
+            });
+
+        }
 
 
-const {
+        // ==============================================
+        // FIND SERVICE
+        // ==============================================
 
-member,
-
-assignedTo,
-
-service,
-
-type,
-
-notes,
-
-followUpDate,
-
-priority
+        const serviceRecord =
+            await Service.findById(
+                service
+            );
 
 
-}=req.body;
+        if (!serviceRecord) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Service not found"
+
+            });
+
+        }
 
 
+        // ==============================================
+        // SERVICE MUST BE ENDED
+        // ==============================================
+
+        if (
+            !isServiceEnded(
+                serviceRecord
+            )
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "Follow ups cannot be created until the service has ended."
+
+            });
+
+        }
 
 
+        // ==============================================
+        // CREATE FOLLOW UP
+        // ==============================================
 
-const followUp =
-await FollowUp.create({
+        const followUp =
+            await FollowUp.create({
 
-member,
+                member,
 
-assignedTo,
+                assignedTo,
 
-service,
+                service,
 
-type,
+                type,
 
-notes,
+                notes,
 
-followUpDate,
+                followUpDate,
 
-priority,
+                priority,
 
-createdBy:req.user._id,
+                createdBy:
+                    req.user._id,
 
-status:"Pending"
+                status: "Pending"
 
-});
-
-
-
-
-
-res.status(201).json({
-
-success:true,
-
-message:"Follow up created successfully",
-
-followUp
-
-});
+            });
 
 
-}
-catch(error){
+        // ==============================================
+        // POPULATE RESPONSE
+        // ==============================================
 
-res.status(500).json({
+        const populatedFollowUp =
+            await FollowUp.findById(
+                followUp._id
+            )
 
-success:false,
+            .populate(
+                "member",
+                "firstName lastName phone email gender"
+            )
 
-message:error.message
+            .populate(
+                "assignedTo",
+                "firstName lastName role"
+            )
 
-});
+            .populate(
+                "service",
+                "name serviceType serviceDate startTime endTime closed closedAt"
+            )
 
-}
+            .populate(
+                "createdBy",
+                "firstName lastName role"
+            );
 
+
+        // ==============================================
+        // RESPONSE
+        // ==============================================
+
+        return res.status(201).json({
+
+            success: true,
+
+            message:
+                "Follow up created successfully",
+
+            followUp:
+                populatedFollowUp
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Create Follow Up Error:",
+            error
+        );
+
+
+        // ==============================================
+        // DUPLICATE FOLLOW UP
+        // ==============================================
+
+        if (
+            error.code === 11000
+        ) {
+
+            return res.status(409).json({
+
+                success: false,
+
+                message:
+                    "A follow up already exists for this member and service."
+
+            });
+
+        }
+
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
 
 };
-
-
-
-
-
-
-
 
 
 // =====================================================
 // UPDATE FOLLOW UP
 // =====================================================
 
-const updateFollowUp = async(req,res)=>{
+const updateFollowUp = async (req, res) => {
+
+    try {
+
+        const followUp =
+            await FollowUp.findById(
+                req.params.id
+            );
 
 
-try{
+        // ==============================================
+        // NOT FOUND
+        // ==============================================
+
+        if (!followUp) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Follow up not found"
+
+            });
+
+        }
 
 
-const followUp =
-await FollowUp.findById(
-    req.params.id
-);
+        // ==============================================
+        // CHECK SERVICE
+        // ==============================================
+
+        const service =
+            await Service.findById(
+                followUp.service
+            );
 
 
+        if (!service) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Associated service not found"
+
+            });
+
+        }
 
 
+        // ==============================================
+        // SERVICE MUST BE ENDED
+        // ==============================================
 
-if(!followUp){
+        if (
+            !isServiceEnded(
+                service
+            )
+        ) {
 
-return res.status(404).json({
+            return res.status(403).json({
 
-success:false,
+                success: false,
 
-message:"Follow up not found"
+                message:
+                    "Follow ups cannot be updated until the service has ended."
 
-});
+            });
 
-}
-
-
-
-
-Object.keys(req.body).forEach(key=>{
-
-    followUp[key] = req.body[key];
-
-});
-
+        }
 
 
+        // ==============================================
+        // ALLOWED FIELDS
+        // ==============================================
+
+        const allowedFields = [
+
+            "assignedTo",
+
+            "type",
+
+            "status",
+
+            "priority",
+
+            "followUpDate",
+
+            "outcome",
+
+            "notes"
+
+        ];
 
 
-if(
-req.body.status === "Contacted"
-&&
-!followUp.contactedDate
-){
+        allowedFields.forEach(
+            field => {
 
-followUp.contactedDate =
-new Date();
+                if (
+                    req.body[field] !== undefined
+                ) {
 
-}
+                    followUp[field] =
+                        req.body[field];
 
+                }
 
-
-
-if(
-req.body.status === "Completed"
-){
-
-followUp.completedDate =
-new Date();
-
-}
+            }
+        );
 
 
+        // ==============================================
+        // CONTACTED DATE
+        // ==============================================
+
+        if (
+
+            req.body.status === "Contacted" &&
+
+            !followUp.contactedDate
+
+        ) {
+
+            followUp.contactedDate =
+                new Date();
+
+        }
 
 
+        // ==============================================
+        // COMPLETED DATE
+        // ==============================================
 
-followUp.updatedBy =
-req.user._id;
+        if (
+            req.body.status === "Completed"
+        ) {
 
+            if (
+                !followUp.completedDate
+            ) {
 
+                followUp.completedDate =
+                    new Date();
 
+            }
 
-await followUp.save();
-
-
-
-
-
-res.json({
-
-success:true,
-
-message:"Follow up updated successfully",
-
-followUp
-
-});
+        }
 
 
-}
-catch(error){
+        // ==============================================
+        // UPDATED BY
+        // ==============================================
 
-res.status(500).json({
+        followUp.updatedBy =
+            req.user._id;
 
-success:false,
 
-message:error.message
+        // ==============================================
+        // SAVE
+        // ==============================================
 
-});
+        await followUp.save();
 
-}
 
+        // ==============================================
+        // POPULATE
+        // ==============================================
+
+        const populatedFollowUp =
+            await FollowUp.findById(
+                followUp._id
+            )
+
+            .populate(
+                "member",
+                "firstName lastName phone email gender"
+            )
+
+            .populate(
+                "assignedTo",
+                "firstName lastName role"
+            )
+
+            .populate(
+                "service",
+                "name serviceType serviceDate startTime endTime closed closedAt"
+            )
+
+            .populate(
+                "createdBy",
+                "firstName lastName role"
+            )
+
+            .populate(
+                "updatedBy",
+                "firstName lastName role"
+            );
+
+
+        // ==============================================
+        // RESPONSE
+        // ==============================================
+
+        return res.json({
+
+            success: true,
+
+            message:
+                "Follow up updated successfully",
+
+            followUp:
+                populatedFollowUp
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Update Follow Up Error:",
+            error
+        );
+
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
 
 };
-
-
-
-
-
-
-
 
 
 // =====================================================
 // FOLLOW UP STATS
 // =====================================================
 
-const getFollowUpStats = async(req,res)=>{
+const getFollowUpStats = async (req, res) => {
+
+    try {
+
+        // ==============================================
+        // ENDED SERVICES
+        // ==============================================
+
+        const endedServiceIds =
+            await getEndedServiceIds();
 
 
-try{
+        // ==============================================
+        // BASE QUERY
+        // ==============================================
+
+        const baseQuery = {
+
+            service: {
+                $in: endedServiceIds
+            }
+
+        };
 
 
-const query =
-getFollowUpAccessQuery(req.user);
+        // ==============================================
+        // PENDING
+        // ==============================================
+
+        const pending =
+            await FollowUp.countDocuments({
+
+                ...baseQuery,
+
+                status: "Pending"
+
+            });
 
 
+        // ==============================================
+        // COMPLETED
+        // ==============================================
+
+        const completed =
+            await FollowUp.countDocuments({
+
+                ...baseQuery,
+
+                status: "Completed"
+
+            });
 
 
-const pending =
-await FollowUp.countDocuments({
+        // ==============================================
+        // OVERDUE
+        // ==============================================
 
-...query,
+        const overdue =
+            await FollowUp.countDocuments({
 
-status:"Pending"
+                ...baseQuery,
 
-});
+                status: "Pending",
 
+                followUpDate: {
 
+                    $lt: new Date()
 
+                }
 
-
-const completed =
-await FollowUp.countDocuments({
-
-...query,
-
-status:"Completed"
-
-});
+            });
 
 
+        // ==============================================
+        // RESPONSE
+        // ==============================================
+
+        return res.json({
+
+            success: true,
+
+            stats: {
+
+                pending,
+
+                completed,
+
+                overdue
+
+            }
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Follow Up Stats Error:",
+            error
+        );
 
 
+        return res.status(500).json({
 
-const overdue =
-await FollowUp.countDocuments({
+            success: false,
 
-...query,
+            message: error.message
 
-status:"Pending",
+        });
 
-followUpDate:{
-    $lt:new Date()
-}
-
-});
-
-
-
-
-
-res.json({
-
-success:true,
-
-stats:{
-
-pending,
-
-completed,
-
-overdue
-
-}
-
-});
-
-
-}
-catch(error){
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-}
-
+    }
 
 };
 
 
-
-
-
-
+// =====================================================
+// EXPORT
+// =====================================================
 
 module.exports = {
 
+    getFollowUps,
 
-getFollowUps,
+    getFollowUp,
 
-getFollowUp,
+    createFollowUp,
 
-createFollowUp,
+    updateFollowUp,
 
-updateFollowUp,
-
-getFollowUpStats
+    getFollowUpStats
 
 };

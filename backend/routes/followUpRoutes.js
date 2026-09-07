@@ -15,9 +15,7 @@ const {
 
     getFollowUpStats
 
-
 } = require("../controllers/followUpController");
-
 
 
 const {
@@ -25,112 +23,107 @@ const {
 } = require("../middleware/authMiddleware");
 
 
-
 const checkPermission =
-require("../middleware/permissionMiddleware");
+    require("../middleware/permissionMiddleware");
 
 
-
-
-
+// =====================================================
+// FOLLOW UP STATS
+// =====================================================
 
 router.get(
 
-"/stats",
+    "/stats",
 
-protect,
+    protect,
 
-checkPermission(
-"MANAGE_FOLLOWUPS"
-),
+    checkPermission(
+        "VIEW_FOLLOWUPS"
+    ),
 
-getFollowUpStats
+    getFollowUpStats
 
 );
 
 
-
-
-
-
+// =====================================================
+// GET ALL FOLLOW UPS
+// =====================================================
 
 router.get(
 
-"/",
+    "/",
 
-protect,
+    protect,
 
-checkPermission(
-"MANAGE_FOLLOWUPS"
-),
+    checkPermission(
+        "VIEW_FOLLOWUPS"
+    ),
 
-getFollowUps
+    getFollowUps
 
 );
 
 
-
-
-
-
+// =====================================================
+// GET SINGLE FOLLOW UP
+// =====================================================
 
 router.get(
 
-"/:id",
+    "/:id",
 
-protect,
+    protect,
 
-checkPermission(
-"MANAGE_FOLLOWUPS"
-),
+    checkPermission(
+        "VIEW_FOLLOWUPS"
+    ),
 
-getFollowUp
+    getFollowUp
 
 );
 
 
-
-
-
-
+// =====================================================
+// CREATE FOLLOW UP
+// =====================================================
 
 router.post(
 
-"/",
+    "/",
 
-protect,
+    protect,
 
-checkPermission(
-"MANAGE_FOLLOWUPS"
-),
+    checkPermission(
+        "MANAGE_FOLLOWUPS"
+    ),
 
-createFollowUp
+    createFollowUp
 
 );
 
 
-
-
-
-
+// =====================================================
+// UPDATE FOLLOW UP
+// =====================================================
 
 router.patch(
 
-"/:id",
+    "/:id",
 
-protect,
+    protect,
 
-checkPermission(
-"MANAGE_FOLLOWUPS"
-),
+    checkPermission(
+        "MANAGE_FOLLOWUPS"
+    ),
 
-updateFollowUp
+    updateFollowUp
 
 );
 
 
-
-
-
+// =====================================================
+// EXPORT
+// =====================================================
 
 module.exports = router;

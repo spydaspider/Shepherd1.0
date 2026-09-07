@@ -29,6 +29,7 @@ const permissions = {
         "VIEW_REPORTS",
 
         // Follow Ups
+        "VIEW_FOLLOWUPS",
         "MANAGE_FOLLOWUPS",
 
         // Management
@@ -66,6 +67,7 @@ const permissions = {
         "VIEW_REPORTS",
 
         // Follow Ups
+        "VIEW_FOLLOWUPS",
         "MANAGE_FOLLOWUPS",
 
         // Notifications
@@ -93,9 +95,11 @@ const permissions = {
 
         // Dashboard
         "VIEW_DASHBOARD",
+        "VIEW_REPORTS",
 
-        // Reports
-        "VIEW_REPORTS"
+        // Follow Ups
+        "VIEW_FOLLOWUPS",
+        "MANAGE_FOLLOWUPS"
 
     ],
 
@@ -119,11 +123,14 @@ const permissions = {
         // Attendance
         "MARK_ATTENDANCE",
         "VIEW_ATTENDANCE",
+        "VIEW_ATTENDANCE_REPORT",
 
         // Dashboard
         "VIEW_DASHBOARD",
+        "VIEW_REPORTS",
 
         // Follow Ups
+        "VIEW_FOLLOWUPS",
         "MANAGE_FOLLOWUPS"
 
     ],
@@ -169,9 +176,53 @@ const hasPermission = (
 
 ) => {
 
+    if (!role || !permission) {
+
+        return false;
+
+    }
+
+
+    // =================================================
+    // NORMALIZE ROLE
+    // =================================================
+
+    const normalizedRole = String(role)
+        .trim()
+        .toLowerCase();
+
+
+    // =================================================
+    // FIND ROLE
+    // =================================================
+
+    const actualRole = Object.keys(permissions)
+        .find(
+
+            key =>
+                key.toLowerCase() === normalizedRole
+
+        );
+
+
+    // =================================================
+    // ROLE NOT FOUND
+    // =================================================
+
+    if (!actualRole) {
+
+        return false;
+
+    }
+
+
+    // =================================================
+    // CHECK PERMISSION
+    // =================================================
+
     return (
 
-        permissions[role] || []
+        permissions[actualRole] || []
 
     ).includes(permission);
 
