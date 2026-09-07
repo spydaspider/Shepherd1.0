@@ -3,652 +3,804 @@ const User = require("../models/User");
 const generateToken = require("../utils/generateToken");
 
 
-
-
-
 // =====================================================
-// Register New User Account
+// REGISTER NEW USER ACCOUNT
 // POST /api/auth/register
+//
+// Email OR phone can be used.
+// Email is optional.
+// Phone is optional.
+// At least one must be provided for an account.
 // =====================================================
 
+const registerUser = async (req, res) => {
 
-const registerUser = async(req,res)=>{
+    try {
 
+        const {
+            firstName,
+            lastName,
+            email,
+            phone,
+            password,
+            gender,
+            dateOfBirth
+        } = req.body;
 
-try{
 
+        // =================================================
+        // CLEAN INPUT
+        // =================================================
 
-const {
+        const cleanFirstName =
+            firstName?.trim();
 
-firstName,
+        const cleanLastName =
+            lastName?.trim();
 
-lastName,
+        const cleanEmail =
+            email
+                ? email.trim().toLowerCase()
+                : undefined;
 
-email,
+        const cleanPhone =
+            phone
+                ? phone.trim()
+                : undefined;
 
-phone,
 
-password,
+        // =================================================
+        // REQUIRED FIELDS
+        // =================================================
 
-gender,
+        if (
+            !cleanFirstName ||
+            !cleanLastName ||
+            !password ||
+            !gender
+        ) {
 
-dateOfBirth
+            return res.status(400).json({
 
+                success: false,
 
-}=req.body;
+                message:
+                    "First name, last name, password and gender are required"
 
+            });
 
+        }
 
 
+        // =================================================
+        // EMAIL / PHONE REQUIREMENT
+        //
+        // A user with an account must have at least
+        // one login identifier.
+        // =================================================
 
+        if (
+            !cleanEmail &&
+            !cleanPhone
+        ) {
 
-// Check email
+            return res.status(400).json({
 
+                success: false,
 
-const emailExists =
-await User.findOne({
-email
-});
+                message:
+                    "Email or phone number is required"
 
+            });
 
+        }
 
-if(emailExists){
 
-return res.status(400).json({
+        // =================================================
+        // PASSWORD VALIDATION
+        // =================================================
 
-success:false,
+        if (password.length < 6) {
 
-message:"Email already exists"
+            return res.status(400).json({
 
-});
+                success: false,
 
-}
+                message:
+                    "Password must be at least 6 characters"
 
+            });
 
+        }
 
 
+        // =================================================
+        // CHECK EMAIL
+        // Only check if email was provided.
+        // =================================================
 
-// Check phone
+        if (cleanEmail) {
 
+            const emailExists =
+                await User.findOne({
+                    email: cleanEmail
+                });
 
-const phoneExists =
-await User.findOne({
-phone
-});
 
+            if (emailExists) {
 
+                return res.status(400).json({
 
-if(phoneExists){
+                    success: false,
 
-return res.status(400).json({
+                    message:
+                        "Email already exists"
 
-success:false,
+                });
 
-message:"Phone already exists"
+            }
 
-});
+        }
 
-}
 
+        // =================================================
+        // CHECK PHONE
+        // Only check if phone was provided.
+        // =================================================
 
+        if (cleanPhone) {
 
+            const phoneExists =
+                await User.findOne({
+                    phone: cleanPhone
+                });
 
 
+            if (phoneExists) {
 
+                return res.status(400).json({
 
-const user =
-await User.create({
+                    success: false,
 
+                    message:
+                        "Phone already exists"
 
-firstName,
+                });
 
-lastName,
+            }
 
-email,
+        }
 
-phone,
 
-password,
+        // =================================================
+        // CREATE USER
+        // =================================================
 
-gender,
+        const user =
+            await User.create({
 
-dateOfBirth,
+                firstName:
+                    cleanFirstName,
 
+                lastName:
+                    cleanLastName,
 
+                email:
+                    cleanEmail,
 
+                phone:
+                    cleanPhone,
 
-// Account
+                password,
 
-hasAccount:true,
+                gender,
 
-loginEnabled:true,
+                dateOfBirth:
+                    dateOfBirth || null,
 
-mustChangePassword:false,
 
-accountCreatedAt:new Date(),
+                // =========================================
+                // ACCOUNT
+                // =========================================
 
+                hasAccount: true,
 
+                loginEnabled: true,
 
+                mustChangePassword: false,
 
+                accountCreatedAt:
+                    new Date(),
 
-// Church defaults
 
-role:"Member",
+                // =========================================
+                // CHURCH DEFAULTS
+                // =========================================
 
-membershipType:"Member",
+                role: "Member",
 
-status:"Active",
+                membershipType: "Member",
 
-isActive:true,
+                status: "Active",
 
+                isActive: true,
 
-registrationSource:"Online"
+                registrationSource: "Online"
 
+            });
 
 
-});
+        // =================================================
+        // RESPONSE
+        // =================================================
 
+        return res.status(201).json({
 
+            success: true,
 
+            message:
+                "Account created successfully",
 
+            token:
+                generateToken(user),
 
+            user: {
 
+                id:
+                    user._id,
 
-res.status(201).json({
+                firstName:
+                    user.firstName,
 
+                lastName:
+                    user.lastName,
 
-success:true,
+                email:
+                    user.email || null,
 
+                phone:
+                    user.phone || null,
 
-message:
-"Account created successfully",
+                role:
+                    user.role,
 
+                mustChangePassword:
+                    user.mustChangePassword
 
+            }
 
-token:
-generateToken(user),
+        });
 
+    }
+    catch (error) {
 
+        console.error(
+            "REGISTER USER ERROR:",
+            error
+        );
 
 
-user:{
+        // =================================================
+        // DUPLICATE KEY ERROR
+        // =================================================
 
+        if (error.code === 11000) {
 
-id:user._id,
+            const duplicateField =
+                Object.keys(
+                    error.keyPattern || {}
+                )[0];
 
-firstName:user.firstName,
 
-lastName:user.lastName,
+            return res.status(400).json({
 
-email:user.email,
+                success: false,
 
-role:user.role,
+                message:
+                    `${duplicateField || "Email or phone"} already exists`
 
+            });
 
-mustChangePassword:
-user.mustChangePassword
+        }
 
 
-}
+        return res.status(500).json({
 
+            success: false,
 
+            message:
+                error.message
 
-});
+        });
 
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
-
+    }
 
 };
 
 
 
-
-
-
-
-
-
 // =====================================================
-// Create Login Account For Existing Member
-// Admin Only
+// CREATE LOGIN ACCOUNT FOR EXISTING MEMBER
 // POST /api/auth/create-account/:id
+//
+// Existing members may not have an email.
+// They can still receive an account using their phone.
 // =====================================================
-
 
 const createMemberAccount =
-async(req,res)=>{
+    async (req, res) => {
 
+        try {
 
-try{
+            const member =
+                await User.findById(
+                    req.params.id
+                );
 
 
-const member =
-await User.findById(
-req.params.id
-);
+            // =================================================
+            // MEMBER NOT FOUND
+            // =================================================
 
+            if (!member) {
 
+                return res.status(404).json({
 
+                    success: false,
 
-if(!member){
+                    message:
+                        "Member not found"
 
+                });
 
-return res.status(404).json({
+            }
 
-success:false,
 
-message:"Member not found"
+            // =================================================
+            // CHILDREN SHOULD NOT HAVE LOGIN ACCOUNTS
+            // =================================================
 
-});
+            if (member.isChild) {
 
+                return res.status(400).json({
 
-}
+                    success: false,
 
+                    message:
+                        "Children cannot have independent login accounts"
 
+                });
 
+            }
 
 
+            // =================================================
+            // ALREADY HAS ACCOUNT
+            // =================================================
 
+            if (member.hasAccount) {
 
-if(member.hasAccount){
+                return res.status(400).json({
 
+                    success: false,
 
-return res.status(400).json({
+                    message:
+                        "Member already has an account"
 
-success:false,
+                });
 
-message:"Member already has an account"
+            }
 
-});
 
+            // =================================================
+            // CHECK LOGIN IDENTIFIER
+            //
+            // Existing member should have either:
+            // email OR phone.
+            // =================================================
 
-}
+            if (
+                !member.email &&
+                !member.phone
+            ) {
 
+                return res.status(400).json({
 
+                    success: false,
 
+                    message:
+                        "Member must have an email or phone number before an account can be created"
 
+                });
 
+            }
 
 
-let generatedPassword =
-req.body.password;
+            // =================================================
+            // GET PASSWORD
+            // =================================================
 
+            let generatedPassword =
+                req.body.password;
 
 
+            // =================================================
+            // GENERATE TEMPORARY PASSWORD
+            // =================================================
 
+            if (!generatedPassword) {
 
+                generatedPassword =
 
-// Generate password
+                    Math.random()
+                        .toString(36)
+                        .slice(2, 8)
 
-if(!generatedPassword){
+                    +
 
+                    Math.floor(
+                        Math.random() * 100
+                    );
 
-generatedPassword =
+            }
 
-Math.random()
-.toString(36)
-.slice(2,8)
 
-+
+            // =================================================
+            // VALIDATE PASSWORD
+            // =================================================
 
-Math.floor(
-Math.random()*100
-);
+            if (
+                generatedPassword.length < 6
+            ) {
 
+                return res.status(400).json({
 
-}
+                    success: false,
 
+                    message:
+                        "Password must be at least 6 characters"
 
+                });
 
+            }
 
 
+            // =================================================
+            // CREATE ACCOUNT
+            // =================================================
 
+            member.password =
+                generatedPassword;
 
+            member.hasAccount =
+                true;
 
-member.password =
-generatedPassword;
+            member.loginEnabled =
+                true;
 
+            member.mustChangePassword =
+                true;
 
+            member.accountCreatedAt =
+                new Date();
 
-member.hasAccount =
-true;
+            member.accountCreatedBy =
+                req.user._id;
 
+            member.registrationSource =
+                "Admin";
 
+            member.isVerified =
+                false;
 
-member.loginEnabled =
-true;
+            member.phoneVerified =
+                false;
 
 
+            await member.save();
 
-member.mustChangePassword =
-true;
 
+            // =================================================
+            // RESPONSE
+            // =================================================
 
+            return res.status(200).json({
 
-member.accountCreatedAt =
-new Date();
+                success: true,
 
+                message:
+                    "Login account created successfully",
 
+                temporaryPassword:
+                    generatedPassword,
 
-member.accountCreatedBy =
-req.user._id;
+                member: {
 
+                    id:
+                        member._id,
 
+                    name:
+                        `${member.firstName} ${member.lastName}`,
 
-member.registrationSource =
-"Admin";
+                    email:
+                        member.email || null,
 
+                    phone:
+                        member.phone || null,
 
+                    loginEnabled:
+                        member.loginEnabled,
 
-member.isVerified =
-false;
+                    mustChangePassword:
+                        member.mustChangePassword
 
+                }
 
+            });
 
-member.phoneVerified =
-false;
+        }
+        catch (error) {
 
+            console.error(
+                "CREATE MEMBER ACCOUNT ERROR:",
+                error
+            );
 
 
-await member.save();
+            return res.status(500).json({
 
+                success: false,
 
+                message:
+                    error.message
 
+            });
 
+        }
 
-
-
-res.status(200).json({
-
-
-success:true,
-
-
-message:
-"Login account created successfully",
-
-
-
-
-temporaryPassword:
-generatedPassword,
-
-
-
-
-member:{
-
-
-id:member._id,
-
-
-name:
-`${member.firstName} ${member.lastName}`,
-
-
-email:member.email,
-
-
-loginEnabled:
-member.loginEnabled
-
-
-}
-
-
-
-});
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
-
-
-};
-
-
-
-
-
-
+    };
 
 
 
 // =====================================================
-// Login
+// LOGIN
 // POST /api/auth/login
+//
+// The identifier can be:
+// - Email
+// - Phone number
+//
+// Example:
+//
+// {
+//     "identifier": "john@gmail.com",
+//     "password": "123456"
+// }
+//
+// OR:
+//
+// {
+//     "identifier": "0241234567",
+//     "password": "123456"
+// }
 // =====================================================
-
 
 const loginUser =
-async(req,res)=>{
+    async (req, res) => {
 
+        try {
 
-try{
+            const {
+                identifier,
+                password
+            } = req.body;
 
 
-const {
+            // =================================================
+            // VALIDATION
+            // =================================================
 
-email,
+            if (
+                !identifier ||
+                !password
+            ) {
 
-password
+                return res.status(400).json({
 
+                    success: false,
 
-}=req.body;
+                    message:
+                        "Email or phone number and password are required"
 
+                });
 
+            }
 
 
+            // =================================================
+            // CLEAN IDENTIFIER
+            // =================================================
 
+            const cleanIdentifier =
+                identifier.trim();
 
 
-const user =
-await User.findOne({
+            // =================================================
+            // DETERMINE EMAIL OR PHONE
+            // =================================================
 
-email,
+            const isEmail =
+                cleanIdentifier.includes("@");
 
-hasAccount:true,
 
-loginEnabled:true
+            // =================================================
+            // FIND USER
+            // =================================================
 
+            let user;
 
-})
-.select("+password");
 
+            if (isEmail) {
 
+                user =
+                    await User.findOne({
 
+                        email:
+                            cleanIdentifier.toLowerCase(),
 
+                        hasAccount: true,
 
+                        loginEnabled: true
 
+                    })
+                        .select("+password");
 
+            }
+            else {
 
-if(!user){
+                user =
+                    await User.findOne({
 
+                        phone:
+                            cleanIdentifier,
 
-return res.status(401).json({
+                        hasAccount: true,
 
-success:false,
+                        loginEnabled: true
 
-message:
-"Invalid email or password"
+                    })
+                        .select("+password");
 
-});
+            }
 
 
-}
+            // =================================================
+            // USER NOT FOUND
+            // =================================================
 
+            if (!user) {
 
+                return res.status(401).json({
 
+                    success: false,
 
+                    message:
+                        "Invalid email/phone or password"
 
+                });
 
+            }
 
 
-const match =
-await user.matchPassword(
-password
-);
+            // =================================================
+            // CHECK PASSWORD
+            // =================================================
 
+            const match =
+                await user.matchPassword(
+                    password
+                );
 
 
+            if (!match) {
 
+                return res.status(401).json({
 
+                    success: false,
 
+                    message:
+                        "Invalid email/phone or password"
 
-if(!match){
+                });
 
+            }
 
-return res.status(401).json({
 
-success:false,
+            // =================================================
+            // UPDATE LAST LOGIN
+            // =================================================
 
-message:
-"Invalid email or password"
+            user.lastLogin =
+                new Date();
 
-});
+            await user.save();
 
 
-}
+            // =================================================
+            // RETURN LOGIN RESPONSE
+            // =================================================
 
+            return res.json({
 
+                success: true,
 
+                message:
+                    "Login successful",
 
+                token:
+                    generateToken(user),
 
+                user: {
 
+                    id:
+                        user._id,
 
-user.lastLogin =
-new Date();
+                    firstName:
+                        user.firstName,
 
+                    lastName:
+                        user.lastName,
 
+                    email:
+                        user.email || null,
 
-await user.save();
+                    phone:
+                        user.phone || null,
 
+                    role:
+                        user.role,
 
+                    mustChangePassword:
+                        user.mustChangePassword
 
+                }
 
+            });
 
+        }
+        catch (error) {
 
+            console.error(
+                "LOGIN ERROR:",
+                error
+            );
 
 
-res.json({
+            return res.status(500).json({
 
+                success: false,
 
-success:true,
+                message:
+                    error.message
 
+            });
 
+        }
 
-message:
-"Login successful",
+    };
 
 
 
-token:
-generateToken(user),
-
-
-
-
-user:{
-
-
-
-id:user._id,
-
-
-firstName:user.firstName,
-
-
-lastName:user.lastName,
-
-
-email:user.email,
-
-
-role:user.role,
-
-
-
-mustChangePassword:
-user.mustChangePassword
-
-
-
-}
-
-
-
-});
-
-
-
-
-
-}
-catch(error){
-
-
-res.status(500).json({
-
-success:false,
-
-message:error.message
-
-});
-
-
-}
-
-
-
-};
-
-
-
-
-
-
-
+// =====================================================
+// EXPORTS
+// =====================================================
 
 module.exports = {
 
+    registerUser,
 
-registerUser,
+    loginUser,
 
-
-loginUser,
-
-
-createMemberAccount
-
+    createMemberAccount
 
 };
