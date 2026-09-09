@@ -43,7 +43,7 @@ export default function LoginScreen() {
     // Form State
     // =================================================
 
-    const [email, setEmail] = useState("");
+    const [identifier, setIdentifier] = useState("");
 
     const [password, setPassword] = useState("");
 
@@ -63,13 +63,13 @@ export default function LoginScreen() {
 
 
         // ---------------------------------------------
-        // Validate Email
+        // Validate Email or Phone
         // ---------------------------------------------
 
-        if (!email.trim()) {
+        if (!identifier.trim()) {
 
             setError(
-                "Please enter your email address."
+                "Please enter your email address or phone number."
             );
 
             return;
@@ -104,11 +104,7 @@ export default function LoginScreen() {
             const response = await api.post(
                 "/auth/login",
                 {
-                    email:
-                        email
-                            .trim()
-                            .toLowerCase(),
-
+                    identifier: identifier.trim(),
                     password,
                 }
             );
@@ -240,6 +236,21 @@ export default function LoginScreen() {
 
 
     // =================================================
+    // Go To Registration
+    // =================================================
+
+    const handleRegister = () => {
+
+        if (loading) {
+            return;
+        }
+
+        router.push("/register");
+
+    };
+
+
+    // =================================================
     // Render
     // =================================================
 
@@ -270,20 +281,20 @@ export default function LoginScreen() {
 
             <View style={styles.form}>
 
-                {/* Email */}
+                {/* Email or Phone */}
 
                 <Text style={styles.label}>
-                    Email Address
+                    Email or Phone Number
                 </Text>
 
 
                 <TextInput
                     style={styles.input}
-                    placeholder="Enter your email"
-                    value={email}
+                    placeholder="Enter your email or phone number"
+                    value={identifier}
                     onChangeText={(value) => {
 
-                        setEmail(value);
+                        setIdentifier(value);
 
                         if (error) {
                             setError("");
@@ -319,6 +330,7 @@ export default function LoginScreen() {
                     }}
                     secureTextEntry
                     autoCapitalize="none"
+                    autoCorrect={false}
                     editable={!loading}
                 />
 
@@ -373,6 +385,27 @@ export default function LoginScreen() {
                     )}
 
                 </TouchableOpacity>
+
+
+                {/* =====================================
+                    Registration Link
+                ====================================== */}
+
+                <TouchableOpacity
+                    style={styles.registerLink}
+                    onPress={handleRegister}
+                    disabled={loading}
+                >
+
+                    <Text style={styles.registerLinkText}>
+                        Don't have an account?{" "}
+                        <Text style={styles.registerLinkBold}>
+                            Create an account
+                        </Text>
+                    </Text>
+
+                </TouchableOpacity>
+
 
             </View>
 
@@ -538,7 +571,7 @@ const styles = StyleSheet.create({
 
 
     // =================================================
-    // Button
+    // Login Button
     // =================================================
 
     button: {
@@ -568,6 +601,41 @@ const styles = StyleSheet.create({
         color: "#fff",
 
         fontSize: 16,
+
+        fontWeight: "700",
+
+    },
+
+
+    // =================================================
+    // Registration Link
+    // =================================================
+
+    registerLink: {
+
+        alignItems: "center",
+
+        marginTop: 20,
+
+        paddingVertical: 10,
+
+    },
+
+
+    registerLinkText: {
+
+        fontSize: 14,
+
+        color: "#666",
+
+        textAlign: "center",
+
+    },
+
+
+    registerLinkBold: {
+
+        color: "#0f2a5f",
 
         fontWeight: "700",
 

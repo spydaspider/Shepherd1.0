@@ -244,45 +244,69 @@ function AppLayout() {
     }, [dispatch]);
 
 
-    // =====================================================
-    // AUTHENTICATION NAVIGATION
-    // =====================================================
 
-    useEffect(() => {
-        if (!authChecked) {
+  // =====================================================
+// AUTHENTICATION NAVIGATION
+// =====================================================
+
+useEffect(() => {
+    if (!authChecked) {
+        return;
+    }
+
+
+    // =================================================
+    // PUBLIC ROUTES
+    // =================================================
+
+    const publicRoutes = [
+        "/login",
+        "/register",
+    ];
+
+
+    // =================================================
+    // USER IS NOT LOGGED IN
+    // =================================================
+
+    if (!isAuthenticated) {
+
+        // Allow login and registration screens
+        if (publicRoutes.includes(pathname)) {
             return;
         }
 
-        // User is NOT logged in
-        if (!isAuthenticated) {
-            if (pathname !== "/login") {
-                console.log("USER NOT AUTHENTICATED");
-                console.log("REDIRECTING TO LOGIN...");
+        console.log("USER NOT AUTHENTICATED");
+        console.log("REDIRECTING TO LOGIN...");
 
-                router.replace("/login");
-            }
+        router.replace("/login");
 
-            return;
-        }
+        return;
+    }
 
-        // User is already logged in
-        if (
-            isAuthenticated &&
-            pathname === "/login"
-        ) {
-            console.log("USER IS ALREADY AUTHENTICATED");
-            console.log("REDIRECTING TO HOME...");
 
-            router.replace("/");
-        }
+    // =================================================
+    // USER IS ALREADY LOGGED IN
+    // =================================================
 
-    }, [
-        authChecked,
-        isAuthenticated,
-        pathname,
-        router,
-    ]);
+    if (
+        isAuthenticated &&
+        publicRoutes.includes(pathname)
+    ) {
 
+        console.log("USER IS ALREADY AUTHENTICATED");
+        console.log("REDIRECTING TO HOME...");
+
+        router.replace("/");
+
+    }
+
+}, [
+    authChecked,
+    isAuthenticated,
+    pathname,
+    router,
+]);
 
     // =====================================================
     // NOTIFICATION COUNT
