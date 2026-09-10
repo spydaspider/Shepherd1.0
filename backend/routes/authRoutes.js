@@ -3,31 +3,21 @@ const express = require("express");
 const router = express.Router();
 
 
-
 const {
-
-registerUser,
-
-loginUser,
-
-createMemberAccount
-
-
+    registerUser,
+    loginUser,
+    createMemberAccount,
+    changePassword
 } = require("../controllers/authController");
 
 
-
 const {
-protect
+    protect
 } = require("../middleware/authMiddleware");
 
 
-
 const checkPermission =
-require("../middleware/permissionMiddleware");
-
-
-
+    require("../middleware/permissionMiddleware");
 
 
 // =====================================
@@ -36,17 +26,9 @@ require("../middleware/permissionMiddleware");
 // =====================================
 
 router.post(
-
-"/register",
-
-registerUser
-
+    "/register",
+    registerUser
 );
-
-
-
-
-
 
 
 // =====================================
@@ -55,19 +37,25 @@ registerUser
 // =====================================
 
 router.post(
-
-"/login",
-
-loginUser
-
+    "/login",
+    loginUser
 );
 
 
+// =====================================
+// Change Password
+// PATCH /api/auth/change-password
+// =====================================
+//
+// User must be logged in.
+//
+// =====================================
 
-
-
-
-
+router.patch(
+    "/change-password",
+    protect,
+    changePassword
+);
 
 
 // =====================================
@@ -76,23 +64,11 @@ loginUser
 // =====================================
 
 router.post(
-
-"/create-account/:id",
-
-protect,
-
-checkPermission(
-"CREATE_ACCOUNT"
-),
-
-createMemberAccount
-
+    "/create-account/:id",
+    protect,
+    checkPermission("CREATE_ACCOUNT"),
+    createMemberAccount
 );
-
-
-
-
-
 
 
 module.exports = router;
