@@ -58,12 +58,11 @@ export default function LoginScreen() {
 
     const handleLogin = async () => {
 
-        // Clear previous error
         setError("");
 
 
         // ---------------------------------------------
-        // Validate Email or Phone
+        // Validate Identifier
         // ---------------------------------------------
 
         if (!identifier.trim()) {
@@ -111,17 +110,18 @@ export default function LoginScreen() {
 
 
             // -----------------------------------------
-            // Get Response
+            // Get Login Response
             // -----------------------------------------
 
-            const {
-                token,
-                user,
-            } = response.data;
+            const data = response.data;
+
+            const token = data?.token;
+
+            const user = data?.user;
 
 
             // -----------------------------------------
-            // Validate Response
+            // Check Response
             // -----------------------------------------
 
             if (!token || !user) {
@@ -133,6 +133,40 @@ export default function LoginScreen() {
                 return;
 
             }
+
+
+            // -----------------------------------------
+            // Check Password Change Requirement
+            //
+            // Some backend responses may return:
+            //
+            // mustChangePassword: true
+            //
+            // while others may place it inside:
+            //
+            // user.mustChangePassword
+            //
+            // We support both.
+            // -----------------------------------------
+
+            const mustChangePassword =
+                data?.mustChangePassword === true ||
+                user?.mustChangePassword === true;
+
+
+            console.log(
+                "LOGIN SUCCESS"
+            );
+
+            console.log(
+                "USER:",
+                user
+            );
+
+            console.log(
+                "MUST CHANGE PASSWORD:",
+                mustChangePassword
+            );
 
 
             // -----------------------------------------
@@ -168,7 +202,26 @@ export default function LoginScreen() {
 
 
             // -----------------------------------------
-            // Go To Home
+            // FIRST LOGIN
+            // -----------------------------------------
+
+            if (mustChangePassword) {
+
+                console.log(
+                    "PASSWORD CHANGE REQUIRED"
+                );
+
+                router.replace(
+                    "/change-password"
+                );
+
+                return;
+
+            }
+
+
+            // -----------------------------------------
+            // NORMAL LOGIN
             // -----------------------------------------
 
             router.replace("/");
@@ -258,10 +311,6 @@ export default function LoginScreen() {
 
         <View style={styles.container}>
 
-            {/* =========================================
-                Header
-            ========================================== */}
-
             <View style={styles.header}>
 
                 <Text style={styles.logo}>
@@ -275,18 +324,11 @@ export default function LoginScreen() {
             </View>
 
 
-            {/* =========================================
-                Form
-            ========================================== */}
-
             <View style={styles.form}>
-
-                {/* Email or Phone */}
 
                 <Text style={styles.label}>
                     Email or Phone Number
                 </Text>
-
 
                 <TextInput
                     style={styles.input}
@@ -308,12 +350,9 @@ export default function LoginScreen() {
                 />
 
 
-                {/* Password */}
-
                 <Text style={styles.label}>
                     Password
                 </Text>
-
 
                 <TextInput
                     style={styles.input}
@@ -335,10 +374,6 @@ export default function LoginScreen() {
                 />
 
 
-                {/* =====================================
-                    Error Message
-                ====================================== */}
-
                 {error ? (
 
                     <View style={styles.errorContainer}>
@@ -355,10 +390,6 @@ export default function LoginScreen() {
 
                 ) : null}
 
-
-                {/* =====================================
-                    Login Button
-                ====================================== */}
 
                 <TouchableOpacity
                     style={[
@@ -387,10 +418,6 @@ export default function LoginScreen() {
                 </TouchableOpacity>
 
 
-                {/* =====================================
-                    Registration Link
-                ====================================== */}
-
                 <TouchableOpacity
                     style={styles.registerLink}
                     onPress={handleRegister}
@@ -405,7 +432,6 @@ export default function LoginScreen() {
                     </Text>
 
                 </TouchableOpacity>
-
 
             </View>
 
@@ -434,7 +460,6 @@ const styles = StyleSheet.create({
 
     },
 
-
     header: {
 
         alignItems: "center",
@@ -442,7 +467,6 @@ const styles = StyleSheet.create({
         marginBottom: 40,
 
     },
-
 
     logo: {
 
@@ -454,7 +478,6 @@ const styles = StyleSheet.create({
 
     },
 
-
     subtitle: {
 
         marginTop: 5,
@@ -465,13 +488,11 @@ const styles = StyleSheet.create({
 
     },
 
-
     form: {
 
         width: "100%",
 
     },
-
 
     label: {
 
@@ -486,7 +507,6 @@ const styles = StyleSheet.create({
         marginTop: 15,
 
     },
-
 
     input: {
 
@@ -505,11 +525,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
 
     },
-
-
-    // =================================================
-    // Error
-    // =================================================
 
     errorContainer: {
 
@@ -533,7 +548,6 @@ const styles = StyleSheet.create({
 
     },
 
-
     errorIcon: {
 
         width: 22,
@@ -556,7 +570,6 @@ const styles = StyleSheet.create({
 
     },
 
-
     errorText: {
 
         flex: 1,
@@ -568,11 +581,6 @@ const styles = StyleSheet.create({
         lineHeight: 20,
 
     },
-
-
-    // =================================================
-    // Login Button
-    // =================================================
 
     button: {
 
@@ -588,13 +596,11 @@ const styles = StyleSheet.create({
 
     },
 
-
     buttonDisabled: {
 
         opacity: 0.7,
 
     },
-
 
     buttonText: {
 
@@ -606,11 +612,6 @@ const styles = StyleSheet.create({
 
     },
 
-
-    // =================================================
-    // Registration Link
-    // =================================================
-
     registerLink: {
 
         alignItems: "center",
@@ -621,7 +622,6 @@ const styles = StyleSheet.create({
 
     },
 
-
     registerLinkText: {
 
         fontSize: 14,
@@ -631,7 +631,6 @@ const styles = StyleSheet.create({
         textAlign: "center",
 
     },
-
 
     registerLinkBold: {
 

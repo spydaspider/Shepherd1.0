@@ -41,56 +41,83 @@ import api from "../api/axios";
 
 
 function CustomTabBar() {
+
     const router = useRouter();
+
     const pathname = usePathname();
 
     const unreadCount = useSelector(
         (state) => state.notifications.unreadCount
     );
 
+
     const tabs = [
+
         {
             route: "/",
             label: "Home",
             icon: "home-outline",
             activeIcon: "home",
         },
+
         {
             route: "/attendance",
             label: "Attendance",
             icon: "calendar-outline",
             activeIcon: "calendar",
         },
+
         {
             route: "/notifications",
             label: "Notifications",
             icon: "notifications-outline",
             activeIcon: "notifications",
         },
+
         {
             route: "/profile",
             label: "Profile",
             icon: "person-outline",
             activeIcon: "person",
         },
+
     ];
 
+
     return (
+
         <View style={styles.tabBar}>
+
             {tabs.map((tab) => {
-                const isActive = pathname === tab.route;
+
+                const isActive =
+                    pathname === tab.route;
+
 
                 return (
+
                     <Pressable
                         key={tab.route}
                         style={styles.tabButton}
                         onPress={() => {
+
                             if (!isActive) {
-                                router.replace(tab.route);
+
+                                router.replace(
+                                    tab.route
+                                );
+
                             }
+
                         }}
                     >
-                        <View style={styles.tabIconContainer}>
+
+                        <View
+                            style={
+                                styles.tabIconContainer
+                            }
+                        >
+
                             <Ionicons
                                 name={
                                     isActive
@@ -105,54 +132,82 @@ function CustomTabBar() {
                                 }
                             />
 
-                            {tab.route === "/notifications" &&
+
+                            {tab.route ===
+                                "/notifications" &&
                                 unreadCount > 0 && (
+
                                     <View
                                         style={
                                             styles.notificationBadge
                                         }
                                     >
+
                                         <Text
                                             style={
                                                 styles.notificationBadgeText
                                             }
                                         >
+
                                             {unreadCount > 99
                                                 ? "99+"
                                                 : unreadCount}
+
                                         </Text>
+
                                     </View>
+
                                 )}
+
                         </View>
+
 
                         <Text
                             style={[
                                 styles.tabLabel,
                                 isActive &&
-                                    styles.activeTabLabel,
+                                styles.activeTabLabel,
                             ]}
                         >
+
                             {tab.label}
+
                         </Text>
+
                     </Pressable>
+
                 );
+
             })}
+
         </View>
+
     );
+
 }
 
 
 function AppLayout() {
+
     const dispatch = useDispatch();
+
     const router = useRouter();
+
     const pathname = usePathname();
+
 
     const authChecked = useSelector(
         (state) => state.auth.authChecked
     );
 
+
     const isAuthenticated = useSelector(
         (state) => state.auth.isAuthenticated
+    );
+
+
+    const user = useSelector(
+        (state) => state.auth.user
     );
 
 
@@ -161,178 +216,337 @@ function AppLayout() {
     // =====================================================
 
     useEffect(() => {
+
         let mounted = true;
 
+
         const restoreSavedSession = async () => {
-            console.log("CHECKING SAVED AUTH SESSION...");
+
+            console.log(
+                "CHECKING SAVED AUTH SESSION..."
+            );
+
 
             try {
+
                 const token =
-                    await AsyncStorage.getItem("token");
+                    await AsyncStorage.getItem(
+                        "token"
+                    );
+
 
                 const userString =
-                    await AsyncStorage.getItem("user");
+                    await AsyncStorage.getItem(
+                        "user"
+                    );
+
 
                 console.log(
                     "TOKEN:",
-                    token ? "FOUND" : "NOT FOUND"
+                    token
+                        ? "FOUND"
+                        : "NOT FOUND"
                 );
 
+
                 if (!token) {
-                    console.log("NO SAVED AUTH TOKEN");
+
+                    console.log(
+                        "NO SAVED AUTH TOKEN"
+                    );
+
 
                     if (mounted) {
-                        dispatch(sessionExpired());
+
+                        dispatch(
+                            sessionExpired()
+                        );
+
                     }
 
                     return;
+
                 }
 
-                let user = null;
+
+                let savedUser = null;
+
 
                 if (userString) {
+
                     try {
-                        user = JSON.parse(userString);
-                    } catch (error) {
+
+                        savedUser =
+                            JSON.parse(
+                                userString
+                            );
+
+                    }
+                    catch (error) {
+
                         console.log(
                             "USER DATA COULD NOT BE PARSED:",
                             error
                         );
+
                     }
+
                 }
 
+
                 if (mounted) {
+
                     dispatch(
                         restoreSession({
                             token,
-                            user,
+                            user: savedUser,
                         })
                     );
+
                 }
 
-                console.log("AUTH SESSION RESTORED");
 
-            } catch (error) {
                 console.log(
-                    "SESSION RESTORATION ERROR:",
-                    error?.message || error
+                    "AUTH SESSION RESTORED"
                 );
 
+            }
+            catch (error) {
+
+                console.log(
+                    "SESSION RESTORATION ERROR:",
+                    error?.message ||
+                    error
+                );
+
+
                 try {
+
                     await AsyncStorage.multiRemove([
                         "token",
                         "user",
                     ]);
-                } catch (storageError) {
+
+                }
+                catch (storageError) {
+
                     console.log(
                         "STORAGE CLEAR ERROR:",
                         storageError
                     );
+
                 }
 
+
                 if (mounted) {
-                    dispatch(sessionExpired());
+
+                    dispatch(
+                        sessionExpired()
+                    );
+
                 }
+
             }
+
         };
+
 
         restoreSavedSession();
 
+
         return () => {
+
             mounted = false;
+
         };
+
     }, [dispatch]);
 
 
+    // =====================================================
+    // AUTHENTICATION NAVIGATION
+    // =====================================================
 
-  // =====================================================
-// AUTHENTICATION NAVIGATION
-// =====================================================
+    useEffect(() => {
 
-useEffect(() => {
-    if (!authChecked) {
-        return;
-    }
+        if (!authChecked) {
 
-
-    // =================================================
-    // PUBLIC ROUTES
-    // =================================================
-
-    const publicRoutes = [
-        "/login",
-        "/register",
-    ];
-
-
-    // =================================================
-    // USER IS NOT LOGGED IN
-    // =================================================
-
-    if (!isAuthenticated) {
-
-        // Allow login and registration screens
-        if (publicRoutes.includes(pathname)) {
             return;
+
         }
 
-        console.log("USER NOT AUTHENTICATED");
-        console.log("REDIRECTING TO LOGIN...");
 
-        router.replace("/login");
+        // =================================================
+        // PUBLIC ROUTES
+        // =================================================
 
-        return;
-    }
+        const publicRoutes = [
+            "/login",
+            "/register",
+        ];
 
 
-    // =================================================
-    // USER IS ALREADY LOGGED IN
-    // =================================================
+        // =================================================
+        // PASSWORD CHANGE ROUTE
+        // =================================================
 
-    if (
-        isAuthenticated &&
-        publicRoutes.includes(pathname)
-    ) {
+        const passwordChangeRoute =
+            "/change-password";
 
-        console.log("USER IS ALREADY AUTHENTICATED");
-        console.log("REDIRECTING TO HOME...");
 
-        router.replace("/");
+        // =================================================
+        // USER IS NOT LOGGED IN
+        // =================================================
 
-    }
+        if (!isAuthenticated) {
 
-}, [
-    authChecked,
-    isAuthenticated,
-    pathname,
-    router,
-]);
+            if (
+                publicRoutes.includes(
+                    pathname
+                )
+            ) {
+
+                return;
+
+            }
+
+
+            console.log(
+                "USER NOT AUTHENTICATED"
+            );
+
+
+            console.log(
+                "REDIRECTING TO LOGIN..."
+            );
+
+
+            router.replace("/login");
+
+            return;
+
+        }
+
+
+        // =================================================
+        // USER MUST CHANGE PASSWORD
+        // =================================================
+
+        const mustChangePassword =
+            user?.mustChangePassword === true;
+
+
+        if (mustChangePassword) {
+
+            if (
+                pathname !==
+                passwordChangeRoute
+            ) {
+
+                console.log(
+                    "PASSWORD CHANGE REQUIRED"
+                );
+
+
+                console.log(
+                    "REDIRECTING TO CHANGE PASSWORD..."
+                );
+
+
+                router.replace(
+                    passwordChangeRoute
+                );
+
+            }
+
+            return;
+
+        }
+
+
+        // =================================================
+        // USER DOES NOT NEED PASSWORD CHANGE
+        // =================================================
+
+        if (
+            pathname ===
+            passwordChangeRoute
+        ) {
+
+            router.replace("/");
+
+            return;
+
+        }
+
+
+        // =================================================
+        // AUTHENTICATED USER ON LOGIN/REGISTER
+        // =================================================
+
+        if (
+            publicRoutes.includes(
+                pathname
+            )
+        ) {
+
+            console.log(
+                "USER IS ALREADY AUTHENTICATED"
+            );
+
+
+            console.log(
+                "REDIRECTING TO HOME..."
+            );
+
+
+            router.replace("/");
+
+        }
+
+    }, [
+        authChecked,
+        isAuthenticated,
+        user,
+        pathname,
+        router,
+    ]);
+
 
     // =====================================================
     // NOTIFICATION COUNT
     // =====================================================
 
     useEffect(() => {
+
         let intervalId = null;
+
 
         const fetchUnreadNotificationCount =
             async () => {
+
                 try {
+
                     if (!isAuthenticated) {
+
                         dispatch(
                             setUnreadCount(0)
                         );
 
                         return;
+
                     }
+
 
                     const response =
                         await api.get(
                             "/notifications"
                         );
 
+
                     const count =
                         response?.data?.unreadCount;
+
 
                     dispatch(
                         setUnreadCount(
@@ -340,44 +554,62 @@ useEffect(() => {
                         )
                     );
 
-                } catch (error) {
+                }
+                catch (error) {
+
                     console.log(
                         "FETCH NOTIFICATION COUNT ERROR:",
                         error?.response?.data ||
                         error?.message ||
                         error
                     );
+
                 }
+
             };
 
 
         if (
             authChecked &&
-            isAuthenticated
+            isAuthenticated &&
+            user?.mustChangePassword !== true
         ) {
+
             fetchUnreadNotificationCount();
 
-            intervalId = setInterval(
-                fetchUnreadNotificationCount,
-                30000
-            );
 
-        } else {
+            intervalId =
+                setInterval(
+                    fetchUnreadNotificationCount,
+                    30000
+                );
+
+        }
+        else {
+
             dispatch(
                 setUnreadCount(0)
             );
+
         }
 
 
         return () => {
+
             if (intervalId) {
-                clearInterval(intervalId);
+
+                clearInterval(
+                    intervalId
+                );
+
             }
+
         };
 
     }, [
         authChecked,
         isAuthenticated,
+        user,
         dispatch,
     ]);
 
@@ -387,27 +619,43 @@ useEffect(() => {
     // =====================================================
 
     if (!authChecked) {
+
         return (
-            <View style={styles.loadingContainer}>
+
+            <View
+                style={
+                    styles.loadingContainer
+                }
+            >
+
                 <ActivityIndicator
                     size="large"
                     color="#0f2a5f"
                 />
 
-                <Text style={styles.loadingText}>
+
+                <Text
+                    style={
+                        styles.loadingText
+                    }
+                >
                     Loading...
                 </Text>
+
             </View>
+
         );
+
     }
 
 
     // =====================================================
-    // SHOW BOTTOM TAB BAR ONLY ON MAIN SCREENS
+    // SHOW BOTTOM TAB BAR
     // =====================================================
 
     const showTabBar =
         isAuthenticated &&
+        user?.mustChangePassword !== true &&
         (
             pathname === "/" ||
             pathname === "/attendance" ||
@@ -417,20 +665,38 @@ useEffect(() => {
 
 
     return (
-        <View style={styles.appContainer}>
-            <View style={styles.stackContainer}>
+
+        <View
+            style={
+                styles.appContainer
+            }
+        >
+
+            <View
+                style={
+                    styles.stackContainer
+                }
+            >
+
                 <Stack
                     screenOptions={{
                         headerShown: false,
                     }}
                 />
+
             </View>
 
+
             {showTabBar && (
+
                 <CustomTabBar />
+
             )}
+
         </View>
+
     );
+
 }
 
 
@@ -439,11 +705,17 @@ useEffect(() => {
 // =========================================================
 
 export default function RootLayout() {
+
     return (
+
         <Provider store={store}>
+
             <AppLayout />
+
         </Provider>
+
     );
+
 }
 
 
@@ -454,92 +726,153 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
 
     appContainer: {
+
         flex: 1,
+
         backgroundColor: "#f4f6fb",
+
     },
+
 
     stackContainer: {
+
         flex: 1,
+
     },
+
 
     loadingContainer: {
+
         flex: 1,
+
         backgroundColor: "#f4f6fb",
+
         justifyContent: "center",
+
         alignItems: "center",
+
     },
+
 
     loadingText: {
+
         marginTop: 12,
+
         fontSize: 15,
+
         color: "#555555",
+
     },
 
-    // =====================================================
-    // BOTTOM TAB BAR
-    // =====================================================
 
     tabBar: {
+
         height: 70,
+
         backgroundColor: "#ffffff",
+
         borderTopWidth: 1,
+
         borderTopColor: "#e5e5e5",
+
         flexDirection: "row",
+
         alignItems: "center",
+
         justifyContent: "space-around",
+
         paddingTop: 5,
+
         paddingBottom: 5,
+
     },
+
 
     tabButton: {
+
         flex: 1,
+
         height: 65,
+
         justifyContent: "center",
+
         alignItems: "center",
+
     },
+
 
     tabIconContainer: {
+
         position: "relative",
+
         justifyContent: "center",
+
         alignItems: "center",
+
     },
+
 
     tabLabel: {
+
         marginTop: 3,
+
         fontSize: 11,
+
         fontWeight: "500",
+
         color: "#8a8a8a",
+
     },
+
 
     activeTabLabel: {
+
         color: "#0f2a5f",
+
         fontWeight: "700",
+
     },
 
-    // =====================================================
-    // NOTIFICATION BADGE
-    // =====================================================
 
     notificationBadge: {
+
         position: "absolute",
+
         right: -10,
+
         top: -7,
+
         minWidth: 18,
+
         height: 18,
+
         paddingHorizontal: 4,
+
         borderRadius: 9,
+
         backgroundColor: "#e53935",
+
         justifyContent: "center",
+
         alignItems: "center",
+
         borderWidth: 1,
+
         borderColor: "#ffffff",
+
     },
 
+
     notificationBadgeText: {
+
         color: "#ffffff",
+
         fontSize: 10,
+
         fontWeight: "700",
+
         textAlign: "center",
+
     },
 
 });
