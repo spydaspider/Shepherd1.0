@@ -130,6 +130,34 @@ mustChangePassword:{
     default:false
 },
 
+// =====================================================
+// PASSWORD RESET
+// =====================================================
+
+passwordResetCode:{
+    type:String,
+    default:null,
+    select:false
+},
+
+passwordResetExpires:{
+    type:Date,
+    default:null,
+    select:false
+},
+
+passwordResetVerified:{
+    type:Boolean,
+    default:false,
+    select:false
+},
+
+passwordResetVerifiedExpires:{
+    type:Date,
+    default:null,
+    select:false
+},
+
 accountCreatedAt:{
     type:Date,
     default:null

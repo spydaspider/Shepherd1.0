@@ -7,7 +7,10 @@ const {
     registerUser,
     loginUser,
     createMemberAccount,
-    changePassword
+    changePassword,
+    forgotPassword,
+    verifyResetCode,
+    resetPassword
 } = require("../controllers/authController");
 
 
@@ -56,7 +59,37 @@ router.patch(
     protect,
     changePassword
 );
+// =====================================
+// Forgot Password
+// POST /api/auth/forgot-password
+// =====================================
 
+router.post(
+    "/forgot-password",
+    forgotPassword
+);
+
+
+// =====================================
+// Verify Password Reset Code
+// POST /api/auth/verify-reset-code
+// =====================================
+
+router.post(
+    "/verify-reset-code",
+    verifyResetCode
+);
+
+
+// =====================================
+// Reset Password
+// POST /api/auth/reset-password
+// =====================================
+
+router.post(
+    "/reset-password",
+    resetPassword
+);
 
 // =====================================
 // Admin Creates Login Account
