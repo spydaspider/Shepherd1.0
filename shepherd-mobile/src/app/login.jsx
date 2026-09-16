@@ -121,7 +121,7 @@ export default function LoginScreen() {
 
 
             // -----------------------------------------
-            // Check Response
+            // Validate Response
             // -----------------------------------------
 
             if (!token || !user) {
@@ -137,16 +137,6 @@ export default function LoginScreen() {
 
             // -----------------------------------------
             // Check Password Change Requirement
-            //
-            // Some backend responses may return:
-            //
-            // mustChangePassword: true
-            //
-            // while others may place it inside:
-            //
-            // user.mustChangePassword
-            //
-            // We support both.
             // -----------------------------------------
 
             const mustChangePassword =
@@ -154,14 +144,9 @@ export default function LoginScreen() {
                 user?.mustChangePassword === true;
 
 
-            console.log(
-                "LOGIN SUCCESS"
-            );
+            console.log("LOGIN SUCCESS");
 
-            console.log(
-                "USER:",
-                user
-            );
+            console.log("USER:", user);
 
             console.log(
                 "MUST CHANGE PASSWORD:",
@@ -185,7 +170,10 @@ export default function LoginScreen() {
 
             await AsyncStorage.setItem(
                 "user",
-                JSON.stringify(user)
+                JSON.stringify({
+                    ...user,
+                    mustChangePassword,
+                })
             );
 
 
@@ -196,13 +184,16 @@ export default function LoginScreen() {
             dispatch(
                 loginSuccess({
                     token,
-                    user,
+                    user: {
+                        ...user,
+                        mustChangePassword,
+                    },
                 })
             );
 
 
             // -----------------------------------------
-            // FIRST LOGIN
+            // First Login
             // -----------------------------------------
 
             if (mustChangePassword) {
@@ -221,7 +212,7 @@ export default function LoginScreen() {
 
 
             // -----------------------------------------
-            // NORMAL LOGIN
+            // Normal Login
             // -----------------------------------------
 
             router.replace("/");
@@ -252,19 +243,19 @@ export default function LoginScreen() {
 
             }
 
+
             // -----------------------------------------
             // Server Unreachable
             // -----------------------------------------
 
-            else if (
-                error.request
-            ) {
+            else if (error.request) {
 
                 setError(
                     "Unable to connect to Shepherd. Please check your internet connection and try again."
                 );
 
             }
+
 
             // -----------------------------------------
             // Other Error
@@ -299,6 +290,21 @@ export default function LoginScreen() {
         }
 
         router.push("/register");
+
+    };
+
+
+    // =================================================
+    // Go To Forgot Password
+    // =================================================
+
+    const handleForgotPassword = () => {
+
+        if (loading) {
+            return;
+        }
+
+        router.push("/forgot-password");
 
     };
 
@@ -419,6 +425,19 @@ export default function LoginScreen() {
 
 
                 <TouchableOpacity
+                    style={styles.forgotPasswordLink}
+                    onPress={handleForgotPassword}
+                    disabled={loading}
+                >
+
+                    <Text style={styles.forgotPasswordText}>
+                        Forgot your password?
+                    </Text>
+
+                </TouchableOpacity>
+
+
+                <TouchableOpacity
                     style={styles.registerLink}
                     onPress={handleRegister}
                     disabled={loading}
@@ -426,6 +445,7 @@ export default function LoginScreen() {
 
                     <Text style={styles.registerLinkText}>
                         Don't have an account?{" "}
+
                         <Text style={styles.registerLinkBold}>
                             Create an account
                         </Text>
@@ -460,6 +480,7 @@ const styles = StyleSheet.create({
 
     },
 
+
     header: {
 
         alignItems: "center",
@@ -467,6 +488,7 @@ const styles = StyleSheet.create({
         marginBottom: 40,
 
     },
+
 
     logo: {
 
@@ -478,6 +500,7 @@ const styles = StyleSheet.create({
 
     },
 
+
     subtitle: {
 
         marginTop: 5,
@@ -488,11 +511,13 @@ const styles = StyleSheet.create({
 
     },
 
+
     form: {
 
         width: "100%",
 
     },
+
 
     label: {
 
@@ -507,6 +532,7 @@ const styles = StyleSheet.create({
         marginTop: 15,
 
     },
+
 
     input: {
 
@@ -525,6 +551,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
 
     },
+
 
     errorContainer: {
 
@@ -548,6 +575,7 @@ const styles = StyleSheet.create({
 
     },
 
+
     errorIcon: {
 
         width: 22,
@@ -570,6 +598,7 @@ const styles = StyleSheet.create({
 
     },
 
+
     errorText: {
 
         flex: 1,
@@ -581,6 +610,7 @@ const styles = StyleSheet.create({
         lineHeight: 20,
 
     },
+
 
     button: {
 
@@ -596,11 +626,13 @@ const styles = StyleSheet.create({
 
     },
 
+
     buttonDisabled: {
 
         opacity: 0.7,
 
     },
+
 
     buttonText: {
 
@@ -612,15 +644,39 @@ const styles = StyleSheet.create({
 
     },
 
+
+    forgotPasswordLink: {
+
+        alignItems: "center",
+
+        marginTop: 18,
+
+        paddingVertical: 8,
+
+    },
+
+
+    forgotPasswordText: {
+
+        color: "#0f2a5f",
+
+        fontSize: 14,
+
+        fontWeight: "600",
+
+    },
+
+
     registerLink: {
 
         alignItems: "center",
 
-        marginTop: 20,
+        marginTop: 12,
 
         paddingVertical: 10,
 
     },
+
 
     registerLinkText: {
 
@@ -631,6 +687,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
 
     },
+
 
     registerLinkBold: {
 

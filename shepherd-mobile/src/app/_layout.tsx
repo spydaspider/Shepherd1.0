@@ -40,6 +40,10 @@ import {
 import api from "../api/axios";
 
 
+// =====================================================
+// Custom Tab Bar
+// =====================================================
+
 function CustomTabBar() {
 
     const router = useRouter();
@@ -186,6 +190,10 @@ function CustomTabBar() {
 
 }
 
+
+// =====================================================
+// App Layout
+// =====================================================
 
 function AppLayout() {
 
@@ -379,10 +387,25 @@ function AppLayout() {
         // =================================================
         // PUBLIC ROUTES
         // =================================================
+        //
+        // These screens must be accessible without
+        // authentication because they are part of the
+        // login / registration / password-reset flow.
+        //
+        // =================================================
 
         const publicRoutes = [
+
             "/login",
+
             "/register",
+
+            "/forgot-password",
+
+            "/verify-reset-code",
+
+            "/reset-password",
+
         ];
 
 
@@ -400,6 +423,10 @@ function AppLayout() {
 
         if (!isAuthenticated) {
 
+            // ---------------------------------------------
+            // Allow public routes
+            // ---------------------------------------------
+
             if (
                 publicRoutes.includes(
                     pathname
@@ -410,6 +437,10 @@ function AppLayout() {
 
             }
 
+
+            // ---------------------------------------------
+            // Protect private routes
+            // ---------------------------------------------
 
             console.log(
                 "USER NOT AUTHENTICATED"
@@ -481,7 +512,7 @@ function AppLayout() {
 
 
         // =================================================
-        // AUTHENTICATED USER ON LOGIN/REGISTER
+        // AUTHENTICATED USER ON PUBLIC LOGIN ROUTES
         // =================================================
 
         if (
@@ -663,6 +694,10 @@ function AppLayout() {
             pathname === "/profile"
         );
 
+
+    // =====================================================
+    // RENDER
+    // =====================================================
 
     return (
 
