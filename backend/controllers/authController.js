@@ -4,13 +4,19 @@ const User = require("../models/User");
 
 const generateToken = require("../utils/generateToken");
 
+const {
+    sendPasswordResetEmail,
+} = require("../services/emailService");
+
 
 // =====================================
 // Register User
 // =====================================
 
 const registerUser = async (req, res) => {
+
     try {
+
         const {
             firstName,
             lastName,
@@ -21,18 +27,27 @@ const registerUser = async (req, res) => {
             dateOfBirth
         } = req.body;
 
-        const cleanFirstName = firstName?.trim();
 
-        const cleanLastName = lastName?.trim();
+        const cleanFirstName =
+            firstName?.trim();
 
-        const cleanEmail = email
-            ? email.trim().toLowerCase()
-            : undefined;
+        const cleanLastName =
+            lastName?.trim();
 
-        const cleanPhone = phone
-            ? phone.trim()
-            : undefined;
+        const cleanEmail =
+            email
+                ? email.trim().toLowerCase()
+                : undefined;
 
+        const cleanPhone =
+            phone
+                ? phone.trim()
+                : undefined;
+
+
+        // =====================================
+        // Validate required fields
+        // =====================================
 
         if (
             !cleanFirstName ||
@@ -40,17 +55,26 @@ const registerUser = async (req, res) => {
             !password ||
             !gender
         ) {
+
             return res.status(400).json({
+
                 success: false,
+
                 message:
                     "First name, last name, password and gender are required"
             });
         }
 
 
-        if (!cleanEmail && !cleanPhone) {
+        if (
+            !cleanEmail &&
+            !cleanPhone
+        ) {
+
             return res.status(400).json({
+
                 success: false,
+
                 message:
                     "Email or phone number is required"
             });
@@ -58,8 +82,11 @@ const registerUser = async (req, res) => {
 
 
         if (password.length < 6) {
+
             return res.status(400).json({
+
                 success: false,
+
                 message:
                     "Password must be at least 6 characters"
             });
@@ -72,14 +99,19 @@ const registerUser = async (req, res) => {
 
         if (cleanEmail) {
 
-            const emailExists = await User.findOne({
-                email: cleanEmail
-            });
+            const emailExists =
+                await User.findOne({
+                    email: cleanEmail
+                });
 
             if (emailExists) {
+
                 return res.status(400).json({
+
                     success: false,
-                    message: "Email already exists"
+
+                    message:
+                        "Email already exists"
                 });
             }
         }
@@ -91,14 +123,19 @@ const registerUser = async (req, res) => {
 
         if (cleanPhone) {
 
-            const phoneExists = await User.findOne({
-                phone: cleanPhone
-            });
+            const phoneExists =
+                await User.findOne({
+                    phone: cleanPhone
+                });
 
             if (phoneExists) {
+
                 return res.status(400).json({
+
                     success: false,
-                    message: "Phone already exists"
+
+                    message:
+                        "Phone already exists"
                 });
             }
         }
@@ -108,41 +145,60 @@ const registerUser = async (req, res) => {
         // Create user
         // =====================================
 
-        const user = await User.create({
+        const user =
+            await User.create({
 
-            firstName: cleanFirstName,
+                firstName:
+                    cleanFirstName,
 
-            lastName: cleanLastName,
+                lastName:
+                    cleanLastName,
 
-            email: cleanEmail,
+                email:
+                    cleanEmail,
 
-            phone: cleanPhone,
+                phone:
+                    cleanPhone,
 
-            password,
+                password,
 
-            gender,
+                gender,
 
-            dateOfBirth: dateOfBirth || null,
+                dateOfBirth:
+                    dateOfBirth || null,
 
-            hasAccount: true,
+                hasAccount:
+                    true,
 
-            loginEnabled: true,
+                loginEnabled:
+                    true,
 
-            mustChangePassword: false,
+                mustChangePassword:
+                    false,
 
-            accountCreatedAt: new Date(),
+                accountCreatedAt:
+                    new Date(),
 
-            role: "Member",
+                role:
+                    "Member",
 
-            membershipType: "Member",
+                membershipType:
+                    "Member",
 
-            status: "Active",
+                status:
+                    "Active",
 
-            isActive: true,
+                isActive:
+                    true,
 
-            registrationSource: "Online"
-        });
+                registrationSource:
+                    "Online"
+            });
 
+
+        // =====================================
+        // Return successful registration
+        // =====================================
 
         return res.status(201).json({
 
@@ -156,7 +212,8 @@ const registerUser = async (req, res) => {
 
             user: {
 
-                id: user._id,
+                id:
+                    user._id,
 
                 firstName:
                     user.firstName,
@@ -193,6 +250,7 @@ const registerUser = async (req, res) => {
                 Object.keys(
                     error.keyPattern || {}
                 )[0];
+
 
             return res.status(400).json({
 
@@ -309,6 +367,10 @@ const createMemberAccount = async (req, res) => {
         }
 
 
+        // =====================================
+        // Configure account
+        // =====================================
+
         member.password =
             generatedPassword;
 
@@ -339,6 +401,10 @@ const createMemberAccount = async (req, res) => {
 
         await member.save();
 
+
+        // =====================================
+        // Return temporary password
+        // =====================================
 
         return res.status(200).json({
 
@@ -407,6 +473,10 @@ const loginUser = async (req, res) => {
         } = req.body;
 
 
+        // =====================================
+        // Validate
+        // =====================================
+
         if (
             !identifier ||
             !password
@@ -445,9 +515,11 @@ const loginUser = async (req, res) => {
                     email:
                         cleanIdentifier.toLowerCase(),
 
-                    hasAccount: true,
+                    hasAccount:
+                        true,
 
-                    loginEnabled: true
+                    loginEnabled:
+                        true
 
                 }).select("+password");
 
@@ -464,13 +536,19 @@ const loginUser = async (req, res) => {
                     phone:
                         cleanIdentifier,
 
-                    hasAccount: true,
+                    hasAccount:
+                        true,
 
-                    loginEnabled: true
+                    loginEnabled:
+                        true
 
                 }).select("+password");
         }
 
+
+        // =====================================
+        // User not found
+        // =====================================
 
         if (!user) {
 
@@ -483,6 +561,10 @@ const loginUser = async (req, res) => {
             });
         }
 
+
+        // =====================================
+        // Check password
+        // =====================================
 
         const match =
             await user.matchPassword(
@@ -502,12 +584,20 @@ const loginUser = async (req, res) => {
         }
 
 
+        // =====================================
+        // Update last login
+        // =====================================
+
         user.lastLogin =
             new Date();
 
 
         await user.save();
 
+
+        // =====================================
+        // Successful login
+        // =====================================
 
         return res.json({
 
@@ -613,7 +703,8 @@ const changePassword = async (req, res) => {
 
 
         if (
-            newPassword !== confirmPassword
+            newPassword !==
+            confirmPassword
         ) {
 
             return res.status(400).json({
@@ -792,8 +883,15 @@ const changePassword = async (req, res) => {
 const forgotPassword = async (req, res) => {
 
     try {
-        console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("FORGOT PASSWORD CONTROLLER REACHED");
+
+        console.log(
+            "FORGOT PASSWORD CONTROLLER REACHED"
+        );
+
+
+        // =====================================
+        // Get identifier
+        // =====================================
 
         const {
             identifier
@@ -824,54 +922,44 @@ console.log("FORGOT PASSWORD CONTROLLER REACHED");
             cleanIdentifier.includes("@");
 
 
-        let user;
-
-
         // =====================================
-        // Find by email
+        // EMAIL RESET
         // =====================================
 
-        if (isEmail) {
+        if (!isEmail) {
 
-            user =
-                await User.findOne({
+            return res.status(400).json({
 
-                    email:
-                        cleanIdentifier.toLowerCase(),
+                success: false,
 
-                    hasAccount: true,
-
-                    loginEnabled: true,
-
-                    isActive: true,
-
-                    deleted: false
-
-                });
-
-
-        } else {
-
-            // =====================================
-            // Find by phone
-            // =====================================
-
-            user =
-                await User.findOne({
-
-                    phone:
-                        cleanIdentifier,
-
-                    hasAccount: true,
-
-                    loginEnabled: true,
-
-                    isActive: true,
-
-                    deleted: false
-
-                });
+                message:
+                    "Please enter the email address associated with your account"
+            });
         }
+
+
+        // =====================================
+        // Find user by email
+        // =====================================
+
+        const user =
+            await User.findOne({
+
+                email:
+                    cleanIdentifier.toLowerCase(),
+
+                hasAccount:
+                    true,
+
+                loginEnabled:
+                    true,
+
+                isActive:
+                    true,
+
+                deleted:
+                    false
+            });
 
 
         // =====================================
@@ -880,8 +968,27 @@ console.log("FORGOT PASSWORD CONTROLLER REACHED");
         // =====================================
 
         if (!user) {
-              console.log("FORGOT PASSWORD: USER NOT FOUND");
-    console.log("Identifier:", cleanIdentifier);
+
+            console.log(
+                "FORGOT PASSWORD: USER NOT FOUND"
+            );
+
+
+            return res.status(200).json({
+
+                success: true,
+
+                message:
+                    "If an account exists, a password reset code has been sent."
+            });
+        }
+
+
+        // =====================================
+        // Make sure user has email
+        // =====================================
+
+        if (!user.email) {
 
             return res.status(200).json({
 
@@ -907,7 +1014,7 @@ console.log("FORGOT PASSWORD CONTROLLER REACHED");
 
 
         // =====================================
-        // Hash OTP before storage
+        // Hash OTP
         // =====================================
 
         const hashedCode =
@@ -945,40 +1052,71 @@ console.log("FORGOT PASSWORD CONTROLLER REACHED");
 
 
         // =====================================
-        // DEVELOPMENT ONLY
+        // SEND EMAIL
         // =====================================
 
-        console.log(
-            `PASSWORD RESET CODE for ${cleanIdentifier}: ${resetCode}`
-        );
+        try {
+
+            await sendPasswordResetEmail(
+                user.email,
+                resetCode
+            );
 
 
-        const response = {
+            console.log(
+                "PASSWORD RESET CODE SENT BY EMAIL"
+            );
+
+
+        } catch (deliveryError) {
+
+            console.error(
+                "PASSWORD RESET EMAIL DELIVERY ERROR:",
+                deliveryError
+            );
+
+
+            // =====================================
+            // Clear reset information
+            // =====================================
+
+            user.passwordResetCode =
+                null;
+
+            user.passwordResetExpires =
+                null;
+
+            user.passwordResetVerified =
+                false;
+
+            user.passwordResetVerifiedExpires =
+                null;
+
+
+            await user.save();
+
+
+            return res.status(500).json({
+
+                success: false,
+
+                message:
+                    "We could not send your password reset code. Please try again later."
+            });
+        }
+
+
+        // =====================================
+        // SUCCESS
+        // =====================================
+
+        return res.status(200).json({
 
             success: true,
 
             message:
                 "If an account exists, a password reset code has been sent."
-        };
-
-
-        // =====================================
-        // Temporary development response
-        // =====================================
-
-        if (
-            process.env.NODE_ENV !==
-            "production"
-        ) {
-
-            response.resetCode =
-                resetCode;
-        }
-
-
-        return res.status(200).json(
-            response
-        );
+        });
 
 
     } catch (error) {
@@ -1050,9 +1188,7 @@ const verifyResetCode = async (req, res) => {
 
 
         // =====================================
-        // Find user
-        // IMPORTANT:
-        // Explicitly select ALL reset fields
+        // Select reset fields
         // =====================================
 
         const resetFields =
@@ -1062,6 +1198,10 @@ const verifyResetCode = async (req, res) => {
             "+passwordResetVerifiedExpires";
 
 
+        // =====================================
+        // Find by email
+        // =====================================
+
         if (isEmail) {
 
             user =
@@ -1070,18 +1210,28 @@ const verifyResetCode = async (req, res) => {
                     email:
                         cleanIdentifier.toLowerCase(),
 
-                    hasAccount: true,
+                    hasAccount:
+                        true,
 
-                    loginEnabled: true,
+                    loginEnabled:
+                        true,
 
-                    isActive: true,
+                    isActive:
+                        true,
 
-                    deleted: false
+                    deleted:
+                        false
 
-                }).select(resetFields);
+                }).select(
+                    resetFields
+                );
 
 
         } else {
+
+            // =====================================
+            // Find by phone
+            // =====================================
 
             user =
                 await User.findOne({
@@ -1089,15 +1239,21 @@ const verifyResetCode = async (req, res) => {
                     phone:
                         cleanIdentifier,
 
-                    hasAccount: true,
+                    hasAccount:
+                        true,
 
-                    loginEnabled: true,
+                    loginEnabled:
+                        true,
 
-                    isActive: true,
+                    isActive:
+                        true,
 
-                    deleted: false
+                    deleted:
+                        false
 
-                }).select(resetFields);
+                }).select(
+                    resetFields
+                );
         }
 
 
@@ -1246,6 +1402,7 @@ const verifyResetCode = async (req, res) => {
 };
 
 
+
 // =====================================================
 // Reset Password
 // POST /api/auth/reset-password
@@ -1258,12 +1415,12 @@ const resetPassword = async (req, res) => {
         const {
             identifier,
             newPassword,
-            confirmPassword
+            confirmPassword,
         } = req.body;
 
 
         // =====================================
-        // Validate
+        // Validation
         // =====================================
 
         if (
@@ -1277,21 +1434,19 @@ const resetPassword = async (req, res) => {
                 success: false,
 
                 message:
-                    "Email or phone number, new password and confirmation are required"
+                    "Identifier, new password and confirm password are required"
             });
         }
 
 
-        if (
-            newPassword.length < 6
-        ) {
+        if (newPassword.length < 6) {
 
             return res.status(400).json({
 
                 success: false,
 
                 message:
-                    "New password must be at least 6 characters"
+                    "Password must be at least 6 characters long"
             });
         }
 
@@ -1306,83 +1461,82 @@ const resetPassword = async (req, res) => {
                 success: false,
 
                 message:
-                    "New passwords do not match"
+                    "Passwords do not match"
             });
         }
 
 
+        // =====================================
+        // Clean identifier
+        // =====================================
+
         const cleanIdentifier =
-            identifier.trim();
-
-
-        const isEmail =
-            cleanIdentifier.includes("@");
-
-
-        let user;
+            identifier
+                .trim()
+                .toLowerCase();
 
 
         // =====================================
-        // Find user
+        // Find user by email
         // =====================================
 
-        if (isEmail) {
+        let user =
+            await User.findOne({
 
-            user =
-                await User.findOne({
+                email:
+                    cleanIdentifier
 
-                    email:
-                        cleanIdentifier.toLowerCase(),
+            }).select(
 
-                    hasAccount: true,
-
-                    loginEnabled: true,
-
-                    isActive: true,
-
-                    deleted: false
-
-                }).select(
-                    "+password +passwordResetCode"
-                );
+                "+password " +
+                "+passwordResetCode " +
+                "+passwordResetExpires " +
+                "+passwordResetVerified " +
+                "+passwordResetVerifiedExpires"
+            );
 
 
-        } else {
+        // =====================================
+        // If not email, try phone
+        // =====================================
+
+        if (!user) {
 
             user =
                 await User.findOne({
 
                     phone:
-                        cleanIdentifier,
-
-                    hasAccount: true,
-
-                    loginEnabled: true,
-
-                    isActive: true,
-
-                    deleted: false
+                        identifier.trim()
 
                 }).select(
-                    "+password +passwordResetCode"
+
+                    "+password " +
+                    "+passwordResetCode " +
+                    "+passwordResetExpires " +
+                    "+passwordResetVerified " +
+                    "+passwordResetVerifiedExpires"
                 );
         }
 
 
+        // =====================================
+        // User not found
+        // =====================================
+
         if (!user) {
 
-            return res.status(400).json({
+            return res.status(404).json({
 
                 success: false,
 
                 message:
-                    "Unable to reset password"
+                    "No account found with that email or phone number"
             });
         }
 
 
         // =====================================
-        // Must have verified reset code
+        // Check verification
         // =====================================
 
         if (
@@ -1401,19 +1555,13 @@ const resetPassword = async (req, res) => {
 
 
         // =====================================
-        // Check verification expiration
+        // Check verification expiry
         // =====================================
 
         if (
-            user.passwordResetVerifiedExpires <
-            new Date()
+            new Date() >
+            user.passwordResetVerifiedExpires
         ) {
-
-            user.passwordResetCode =
-                null;
-
-            user.passwordResetExpires =
-                null;
 
             user.passwordResetVerified =
                 false;
@@ -1421,16 +1569,22 @@ const resetPassword = async (req, res) => {
             user.passwordResetVerifiedExpires =
                 null;
 
+            user.passwordResetCode =
+                null;
+
+            user.passwordResetExpires =
+                null;
+
 
             await user.save();
 
 
-            return res.status(403).json({
+            return res.status(400).json({
 
                 success: false,
 
                 message:
-                    "Password reset session has expired. Please request a new code."
+                    "Password reset verification has expired. Please request a new code."
             });
         }
 
@@ -1452,7 +1606,7 @@ const resetPassword = async (req, res) => {
                 success: false,
 
                 message:
-                    "New password must be different from your current password"
+                    "Your new password must be different from your current password"
             });
         }
 
@@ -1464,21 +1618,15 @@ const resetPassword = async (req, res) => {
         user.password =
             newPassword;
 
-
-        // =====================================
-        // Reset first-login requirement
-        // =====================================
-
         user.mustChangePassword =
             false;
-
 
         user.loginEnabled =
             true;
 
 
         // =====================================
-        // Clear reset information
+        // Clear reset data
         // =====================================
 
         user.passwordResetCode =
@@ -1498,12 +1646,16 @@ const resetPassword = async (req, res) => {
 
 
         // =====================================
-        // Generate fresh token
+        // Generate new login token
         // =====================================
 
         const token =
             generateToken(user);
 
+
+        // =====================================
+        // Return successful reset
+        // =====================================
 
         return res.status(200).json({
 
@@ -1553,7 +1705,13 @@ const resetPassword = async (req, res) => {
             success: false,
 
             message:
-                "Unable to reset password"
+                "Server error while resetting password",
+
+            error:
+                process.env.NODE_ENV ===
+                "development"
+                    ? error.message
+                    : undefined
         });
     }
 };
