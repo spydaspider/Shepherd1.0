@@ -31,7 +31,7 @@ export default function ForgotPasswordScreen() {
     // Form State
     // =================================================
 
-    const [identifier, setIdentifier] = useState("");
+    const [email, setEmail] = useState("");
 
     const [loading, setLoading] = useState(false);
 
@@ -52,17 +52,33 @@ export default function ForgotPasswordScreen() {
 
 
         // ---------------------------------------------
-        // Validate Identifier
+        // Validate Email
         // ---------------------------------------------
 
-        if (!identifier.trim()) {
+        const cleanEmail = email.trim().toLowerCase();
+
+        if (!cleanEmail) {
 
             setError(
-                "Please enter your email address or phone number."
+                "Please enter your email address."
             );
 
             return;
+        }
 
+
+        // Basic email validation
+
+        const emailRegex =
+            /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailRegex.test(cleanEmail)) {
+
+            setError(
+                "Please enter a valid email address."
+            );
+
+            return;
         }
 
 
@@ -78,7 +94,7 @@ export default function ForgotPasswordScreen() {
             const response = await api.post(
                 "/auth/forgot-password",
                 {
-                    identifier: identifier.trim(),
+                    identifier: cleanEmail,
                 }
             );
 
@@ -92,6 +108,10 @@ export default function ForgotPasswordScreen() {
             );
 
 
+            // -----------------------------------------
+            // Check Response
+            // -----------------------------------------
+
             if (!data?.success) {
 
                 setError(
@@ -100,32 +120,36 @@ export default function ForgotPasswordScreen() {
                 );
 
                 return;
-
             }
 
 
             // -----------------------------------------
-            // Development Reset Code
+            // Show Success Message
             // -----------------------------------------
 
-            const resetCode = data?.resetCode;
+            setSuccessMessage(
+                "A 6-digit reset code has been sent to your email."
+            );
 
 
             // -----------------------------------------
             // Navigate To Verification Screen
             // -----------------------------------------
 
-            router.push({
-                pathname: "/verify-reset-code",
-                params: {
-                    identifier: identifier.trim(),
-                    ...(resetCode
-                        ? { resetCode }
-                        : {}),
-                },
-            });
+            setTimeout(() => {
+
+                router.replace({
+                    pathname: "/verify-reset-code",
+
+                    params: {
+                        identifier: cleanEmail,
+                    },
+                });
+
+            }, 700);
 
         }
+
         catch (error) {
 
             console.log(
@@ -144,6 +168,7 @@ export default function ForgotPasswordScreen() {
                 );
 
             }
+
             else if (error?.request) {
 
                 setError(
@@ -151,6 +176,7 @@ export default function ForgotPasswordScreen() {
                 );
 
             }
+
             else {
 
                 setError(
@@ -160,6 +186,7 @@ export default function ForgotPasswordScreen() {
             }
 
         }
+
         finally {
 
             setLoading(false);
@@ -203,8 +230,8 @@ export default function ForgotPasswordScreen() {
                 </Text>
 
                 <Text style={styles.subtitle}>
-                    Enter your email address or phone number
-                    to reset your password.
+                    Enter the email address associated
+                    with your Shepherd account.
                 </Text>
 
             </View>
@@ -213,16 +240,23 @@ export default function ForgotPasswordScreen() {
             <View style={styles.form}>
 
                 <Text style={styles.label}>
-                    Email or Phone Number
+                    Email Address
                 </Text>
 
+
                 <TextInput
-                    style={styles.input}
-                    placeholder="Enter your email or phone number"
-                    value={identifier}
+                    style={[
+                        styles.input,
+                        error && styles.inputError,
+                    ]}
+
+                    placeholder="Enter your email address"
+
+                    value={email}
+
                     onChangeText={(value) => {
 
-                        setIdentifier(value);
+                        setEmail(value);
 
                         if (error) {
                             setError("");
@@ -233,9 +267,15 @@ export default function ForgotPasswordScreen() {
                         }
 
                     }}
+
                     keyboardType="email-address"
+
                     autoCapitalize="none"
+
                     autoCorrect={false}
+
+                    autoComplete="email"
+
                     editable={!loading}
                 />
 
@@ -276,7 +316,9 @@ export default function ForgotPasswordScreen() {
                         loading &&
                         styles.buttonDisabled,
                     ]}
+
                     onPress={handleForgotPassword}
+
                     disabled={loading}
                 >
 
@@ -289,7 +331,7 @@ export default function ForgotPasswordScreen() {
                     ) : (
 
                         <Text style={styles.buttonText}>
-                            Continue
+                            Send Reset Code
                         </Text>
 
                     )}
@@ -299,7 +341,9 @@ export default function ForgotPasswordScreen() {
 
                 <TouchableOpacity
                     style={styles.backButton}
+
                     onPress={handleBackToLogin}
+
                     disabled={loading}
                 >
 
@@ -424,6 +468,13 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
 
         fontSize: 16,
+
+    },
+
+
+    inputError: {
+
+        borderColor: "#d32f2f",
 
     },
 

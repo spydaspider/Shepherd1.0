@@ -56,7 +56,7 @@ const seedUsers = async () => {
             {
                 firstName: "System",
                 lastName: "Admin",
-                email: "admin@shepherd.com",
+                email: "spydaspider@gmail.com",
                 phone: "0000000001",
                 password: "Admin@123456",
                 gender: "Male",
